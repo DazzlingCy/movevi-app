@@ -12,33 +12,32 @@ import RunPlaybackView from './components/RunPlaybackView';
 import IntroScreen from './components/IntroScreen';
 import LitRecordsView from './components/LitRecordsView';
 import LeaderboardView from './components/LeaderboardView';
-import WeekendMashupView from './components/WeekendMashupView';
-import WeekendRouteSelectView from './components/WeekendRouteSelectView';
-import WeekendLotteryWheelView from './components/WeekendLotteryWheelView';
-import {
-  createWeekendMashupState,
-  WeekendMashupDraw,
-  WeekendMashupRoute,
-  WeekendMashupState,
-} from './data/weekendMashup';
-
-type FullScreenPage =
-  | { type: 'cityRoutes'; data: any }
-  | { type: 'routeDetail'; data: any }
-  | { type: 'runPlayback'; data: any }
-  | { type: 'litRecords'; data?: any }
-  | { type: 'leaderboard'; data?: any }
-  | { type: 'weekendMashup'; data?: any }
-  | { type: 'weekendRouteSelect'; data?: any }
-  | { type: 'weekendLotteryWheel'; data?: any }
-  | { type: 'weekendRouteDetail'; data: any }
-  | { type: 'weekendRunPlayback'; data: any };
+import WeekendMedleyView from './components/WeekendMedleyView';
+import TeamRelayView, { type TeamRelayMember, type TeamRelayTask } from './components/TeamRelayView';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [showIntro, setShowIntro] = useState(true);
-  const [fullScreenPage, setFullScreenPage] = useState<FullScreenPage | null>(null);
-  const [weekendMashupState, setWeekendMashupState] = useState<WeekendMashupState>(() => createWeekendMashupState());
+  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'runPlayback' | 'litRecords' | 'leaderboard' | 'weekendMedley' | 'teamRelay', data?: any} | null>(null);
+
+  // Weekend City Memory Medley Activity states
+  const [medleySelectedRouteIds, setMedleySelectedRouteIds] = useState<string[]>([]);
+  const [medleyCompletedRouteIds, setMedleyCompletedRouteIds] = useState<string[]>([]);
+  const [medleyLotteryChances, setMedleyLotteryChances] = useState<number>(0);
+  const [medleyDrawHistory, setMedleyDrawHistory] = useState<number[]>([]);
+  const [medleyShareBonusClaimed, setMedleyShareBonusClaimed] = useState<boolean>(false);
+  const [medleyActivityStarted, setMedleyActivityStarted] = useState<boolean>(false);
+
+  // City Memory Team Relay Activity states
+  const [teamRelayStarted, setTeamRelayStarted] = useState<boolean>(false);
+  const [teamRelayMembers, setTeamRelayMembers] = useState<TeamRelayMember[]>([]);
+  const [teamRelayTasks, setTeamRelayTasks] = useState<TeamRelayTask[]>([]);
+  const [teamRelayCompletedTaskIds, setTeamRelayCompletedTaskIds] = useState<string[]>([]);
+  const [teamRelayLotteryChances, setTeamRelayLotteryChances] = useState<number>(0);
+  const [teamRelayDrawHistory, setTeamRelayDrawHistory] = useState<number[]>([]);
+  const [teamRelayShareBonusClaimed, setTeamRelayShareBonusClaimed] = useState<boolean>(false);
+  const [teamRelayCityId, setTeamRelayCityId] = useState<string | null>(null);
+  const [teamRelayPuzzleAwarded, setTeamRelayPuzzleAwarded] = useState<boolean>(false);
   const [litCityIds, setLitCityIds] = useState<string[]>(() => {
     // Always start fresh on load
     CITIES.forEach(c => {
@@ -68,37 +67,6 @@ export default function App() {
     { id: 'cities', label: '城市', icon: MapIcon },
     { id: 'profile', label: '我的', icon: User },
   ];
-
-  const openWeekendRoute = (route: WeekendMashupRoute) => {
-    const city = CITIES.find(c => c.id === route.cityId);
-    setFullScreenPage({
-      type: 'weekendRouteDetail',
-      data: {
-        activityRouteId: route.id,
-        cityId: route.cityId,
-        routeIndex: route.routeIndex,
-        image: city?.image || '',
-      },
-    });
-  };
-
-  const saveWeekendRoutes = (routeIds: string[]) => {
-    setWeekendMashupState(prev => ({
-      ...prev,
-      selectedRouteIds: routeIds,
-      completedRouteIds: prev.completedRouteIds.filter(routeId => routeIds.includes(routeId)),
-      selectionLocked: true,
-    }));
-    setFullScreenPage({ type: 'weekendMashup' });
-  };
-
-  const recordWeekendDraw = (draw: WeekendMashupDraw) => {
-    setWeekendMashupState(prev => ({
-      ...prev,
-      lotteryChances: Math.max(0, prev.lotteryChances - 1),
-      drawHistory: [draw, ...prev.drawHistory],
-    }));
-  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -142,7 +110,12 @@ export default function App() {
           setTargetFlight(null);
         }} />;
       case 'events':
-        return <EventsTab onOpenWeekendMashup={() => setFullScreenPage({ type: 'weekendMashup' })} />;
+        return (
+          <EventsTab
+            onSelectMedley={() => setFullScreenPage({ type: 'weekendMedley' })}
+            onSelectTeamRelay={() => setFullScreenPage({ type: 'teamRelay' })}
+          />
+        );
       case 'cities':
         return <CitiesTab onCityClick={(city) => setFullScreenPage({ type: 'cityRoutes', data: city })} />;
       case 'profile':
@@ -229,7 +202,15 @@ export default function App() {
             {fullScreenPage.type === 'routeDetail' && (
                <RouteDetailView 
                  {...fullScreenPage.data}
-                 onBack={() => setFullScreenPage({ type: 'cityRoutes', data: fullScreenPage.data.previousCityData })}
+                 onBack={() => {
+                   if (fullScreenPage.data.isTeamRelayRoute) {
+                     setFullScreenPage({ type: 'teamRelay' });
+                   } else if (fullScreenPage.data.isActivityRoute) {
+                     setFullScreenPage({ type: 'weekendMedley' });
+                   } else {
+                     setFullScreenPage({ type: 'cityRoutes', data: fullScreenPage.data.previousCityData });
+                   }
+                 }}
                  onStart={() => setFullScreenPage({ type: 'runPlayback', data: fullScreenPage.data })}
                />
             )}
@@ -246,7 +227,36 @@ export default function App() {
                      lightValue: (prev.lightValue || 0) + (stats.calories || Math.floor(stats.distance * 65))
                    }));
 
-                   const { previousCityData, routeIndex } = fullScreenPage.data;
+                   if (fullScreenPage.data.isActivityRoute) {
+                      const activityKey = `${fullScreenPage.data.cityId}-${fullScreenPage.data.routeIndex}`;
+                      setMedleyCompletedRouteIds(prevCompleted => {
+                        if (prevCompleted.includes(activityKey)) return prevCompleted;
+                        const nextCompleted = [...prevCompleted, activityKey];
+                        if (nextCompleted.length === 3) {
+                          setMedleyLotteryChances(prevChances => prevChances + 1);
+                        }
+                        return nextCompleted;
+                      });
+                      setFullScreenPage({ type: 'weekendMedley' });
+                      return;
+                    }
+
+                    if (fullScreenPage.data.isTeamRelayRoute) {
+                      const taskId = fullScreenPage.data.teamRelayTaskId || `${fullScreenPage.data.cityId}-${fullScreenPage.data.routeIndex}`;
+                      setTeamRelayCompletedTaskIds(prevCompleted => {
+                        if (prevCompleted.includes(taskId)) return prevCompleted;
+                        const nextCompleted = [...prevCompleted, taskId];
+                        if (teamRelayTasks.length > 0 && nextCompleted.length === teamRelayTasks.length && !teamRelayPuzzleAwarded) {
+                          setTeamRelayLotteryChances(prevChances => prevChances + 1);
+                          setTeamRelayPuzzleAwarded(true);
+                        }
+                        return nextCompleted;
+                      });
+                      setFullScreenPage({ type: 'teamRelay' });
+                      return;
+                    }
+
+                    const { previousCityData, routeIndex } = fullScreenPage.data;
                    const realCityData = CITIES.find(c => c.id === previousCityData.id) || previousCityData;
                    const currentCompleted = realCityData.completedRouteIndices || [];
                    
@@ -294,78 +304,78 @@ export default function App() {
                  }}
                />
             )}
-            {fullScreenPage.type === 'weekendMashup' && (
-              <WeekendMashupView
-                state={weekendMashupState}
-                onChange={setWeekendMashupState}
-                onBack={() => setFullScreenPage(null)}
-                onSelectRoutes={() => setFullScreenPage({ type: 'weekendRouteSelect' })}
-                onStartRoute={openWeekendRoute}
-                onOpenLottery={() => setFullScreenPage({ type: 'weekendLotteryWheel' })}
-              />
-            )}
-            {fullScreenPage.type === 'weekendRouteSelect' && (
-              <WeekendRouteSelectView
-                state={weekendMashupState}
-                onBack={() => setFullScreenPage({ type: 'weekendMashup' })}
-                onSave={saveWeekendRoutes}
-              />
-            )}
-            {fullScreenPage.type === 'weekendLotteryWheel' && (
-              <WeekendLotteryWheelView
-                state={weekendMashupState}
-                onBack={() => setFullScreenPage({ type: 'weekendMashup' })}
-                onDraw={recordWeekendDraw}
-              />
-            )}
-            {fullScreenPage.type === 'weekendRouteDetail' && (
-               <RouteDetailView
-                 cityId={fullScreenPage.data.cityId}
-                 routeIndex={fullScreenPage.data.routeIndex}
-                 image={fullScreenPage.data.image}
-                 onBack={() => setFullScreenPage({ type: 'weekendMashup' })}
-                 onStart={() => setFullScreenPage({ type: 'weekendRunPlayback', data: fullScreenPage.data })}
-               />
-            )}
-            {fullScreenPage.type === 'weekendRunPlayback' && (
-               <RunPlaybackView
-                 cityId={fullScreenPage.data.cityId}
-                 routeIndex={fullScreenPage.data.routeIndex}
-                 image={fullScreenPage.data.image}
-                 onExit={() => setFullScreenPage({ type: 'weekendRouteDetail', data: fullScreenPage.data })}
-                 onComplete={(stats) => {
-                   setUserStats(prev => ({
-                     ...prev,
-                     totalDistance: prev.totalDistance + stats.distance,
-                     totalTimeHours: prev.totalTimeHours + (stats.duration / 3600),
-                     lightValue: (prev.lightValue || 0) + (stats.calories || Math.floor(stats.distance * 65)),
-                   }));
-
-                   const routeId = fullScreenPage.data.activityRouteId;
-                   setWeekendMashupState(prev => {
-                     const completedRouteIds = prev.completedRouteIds.includes(routeId)
-                       ? prev.completedRouteIds
-                       : [...prev.completedRouteIds, routeId];
-                     const previousCompletedSelectedCount = prev.selectedRouteIds.filter(id => prev.completedRouteIds.includes(id)).length;
-                     const completedSelectedCount = prev.selectedRouteIds.filter(id => completedRouteIds.includes(id)).length;
-                     const earnedCompletionChance = previousCompletedSelectedCount < 3 && completedSelectedCount >= 3;
-
-                     return {
-                       ...prev,
-                       completedRouteIds,
-                       lotteryChances: prev.lotteryChances + (earnedCompletionChance ? 1 : 0),
-                     };
-                   });
-
-                   setFullScreenPage({ type: 'weekendMashup' });
-                 }}
-               />
-            )}
             {fullScreenPage.type === 'litRecords' && (
               <LitRecordsView onBack={() => setFullScreenPage(null)} />
             )}
             {fullScreenPage.type === 'leaderboard' && (
               <LeaderboardView onBack={() => setFullScreenPage(null)} />
+            )}
+            {fullScreenPage.type === 'weekendMedley' && (
+               <WeekendMedleyView 
+                 onBack={() => setFullScreenPage(null)}
+                 selectedRouteIds={medleySelectedRouteIds}
+                 completedRouteIds={medleyCompletedRouteIds}
+                 lotteryChances={medleyLotteryChances}
+                 drawHistory={medleyDrawHistory}
+                 shareBonusClaimed={medleyShareBonusClaimed}
+                 activityStarted={medleyActivityStarted}
+                 onUpdateState={(state) => {
+                   if (state.selectedRouteIds !== undefined) setMedleySelectedRouteIds(state.selectedRouteIds);
+                   if (state.completedRouteIds !== undefined) setMedleyCompletedRouteIds(state.completedRouteIds);
+                   if (state.lotteryChances !== undefined) setMedleyLotteryChances(state.lotteryChances);
+                   if (state.drawHistory !== undefined) setMedleyDrawHistory(state.drawHistory);
+                   if (state.shareBonusClaimed !== undefined) setMedleyShareBonusClaimed(state.shareBonusClaimed);
+                   if (state.activityStarted !== undefined) setMedleyActivityStarted(state.activityStarted);
+                 }}
+                 onNavigateToRouteDetail={(cityId, routeIndex, image) => {
+                   setFullScreenPage({
+                     type: 'routeDetail',
+                     data: {
+                       cityId,
+                       routeIndex,
+                       image,
+                       isActivityRoute: true
+                     }
+                   });
+                 }}
+               />
+            )}
+            {fullScreenPage.type === 'teamRelay' && (
+               <TeamRelayView
+                 onBack={() => setFullScreenPage(null)}
+                 started={teamRelayStarted}
+                 members={teamRelayMembers}
+                 tasks={teamRelayTasks}
+                 completedTaskIds={teamRelayCompletedTaskIds}
+                 lotteryChances={teamRelayLotteryChances}
+                 drawHistory={teamRelayDrawHistory}
+                 shareBonusClaimed={teamRelayShareBonusClaimed}
+                 cityId={teamRelayCityId}
+                 puzzleAwarded={teamRelayPuzzleAwarded}
+                 onUpdateState={(state) => {
+                   if (state.started !== undefined) setTeamRelayStarted(state.started);
+                   if (state.members !== undefined) setTeamRelayMembers(state.members);
+                   if (state.tasks !== undefined) setTeamRelayTasks(state.tasks);
+                   if (state.completedTaskIds !== undefined) setTeamRelayCompletedTaskIds(state.completedTaskIds);
+                   if (state.lotteryChances !== undefined) setTeamRelayLotteryChances(state.lotteryChances);
+                   if (state.drawHistory !== undefined) setTeamRelayDrawHistory(state.drawHistory);
+                   if (state.shareBonusClaimed !== undefined) setTeamRelayShareBonusClaimed(state.shareBonusClaimed);
+                   if (state.cityId !== undefined) setTeamRelayCityId(state.cityId);
+                   if (state.puzzleAwarded !== undefined) setTeamRelayPuzzleAwarded(state.puzzleAwarded);
+                 }}
+                 onNavigateToRouteDetail={(cityId, routeIndex, image, taskId) => {
+                   setFullScreenPage({
+                     type: 'routeDetail',
+                     data: {
+                       cityId,
+                       routeIndex,
+                       image,
+                       isTeamRelayRoute: true,
+                       teamRelayTaskId: taskId
+                     }
+                   });
+                 }}
+               />
             )}
           </motion.div>
         )}
