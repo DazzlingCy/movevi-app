@@ -97,12 +97,12 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay }: EventsT
             </h2>
             <div className="flex items-center justify-between">
               <p className="text-cyan-100/65 text-[11px] max-w-[68%] leading-relaxed line-clamp-2">
-                创建或加入 4 人小队，满员后开启随机城市拼图任务。
+                创建或加入 4 人小队，满员后自动开启随机城市拼图任务。
               </p>
               <div className="flex items-center gap-1.5 shrink-0">
                 <div className="px-2.5 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-100 text-[10px] font-semibold flex items-center gap-1.5 shadow-lg">
                   <Sparkles size={11} />
-                  满员开启
+                  讨论
                 </div>
                 <div className="w-7 h-7 rounded-full bg-cyan-500/10 backdrop-blur flex items-center justify-center border border-cyan-500/30 group-hover:bg-cyan-500/30 transition-colors">
                   <ChevronRight size={14} className="text-cyan-100" />
