@@ -112,72 +112,59 @@ const LOBBY_ROOMS: TeamRelayRoom[] = [
 const MEMBER_ORDER = ['self', 'teammate-lin', 'teammate-chen', 'teammate-ye'];
 const PUZZLE_ROUTE_COUNT = 8;
 const TOTAL_SPLIT_REWARD = 20;
-const MAP_REGIONS = [
-  {
-    left: '5%',
-    top: '19%',
-    width: '21%',
-    height: '29%',
-    clipPath: 'inset(0 round 14px)',
-    background: 'linear-gradient(135deg, rgba(103,232,249,0.86), rgba(52,211,153,0.74))'
-  },
-  {
-    left: '28%',
-    top: '19%',
-    width: '21%',
-    height: '29%',
-    clipPath: 'inset(0 round 14px)',
-    background: 'linear-gradient(135deg, rgba(245,208,110,0.88), rgba(251,146,60,0.74))'
-  },
-  {
-    left: '51%',
-    top: '19%',
-    width: '21%',
-    height: '29%',
-    clipPath: 'inset(0 round 14px)',
-    background: 'linear-gradient(135deg, rgba(125,211,252,0.84), rgba(129,140,248,0.76))'
-  },
-  {
-    left: '74%',
-    top: '19%',
-    width: '21%',
-    height: '29%',
-    clipPath: 'inset(0 round 14px)',
-    background: 'linear-gradient(135deg, rgba(45,212,191,0.84), rgba(34,197,94,0.72))'
-  },
-  {
-    left: '5%',
-    top: '52%',
-    width: '21%',
-    height: '29%',
-    clipPath: 'inset(0 round 14px)',
-    background: 'linear-gradient(135deg, rgba(250,204,21,0.86), rgba(244,114,182,0.74))'
-  },
-  {
-    left: '28%',
-    top: '52%',
-    width: '21%',
-    height: '29%',
-    clipPath: 'inset(0 round 14px)',
-    background: 'linear-gradient(135deg, rgba(56,189,248,0.84), rgba(168,85,247,0.72))'
-  },
-  {
-    left: '51%',
-    top: '52%',
-    width: '21%',
-    height: '29%',
-    clipPath: 'inset(0 round 14px)',
-    background: 'linear-gradient(135deg, rgba(110,231,183,0.86), rgba(34,211,238,0.7))'
-  },
-  {
-    left: '74%',
-    top: '52%',
-    width: '21%',
-    height: '29%',
-    clipPath: 'inset(0 round 14px)',
-    background: 'linear-gradient(135deg, rgba(251,191,36,0.86), rgba(248,113,113,0.72))'
-  }
+const PIECE_COLORS = [
+  'linear-gradient(135deg, rgba(103,232,249,0.92), rgba(52,211,153,0.76))',
+  'linear-gradient(135deg, rgba(245,208,110,0.92), rgba(251,146,60,0.76))',
+  'linear-gradient(135deg, rgba(125,211,252,0.9), rgba(129,140,248,0.78))',
+  'linear-gradient(135deg, rgba(45,212,191,0.9), rgba(34,197,94,0.74))',
+  'linear-gradient(135deg, rgba(250,204,21,0.92), rgba(244,114,182,0.76))',
+  'linear-gradient(135deg, rgba(56,189,248,0.9), rgba(168,85,247,0.74))',
+  'linear-gradient(135deg, rgba(110,231,183,0.92), rgba(34,211,238,0.72))',
+  'linear-gradient(135deg, rgba(251,191,36,0.92), rgba(248,113,113,0.74))'
 ];
+
+const CITY_MAP_PIECE_SETS: Record<string, Array<{ left: string; top: string; width: string; height: string; clipPath: string }>> = {
+  '1': [
+    { left: '6%', top: '20%', width: '24%', height: '27%', clipPath: 'polygon(0 6%, 72% 0, 100% 35%, 86% 100%, 12% 92%)' },
+    { left: '26%', top: '14%', width: '24%', height: '31%', clipPath: 'polygon(8% 10%, 100% 0, 88% 92%, 0 100%, 12% 48%)' },
+    { left: '48%', top: '18%', width: '23%', height: '27%', clipPath: 'polygon(0 0, 86% 8%, 100% 86%, 15% 100%, 8% 42%)' },
+    { left: '68%', top: '28%', width: '23%', height: '25%', clipPath: 'polygon(12% 0, 100% 16%, 86% 92%, 0 100%, 10% 44%)' },
+    { left: '10%', top: '48%', width: '23%', height: '31%', clipPath: 'polygon(0 0, 90% 10%, 100% 76%, 28% 100%, 8% 54%)' },
+    { left: '31%', top: '49%', width: '26%', height: '30%', clipPath: 'polygon(7% 14%, 100% 0, 88% 100%, 0 92%, 14% 44%)' },
+    { left: '55%', top: '48%', width: '24%', height: '31%', clipPath: 'polygon(0 8%, 88% 0, 100% 70%, 43% 100%, 8% 85%)' },
+    { left: '73%', top: '49%', width: '20%', height: '27%', clipPath: 'polygon(18% 4%, 100% 0, 90% 92%, 0 100%, 12% 38%)' }
+  ],
+  '2': [
+    { left: '9%', top: '17%', width: '21%', height: '30%', clipPath: 'polygon(0 14%, 86% 0, 100% 88%, 16% 100%)' },
+    { left: '30%', top: '15%', width: '20%', height: '29%', clipPath: 'polygon(6% 0, 100% 8%, 92% 100%, 0 86%)' },
+    { left: '50%', top: '18%', width: '20%', height: '28%', clipPath: 'polygon(0 6%, 90% 0, 100% 88%, 12% 100%)' },
+    { left: '70%', top: '17%', width: '19%', height: '31%', clipPath: 'polygon(0 0, 92% 16%, 100% 100%, 8% 86%)' },
+    { left: '8%', top: '49%', width: '22%', height: '29%', clipPath: 'polygon(10% 0, 100% 9%, 84% 100%, 0 86%)' },
+    { left: '30%', top: '47%', width: '21%', height: '30%', clipPath: 'polygon(0 8%, 92% 0, 100% 92%, 8% 100%)' },
+    { left: '51%', top: '49%', width: '21%', height: '29%', clipPath: 'polygon(8% 0, 100% 8%, 84% 100%, 0 88%)' },
+    { left: '72%', top: '48%', width: '18%', height: '30%', clipPath: 'polygon(0 8%, 100% 0, 86% 88%, 8% 100%)' }
+  ],
+  '3': [
+    { left: '7%', top: '18%', width: '20%', height: '52%', clipPath: 'polygon(18% 0, 100% 8%, 76% 100%, 0 84%)' },
+    { left: '26%', top: '15%', width: '21%', height: '31%', clipPath: 'polygon(0 12%, 100% 0, 86% 92%, 12% 100%)' },
+    { left: '47%', top: '17%', width: '20%', height: '29%', clipPath: 'polygon(0 0, 92% 10%, 100% 88%, 14% 100%)' },
+    { left: '66%', top: '18%', width: '23%', height: '31%', clipPath: 'polygon(8% 0, 100% 20%, 80% 100%, 0 82%)' },
+    { left: '28%', top: '47%', width: '19%', height: '29%', clipPath: 'polygon(8% 0, 100% 8%, 88% 100%, 0 82%)' },
+    { left: '47%', top: '48%', width: '21%', height: '29%', clipPath: 'polygon(0 0, 100% 10%, 76% 100%, 8% 88%)' },
+    { left: '66%', top: '50%', width: '21%', height: '25%', clipPath: 'polygon(12% 0, 100% 10%, 78% 92%, 0 100%)' },
+    { left: '81%', top: '44%', width: '12%', height: '30%', clipPath: 'polygon(22% 0, 100% 28%, 78% 100%, 0 74%)' }
+  ]
+};
+
+const FALLBACK_CITY_MAP_PIECES = CITY_MAP_PIECE_SETS['1'];
+
+const getCityMapPieces = (cityId: string | undefined, count: number) => {
+  const base = CITY_MAP_PIECE_SETS[cityId || ''] || CITY_MAP_PIECE_SETS[String(((Number(cityId || 1) - 1) % 3) + 1)] || FALLBACK_CITY_MAP_PIECES;
+  return Array.from({ length: count }).map((_, index) => ({
+    ...base[index % base.length],
+    background: PIECE_COLORS[index % PIECE_COLORS.length]
+  }));
+};
 const createSplitPrizeMap = (memberIds: string[]) => {
   const totalCents = TOTAL_SPLIT_REWARD * 100;
   const minCents = 280;
@@ -250,6 +237,7 @@ export default function TeamRelayView({
   const isPuzzleCompleted = started && activeTasks.length > 0 && completedCount === activeTasks.length;
   const progress = totalPieces > 0 ? Math.round((completedCount / totalPieces) * 100) : 0;
   const routeCountLabel = started ? `${totalPieces || PUZZLE_ROUTE_COUNT}条路线` : `${PUZZLE_ROUTE_COUNT}条路线`;
+  const mapPieces = getCityMapPieces(activeCity?.id, activeTasks.length || PUZZLE_ROUTE_COUNT);
 
   const totalDistance = useMemo(() => {
     return activeTasks.reduce((sum, task) => {
@@ -261,6 +249,7 @@ export default function TeamRelayView({
   const splitMembers = activeMembers.slice(0, 4);
   const splitRoundComplete = splitMembers.length > 0 && splitMembers.every(member => splitRewards.some(reward => reward.memberId === member.id));
   const splitTotalReward = splitRewards.reduce((sum, reward) => sum + reward.amount, 0);
+  const isSelfCaptain = activeRoom?.captainId === 'self';
 
   const getMember = (memberId: string) => activeMembers.find(member => member.id === memberId) || DEFAULT_MEMBERS[0];
 
@@ -271,6 +260,10 @@ export default function TeamRelayView({
 
   const handleCreateRoom = () => {
     if (started) return;
+    if (hasTeam) {
+      showToast('你已在一个小队中，不能重复创建或加入队伍');
+      return;
+    }
     const room: TeamRelayRoom = {
       id: `room-self-${Date.now()}`,
       name: '木卫六城市拼图队',
@@ -318,6 +311,10 @@ export default function TeamRelayView({
     if (room.members.some(member => member.id === 'self')) {
       setActiveRoomId(room.id);
       showToast('已进入当前小队');
+      return;
+    }
+    if (hasTeam) {
+      showToast('你已在一个小队中，不能重复创建或加入队伍');
       return;
     }
     if (room.members.length >= 4) {
@@ -602,7 +599,9 @@ export default function TeamRelayView({
                 <div className="min-w-0">
                   <div className="flex items-center gap-1.5">
                     <p className="text-sm font-black text-slate-100 truncate">{activeRoom?.name || '我的拼图小队'}</p>
-                    <span className="rounded-full bg-[#f5d06e]/15 px-1.5 py-0.5 text-[8px] font-black text-[#f5d06e]">队长</span>
+                    <span className="rounded-full bg-[#f5d06e]/15 px-1.5 py-0.5 text-[8px] font-black text-[#f5d06e]">
+                      {isSelfCaptain ? '队长' : '队员'}
+                    </span>
                   </div>
                   <p className="mt-1 text-[10px] font-bold text-slate-500">{isTeamFull ? '小队已满员，可以开启任务' : '等待其他用户加入，满 4 人开启任务'}</p>
                 </div>
@@ -648,6 +647,7 @@ export default function TeamRelayView({
             {lobbyRooms.map(room => {
               const isJoined = activeRoomId === room.id || room.members.some(member => member.id === 'self');
               const roomFull = room.members.length >= 4;
+              const isBlockedByExistingTeam = hasTeam && !isJoined;
               return (
                 <div key={room.id} className={`rounded-3xl border p-4 ${isJoined ? 'border-cyan-400/55 bg-cyan-950/25' : 'border-white/8 bg-[#080d15]'}`}>
                   <div className="flex items-start justify-between gap-3">
@@ -662,16 +662,16 @@ export default function TeamRelayView({
                     </div>
                     <button
                       onClick={() => handleJoinRoom(room)}
-                      disabled={roomFull && !isJoined}
+                      disabled={(roomFull && !isJoined) || isBlockedByExistingTeam}
                       className={`shrink-0 rounded-2xl px-3 py-2 text-[10px] font-black ${
                         isJoined
                           ? 'bg-cyan-400 text-slate-950'
-                          : roomFull
+                          : roomFull || isBlockedByExistingTeam
                             ? 'bg-slate-800 text-slate-500'
                             : 'bg-white/10 text-slate-200 border border-white/10'
                       }`}
                     >
-                      {isJoined ? '已加入' : roomFull ? '已满' : '加入'}
+                      {isJoined ? '已加入' : roomFull ? '已满' : isBlockedByExistingTeam ? '不可加入' : '加入'}
                     </button>
                   </div>
                   <div className="mt-4 flex -space-x-2">
@@ -898,19 +898,14 @@ export default function TeamRelayView({
             </div>
             {started ? (
               <div className={`relative h-[265px] rounded-[28px] overflow-hidden border ${isPuzzleCompleted ? 'border-[#f5d06e]/55 shadow-[0_0_36px_rgba(245,208,110,0.18)]' : 'border-white/10'} bg-[#070b12]`}>
-                <img
-                  src={activeCity?.image || activeTasks[0]?.image}
-                  alt={activeCity ? `${activeCity.name}城市图` : '城市图'}
-                  className={`absolute inset-0 w-full h-full object-cover transition-all duration-700 ${isPuzzleCompleted ? 'opacity-70 saturate-125' : 'opacity-38 grayscale'}`}
-                />
-                <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(2,6,23,0.62),rgba(2,6,23,0.22)),radial-gradient(circle_at_50%_42%,rgba(245,208,110,0.10),transparent_48%)]" />
-                <div className="absolute inset-4 rounded-[24px] border border-white/10 bg-black/10" />
+                <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(15,23,42,0.8),rgba(2,6,23,0.4)),radial-gradient(circle_at_50%_42%,rgba(34,211,238,0.12),transparent_48%)]" />
+                <div className="absolute inset-0 opacity-45 bg-[linear-gradient(rgba(148,163,184,0.10)_1px,transparent_1px),linear-gradient(90deg,rgba(148,163,184,0.10)_1px,transparent_1px)] bg-[size:18px_18px]" />
+                <div className="absolute inset-5 rounded-[24px] border border-white/10 bg-black/10" />
 
                 {activeTasks.map((task, index) => {
                   const routeData = getRouteData(task.cityId, task.routeIndex);
-                  const member = getMember(task.memberId);
                   const isDone = completedTaskIds.includes(task.id);
-                  const region = MAP_REGIONS[index % MAP_REGIONS.length];
+                  const region = mapPieces[index % mapPieces.length];
                   return (
                     <motion.div
                       key={task.id}
@@ -924,8 +919,8 @@ export default function TeamRelayView({
                         width: region.width,
                         height: region.height,
                         clipPath: region.clipPath,
-                        background: isDone ? region.background : 'linear-gradient(135deg, rgba(148,163,184,0.22), rgba(51,65,85,0.34))',
-                        boxShadow: isDone ? '0 0 22px rgba(245,208,110,0.26), inset 0 0 0 1px rgba(255,255,255,0.28)' : 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+                        background: isDone ? region.background : 'linear-gradient(135deg, rgba(148,163,184,0.24), rgba(30,41,59,0.46))',
+                        boxShadow: isDone ? '0 0 24px rgba(245,208,110,0.26), inset 0 0 0 1px rgba(255,255,255,0.3)' : 'inset 0 0 0 1px rgba(255,255,255,0.12)',
                         filter: isDone ? 'saturate(1.08)' : 'grayscale(1)'
                       }}
                     >
@@ -934,7 +929,7 @@ export default function TeamRelayView({
                           {index + 1}
                         </span>
                         <span className={`mt-1 max-w-[72px] truncate text-[8px] font-black leading-none ${isDone ? 'text-slate-950' : 'text-slate-500'}`}>
-                          {isDone ? member.name : '待点亮'}
+                          {isDone ? '已拼合' : '待点亮'}
                         </span>
                       </div>
                       <span className="sr-only">
