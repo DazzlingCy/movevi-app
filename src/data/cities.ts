@@ -71,16 +71,16 @@ export const getRouteData = (cityId: string, routeIndex: number): RouteDetailCon
       { title: '奥森无限绿意', distance: '10.0', duration: '60:00', calories: '650', rating: '4.9', spots: '南园门 — 仰山 — 奥运湖', intro: '北京跑者的圣地，万亩森林氧吧。四季变幻的风景，平坦且专业的塑胶跑道，让你尽情挥洒汗水。' }
     ],
     '3': [ // 上海
-      { title: '城市记忆路线', distance: '4.6', duration: '32:00', calories: '300', rating: '4.8', spots: '外滩源 — 石库门弄堂 — 武康路', intro: '从海派建筑的立面跑进梧桐树影，旧上海的街巷、洋楼与现代城市节奏在这条路线上慢慢重叠。' }
+      { title: '浦江城市记忆', distance: '5.2', duration: '35:00', calories: '340', rating: '4.9', spots: '外滩 — 豫园 — 田子坊', intro: '沿着黄浦江畔，穿梭于海派老建筑与繁华都市之间。在海派石库门中感受上海独有的岁月积淀和城市记忆。' }
     ],
     '4': [ // 南京
-      { title: '金陵古都路线', distance: '5.2', duration: '36:00', calories: '330', rating: '4.9', spots: '中华门 — 秦淮河 — 夫子庙', intro: '沿着城墙根与秦淮水岸前行，灯影、砖石和古都烟火气一起把金陵记忆铺展开来。' }
+      { title: '金陵古都之行', distance: '4.8', duration: '32:00', calories: '310', rating: '4.9', spots: '玄武湖 — 台城明城墙 — 夫子庙', intro: '漫步于明城墙下，眺望玄武湖浩渺水波。在桨声灯影的夫子庙里聆听秦淮河的悠长历史，感受金陵帝王州的壮丽。' }
     ],
     '5': [ // 西安
-      { title: '长安城墙路线', distance: '6.0', duration: '42:00', calories: '390', rating: '4.9', spots: '永宁门 — 城墙步道 — 钟楼', intro: '在古城墙上看长安的晨光，脚下是千年砖石，远处是现代街市，历史的边界被一步步跑亮。' }
+      { title: '千年长安城墙', distance: '6.0', duration: '40:00', calories: '390', rating: '5.0', spots: '南门永宁门 — 东门长乐门 — 大雁塔', intro: '在十三朝古都的完整城墙上奔跑，还原长安古都神采，感受丝路起点的千年印记。' }
     ],
     '6': [ // 东京
-      { title: '浅草旧街路线', distance: '3.8', duration: '28:00', calories: '250', rating: '4.7', spots: '雷门 — 仲见世通 — 浅草寺', intro: '从雷门的灯笼出发，穿过仲见世通的老铺与人潮，在浅草寺前感受东京传统的一面。' }
+      { title: '浅草古雅旧街', distance: '3.8', duration: '28:00', calories: '250', rating: '4.8', spots: '浅草寺 — 雷门 — 隅田川公园', intro: '穿过挂着巨大红灯笼的雷门，在木制老屋和樱花树下的小巷中奔跑，感受传统时代的雅致魅力。' }
     ],
     '7': [ // 巴黎
       { title: '塞纳河畔夕阳', distance: '6.5', duration: '45:00', calories: '410', rating: '5.0', spots: '卢浮宫 — 新桥 — 奥赛博物馆', intro: '迎着塞纳河的微风，当夕阳的余晖洒在奥赛博物馆的钟楼上，这是属于巴黎独有的浪漫奔跑。' },
@@ -91,10 +91,10 @@ export const getRouteData = (cityId: string, routeIndex: number): RouteDetailCon
       { title: '泰晤士河漫步', distance: '5.5', duration: '38:00', calories: '340', rating: '4.8', spots: '大本钟 — 伦敦眼 — 泰特现代美术馆', intro: '沿着泰晤士河南岸，穿梭于古典与现代建筑之间，感受这座城市的厚重与新生。' }
     ],
     '9': [ // 纽约
-      { title: '自由岛记忆路线', distance: '4.4', duration: '31:00', calories: '285', rating: '4.8', spots: '炮台公园 — 自由女神像眺望点 — 埃利斯岛记忆线', intro: '从港口风声里回望移民故事，自由女神的火炬与曼哈顿天际线共同构成纽约最有力量的城市序章。' }
+      { title: '自由岛记忆线', distance: '4.5', duration: '30:00', calories: '290', rating: '4.8', spots: '炮台公园 — 埃利斯岛 — 自由女神像', intro: '迎着哈德逊河呼啸的冷风，遥望自由女神高举的火炬。这条路线记录着移民时代的世纪记忆。' }
     ],
     '12': [ // 开罗
-      { title: '尼罗文明路线', distance: '5.8', duration: '40:00', calories: '360', rating: '4.7', spots: '尼罗河岸 — 开罗老城 — 金字塔眺望线', intro: '沿尼罗河的光线奔跑，穿过老城的市声与古文明的想象，把活动串烧收束在河流与金字塔之间。' }
+      { title: '尼罗古河文明', distance: '5.0', duration: '38:00', calories: '320', rating: '4.9', spots: '吉萨金字塔群 — 狮身人面像 — 尼罗河谷', intro: '在泛着金光的古老黄沙中起跑，环绕叹为观止的金字塔群，探寻沉睡三千年的圣书象形文字与法老秘密。' }
     ]
   };
 
