@@ -12,7 +12,7 @@ import RunPlaybackView from './components/RunPlaybackView';
 import IntroScreen from './components/IntroScreen';
 import LitRecordsView from './components/LitRecordsView';
 import LeaderboardView from './components/LeaderboardView';
-import WeekendMedleyView from './components/WeekendMedleyView';
+import WeekendMedleyView, { type WeekendDrawRecord } from './components/WeekendMedleyView';
 import TeamRelayView, { type TeamRelayMember, type TeamRelayTask } from './components/TeamRelayView';
 
 export default function App() {
@@ -24,7 +24,7 @@ export default function App() {
   const [medleySelectedRouteIds, setMedleySelectedRouteIds] = useState<string[]>([]);
   const [medleyCompletedRouteIds, setMedleyCompletedRouteIds] = useState<string[]>([]);
   const [medleyLotteryChances, setMedleyLotteryChances] = useState<number>(0);
-  const [medleyDrawHistory, setMedleyDrawHistory] = useState<number[]>([]);
+  const [medleyDrawHistory, setMedleyDrawHistory] = useState<WeekendDrawRecord[]>([]);
   const [medleyShareBonusClaimed, setMedleyShareBonusClaimed] = useState<boolean>(false);
   const [medleyActivityStarted, setMedleyActivityStarted] = useState<boolean>(false);
 

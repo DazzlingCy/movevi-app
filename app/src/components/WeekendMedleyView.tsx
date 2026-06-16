@@ -251,16 +251,66 @@ export const MEDLEY_CANDIDATE_ROUTES: MedleyRouteItem[] = [
   }
 ];
 
-const LOTTERY_PRIZES = [0.88, 1.88, 2.88, 6.66, 8.88, 18.88];
+export interface WeekendDrawRecord {
+  id: string;
+  nickname: string;
+  createdAt: string;
+  amount: number;
+}
 
-const WHEEL_SECTORS = [
-  { value: 0.88, type: 'envelope' },
-  { value: 1.88, type: 'envelope' },
-  { value: 2.88, type: 'envelope' },
-  { value: 6.66, type: 'envelope' },
-  { value: 8.88, type: 'envelope' },
-  { value: 18.88, type: 'envelope' }
+const LOTTERY_TOTAL_POOL = 200;
+const LOTTERY_EXPECTED_CHANCES = 50;
+
+const LOTTERY_PRIZE_RULES = [
+  { value: 0.88, rate: 29, rateLabel: '29%' },
+  { value: 1.88, rate: 22, rateLabel: '22%' },
+  { value: 2.88, rate: 18, rateLabel: '18%' },
+  { value: 6.66, rate: 16, rateLabel: '16%' },
+  { value: 8.88, rate: 11, rateLabel: '11%' },
+  { value: 18.88, rate: 4, rateLabel: '4%' }
 ];
+
+const LOTTERY_PRIZES = LOTTERY_PRIZE_RULES.map(prize => prize.value);
+
+const WHEEL_SECTORS = LOTTERY_PRIZE_RULES.map(prize => ({ value: prize.value, type: 'envelope' }));
+
+const PUBLIC_WINNING_RECORDS: WeekendDrawRecord[] = [
+  { id: 'public-1', nickname: '晨跑的阿岚', createdAt: '今日 10:24', amount: 1.88 },
+  { id: 'public-2', nickname: '江畔星火', createdAt: '今日 09:58', amount: 6.66 },
+  { id: 'public-3', nickname: '木星漫游者', createdAt: '昨日 21:36', amount: 0.88 },
+  { id: 'public-4', nickname: '小鹿向前跑', createdAt: '昨日 19:12', amount: 2.88 },
+  { id: 'public-5', nickname: '城市收藏家', createdAt: '昨日 17:45', amount: 8.88 }
+];
+
+function pickLotteryPrize(remainingPool: number) {
+  const eligibleRules = LOTTERY_PRIZE_RULES.filter(rule => rule.value <= remainingPool);
+  if (eligibleRules.length === 0) return null;
+
+  const totalWeight = eligibleRules.reduce((sum, rule) => sum + rule.rate, 0);
+  const rand = Math.random() * totalWeight;
+  let cumulative = 0;
+
+  for (let i = 0; i < eligibleRules.length; i += 1) {
+    cumulative += eligibleRules[i].rate;
+    if (rand <= cumulative) {
+      const winnerIdx = LOTTERY_PRIZES.indexOf(eligibleRules[i].value);
+      return { value: eligibleRules[i].value, winnerIdx: Math.max(0, winnerIdx) };
+    }
+  }
+
+  const fallback = eligibleRules[eligibleRules.length - 1];
+  return { value: fallback.value, winnerIdx: Math.max(0, LOTTERY_PRIZES.indexOf(fallback.value)) };
+}
+
+function formatWinTime(createdAt: string) {
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return createdAt;
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${month}.${day} ${hours}:${minutes}`;
+}
 
 function getSectorPath(startAngle: number, endAngle: number, r: number) {
   const startRad = (startAngle * Math.PI) / 180;
@@ -378,14 +428,14 @@ interface WeekendMedleyViewProps {
   selectedRouteIds: string[];
   completedRouteIds: string[];
   lotteryChances: number;
-  drawHistory: number[];
+  drawHistory: WeekendDrawRecord[];
   shareBonusClaimed: boolean;
   activityStarted: boolean;
   onUpdateState: (newState: {
     selectedRouteIds?: string[];
     completedRouteIds?: string[];
     lotteryChances?: number;
-    drawHistory?: number[];
+    drawHistory?: WeekendDrawRecord[];
     shareBonusClaimed?: boolean;
     activityStarted?: boolean;
   }) => void;
@@ -409,10 +459,13 @@ export default function WeekendMedleyView({
   });
   const [selectError, setSelectError] = useState<string | null>(null);
   const [poolBalance, setPoolBalance] = useState<number>(() => {
-    const saved = localStorage.getItem('weekend_lottery_pool_balance_v1');
-    if (saved) return parseFloat(saved);
-    const initial = 428.50;
-    localStorage.setItem('weekend_lottery_pool_balance_v1', initial.toString());
+    const saved = localStorage.getItem('weekend_lottery_pool_balance_v2');
+    if (saved) {
+      const parsed = parseFloat(saved);
+      if (!Number.isNaN(parsed)) return Math.min(LOTTERY_TOTAL_POOL, Math.max(0, parsed));
+    }
+    const initial = LOTTERY_TOTAL_POOL;
+    localStorage.setItem('weekend_lottery_pool_balance_v2', initial.toString());
     return initial;
   });
   const [isDrawing, setIsDrawing] = useState(false);
@@ -464,6 +517,18 @@ export default function WeekendMedleyView({
   const selectedItems = MEDLEY_CANDIDATE_ROUTES.filter(route => isRouteSelected(route.id));
   const completedCount = selectedItems.filter(item => completedRouteIds.includes(item.id)).length;
   const isMedleyAllCompleted = selectedRouteIds.length === 3 && completedCount === 3;
+  const normalizedDrawHistory = (drawHistory as Array<WeekendDrawRecord | number>).map((record, index) => {
+    if (typeof record === 'number') {
+      return {
+        id: `legacy-${index}`,
+        nickname: '木小六',
+        createdAt: '刚刚',
+        amount: record
+      };
+    }
+    return record;
+  });
+  const displayWinningRecords = [...normalizedDrawHistory, ...PUBLIC_WINNING_RECORDS];
 
   const [hasShownCompletionAlert, setHasShownCompletionAlert] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
@@ -729,32 +794,22 @@ export default function WeekendMedleyView({
 
   const handleSpinWheel = () => {
     if (lotteryChances <= 0 || isDrawing) return;
-    if (poolBalance <= 0) {
-      setSelectError('很抱歉，本期 500 元现金奖池已被全部抽空啦，请等待下期刷新或点击下方重置测试！');
+    if (poolBalance < Math.min(...LOTTERY_PRIZES)) {
+      setSelectError('很抱歉，本期 200 元现金奖池已被全部抽空啦，请等待下期刷新。');
       return;
     }
     
     setIsDrawing(true);
 
-    // Roll random award value with proper weighted distribution matching display rules for 6 sectors:
-    // 0.88 (45%), 1.88 (30%), 2.88 (10%), 6.66 (10%), 8.88 (4.5%), 18.88 (0.5%)
-    const rand = Math.random() * 100;
-    let winnerIdx = 0;
-    if (rand < 45) {
-      winnerIdx = 0; // 0.88
-    } else if (rand < 75) {
-      winnerIdx = 1; // 1.88
-    } else if (rand < 85) {
-      winnerIdx = 2; // 2.88
-    } else if (rand < 95) {
-      winnerIdx = 3; // 6.66
-    } else if (rand < 99.5) {
-      winnerIdx = 4; // 8.88
-    } else {
-      winnerIdx = 5; // 18.88
+    const pickedPrize = pickLotteryPrize(poolBalance);
+    if (!pickedPrize) {
+      setIsDrawing(false);
+      setSelectError('很抱歉，本期 200 元现金奖池已被全部抽空啦，请等待下期刷新。');
+      return;
     }
 
-    const rolledValue = LOTTERY_PRIZES[winnerIdx];
+    const winnerIdx = pickedPrize.winnerIdx;
+    const rolledValue = pickedPrize.value;
 
     // Compute cumulative rotation to point winnerIdx at visual TOP
     const baseRotation = wheelRotation - (wheelRotation % 360);
@@ -773,11 +828,18 @@ export default function WeekendMedleyView({
       // Deduct from pool balance
       const newBalance = Math.max(0, poolBalance - rolledValue);
       setPoolBalance(newBalance);
-      localStorage.setItem('weekend_lottery_pool_balance_v1', newBalance.toString());
+      localStorage.setItem('weekend_lottery_pool_balance_v2', newBalance.toString());
+
+      const drawRecord: WeekendDrawRecord = {
+        id: `draw-${Date.now()}`,
+        nickname: '木小六',
+        createdAt: new Date().toISOString(),
+        amount: rolledValue
+      };
 
       onUpdateState({
         lotteryChances: Math.max(0, lotteryChances - 1),
-        drawHistory: [rolledValue, ...drawHistory]
+        drawHistory: [drawRecord, ...drawHistory]
       });
       setShowDrawModal(true);
     }, 2050); 
@@ -1214,7 +1276,7 @@ export default function WeekendMedleyView({
             <div className="flex flex-col items-center mb-6 space-y-3">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#ffe082]/15 bg-[#1a1710]/80 text-[#f5cb4e] text-[10px] font-black tracking-wider uppercase">
                 <Sparkles size={10} className="text-[#f5cb4e] animate-pulse" />
-                <span>限时现金奖池 ¥500 (抽空即止)</span>
+                <span>总奖池 ¥{LOTTERY_TOTAL_POOL} · 预计 {LOTTERY_EXPECTED_CHANCES} 次机会</span>
               </div>
               
               <div className="w-full max-w-[240px] flex justify-between items-center text-[10px] text-zinc-400 bg-black/20 border border-white/5 rounded-xl px-3.5 py-2 font-bold shadow-inner">
@@ -1223,7 +1285,7 @@ export default function WeekendMedleyView({
                   <span className="text-[#ffe285] font-black font-mono text-[11px]">¥{poolBalance.toFixed(2)}</span>
                 </span>
                 <div className="h-3 w-px bg-zinc-800" />
-                <span>已瓜分 {((500 - poolBalance) / 500 * 100).toFixed(1)}%</span>
+                <span>已瓜分 {((LOTTERY_TOTAL_POOL - poolBalance) / LOTTERY_TOTAL_POOL * 100).toFixed(1)}%</span>
               </div>
             </div>
 
@@ -1449,29 +1511,22 @@ export default function WeekendMedleyView({
                 奖池与概率
               </span>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] text-[#8e8e93] font-bold">公开展示</span>
+                <span className="text-[10px] text-[#8e8e93] font-bold">期望约 ¥{(LOTTERY_PRIZE_RULES.reduce((sum, item) => sum + item.value * item.rate, 0) / 100 * LOTTERY_EXPECTED_CHANCES).toFixed(2)}</span>
               </div>
             </div>
 
             {/* Six column horizontal layout cards */}
             <div className="grid grid-cols-6 gap-1 pt-0.5">
-              {[
-                { val: 0.88, rate: '45%' },
-                { val: 1.88, rate: '30%' },
-                { val: 2.88, rate: '10%' },
-                { val: 6.66, rate: '10%' },
-                { val: 8.88, rate: '4.5%' },
-                { val: 18.88, rate: '0.5%' }
-              ].map((p, idx) => (
+              {LOTTERY_PRIZE_RULES.map((p, idx) => (
                 <div 
                   key={idx}
                   className="bg-black/35 border border-[#ffe082]/5 rounded-xl py-2 px-0.5 text-center flex flex-col justify-between h-12"
                 >
                   <span className="text-[10px] font-mono font-black text-[#ffe082] block tracking-tighter leading-none">
-                    ¥{p.val}
+                    ¥{p.value}
                   </span>
                   <span className="text-[8px] text-[#8e8e93] font-bold block leading-none">
-                    {p.rate}
+                    {p.rateLabel}
                   </span>
                 </div>
               ))}
@@ -1483,25 +1538,46 @@ export default function WeekendMedleyView({
             <div className="flex justify-between items-center border-b border-white/5 pb-2.5">
               <span className="text-[11.5px] font-black text-slate-200 flex items-center gap-1.5 leading-none">
                 <Clock size={13} className="text-zinc-400" />
-                开奖记录
+                中奖记录
               </span>
-              <span className="text-[10px] text-[#8e8e93] font-semibold leading-none">{drawHistory.length} 次</span>
+              <span className="text-[10px] text-[#8e8e93] font-semibold leading-none">公开展示</span>
             </div>
 
-            {drawHistory.length > 0 ? (
-              <div className="space-y-2.5 divide-y divide-zinc-800 max-h-48 overflow-y-auto pr-1">
-                {drawHistory.map((val, i) => (
-                  <div key={i} className="flex justify-between items-center pt-2 text-xs">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base text-[#f5cb4e]">🎄</span>
-                      <div>
-                        <span className="text-zinc-200 block font-bold text-[11px]">微信现金红包</span>
-                        <span className="text-[9.5px] text-zinc-500 font-mono block">已秒到微信钱包余额</span>
+            {displayWinningRecords.length > 0 ? (
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 [scrollbar-width:thin] [scrollbar-color:rgba(245,203,78,0.45)_rgba(255,255,255,0.06)] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-white/[0.04] [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-[#f5cb4e]/45 [&::-webkit-scrollbar-thumb:hover]:bg-[#f5cb4e]/70">
+                {displayWinningRecords.map((record, i) => {
+                  const isMine = record.nickname === '木小六';
+                  return (
+                  <div
+                    key={record.id || i}
+                    className={`flex justify-between items-center rounded-2xl px-2.5 py-2 text-xs gap-3 border transition-colors ${
+                      isMine
+                        ? 'bg-[#2a220c]/75 border-[#f5cb4e]/35 shadow-[0_0_18px_rgba(245,203,78,0.10)]'
+                        : 'bg-black/18 border-white/5'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className={`relative w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 ${
+                        isMine
+                          ? 'bg-gradient-to-br from-[#fff0a8] to-[#f5cb4e] text-[#2b1a00] ring-2 ring-[#f5cb4e]/30 shadow-[0_0_14px_rgba(245,203,78,0.35)]'
+                          : 'bg-[#f5cb4e]/15 border border-[#f5cb4e]/20 text-[#f5cb4e]'
+                      }`}>
+                        {record.nickname.slice(0, 1)}
+                      </span>
+                      <div className="min-w-0">
+                        <span className="text-zinc-200 font-bold text-[11px] flex items-center gap-1.5">
+                          <span className="truncate">{record.nickname}</span>
+                          {isMine && (
+                            <span className="rounded-full bg-[#f5cb4e]/18 border border-[#f5cb4e]/25 px-1.5 py-0.5 text-[8px] font-black text-[#ffe285] leading-none shrink-0">我的</span>
+                          )}
+                        </span>
+                        <span className="text-[9.5px] text-zinc-500 font-mono block">{formatWinTime(record.createdAt)}</span>
                       </div>
                     </div>
-                    <span className="text-yellow-400 font-mono font-black text-sm">+{val} 元</span>
+                    <span className="text-yellow-400 font-mono font-black text-sm shrink-0">+{record.amount.toFixed(2)} 元</span>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <p className="text-[11.5px] text-[#8e8e93] leading-normal font-medium">
