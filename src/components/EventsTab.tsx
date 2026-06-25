@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Gift, Globe2, ChevronRight, Sparkles, MessageSquare, Calendar, Users, Radio } from 'lucide-react';
+import { Gift, Globe2, ChevronRight, Sparkles, MessageSquare, Calendar, Users } from 'lucide-react';
 
 interface EventsTabProps {
   onSelectMedley?: () => void;
@@ -45,7 +45,7 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay }: EventsT
             </h2>
             <div className="flex items-center justify-between">
               <p className="text-emerald-200/60 text-[11px] max-w-[65%] leading-relaxed line-clamp-2">
-                连携3个城市经典记忆路线，完成后可抽取现金奖励！
+                选取3个城市经典记忆路线，完成后可抽取现金奖励！
               </p>
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
@@ -70,48 +70,53 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay }: EventsT
           whileTap={{ scale: 0.98 }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
           onClick={onSelectTeamRelay}
-          className="relative w-full h-[160px] rounded-2xl overflow-hidden shadow-2xl cursor-pointer group border border-cyan-500/30"
+          className="relative w-full h-[170px] rounded-2xl overflow-hidden shadow-2xl cursor-pointer group border border-cyan-500/30"
         >
-          <img
-            src="https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&q=80&w=700&h=420"
-            alt="城市拼图小队"
-            className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-60"
+          <img 
+            src="https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&q=80&w=600&h=400" 
+            alt="城市拼图小队" 
+            className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-60" 
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/65 to-cyan-900/20 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/20 via-transparent to-amber-400/10 pointer-events-none" />
-
-          <div className="absolute top-3 right-3 bg-cyan-500/20 backdrop-blur-sm text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-full text-cyan-100 flex items-center gap-1 shadow-lg border border-cyan-500/50">
-            <Users size={10} />
-            4人小队
+          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 to-transparent pointer-events-none" />
+          
+          <div className="absolute top-3 right-3 bg-cyan-500/20 backdrop-blur-sm text-[9px] uppercase tracking-widest font-bold px-2.5 py-1 rounded-full text-cyan-200 flex items-center gap-1 shadow-lg border border-cyan-500/50">
+            <Users size={10} className="animate-pulse" />
+            2人小队
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-3.5">
             <div className="w-8 h-8 bg-cyan-500/20 backdrop-blur-md rounded-lg flex items-center justify-center mb-2 border border-cyan-500/30 shadow-inner">
-               <Radio size={16} className="text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+               <Users size={16} className="text-cyan-300 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
             </div>
-            <h2 className="text-base font-bold mb-0.5 tracking-wide text-cyan-50 flex items-center gap-2">
+            <h2 className="text-base font-bold mb-0.5 tracking-wide text-cyan-100 flex items-center gap-2">
               <span>城市拼图小队</span>
-              <span className="text-[8px] bg-amber-400/20 border border-amber-400/40 text-amber-300 font-extrabold px-1.5 py-0.5 rounded-md uppercase font-mono tracking-normal leading-none scale-90 origin-left">组队大厅</span>
+              <span className="text-[8px] bg-cyan-400/20 border border-cyan-400/40 text-cyan-200 font-extrabold px-1.5 py-0.5 rounded-md uppercase font-mono tracking-normal leading-none scale-90 origin-left">多人协作</span>
             </h2>
             <div className="flex items-center justify-between">
-              <p className="text-cyan-100/65 text-[11px] max-w-[68%] leading-relaxed line-clamp-2">
-                创建或加入 4 人小队，满员后开启随机城市拼图任务。
+              <p className="text-cyan-200/60 text-[11px] max-w-[65%] leading-relaxed line-clamp-2">
+                创建或加入 2 人小队，完成随机城市路线拼图，点亮全城后瓜分现金奖励。
               </p>
               <div className="flex items-center gap-1.5 shrink-0">
-                <div className="px-2.5 py-1 rounded-full bg-cyan-500/20 border border-cyan-500/40 text-cyan-100 text-[10px] font-semibold flex items-center gap-1.5 shadow-lg">
-                  <Sparkles size={11} />
-                  满员开启
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  className="px-2.5 py-1 rounded-full bg-cyan-500/20 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-200 text-[10px] font-semibold flex items-center gap-1.5 transition-colors shadow-lg active:scale-95 cursor-default"
+                >
+                  <MessageSquare size={11} />
+                  讨论
+                </button>
                 <div className="w-7 h-7 rounded-full bg-cyan-500/10 backdrop-blur flex items-center justify-center border border-cyan-500/30 group-hover:bg-cyan-500/30 transition-colors">
-                  <ChevronRight size={14} className="text-cyan-100" />
+                  <ChevronRight size={14} className="text-cyan-200" />
                 </div>
               </div>
             </div>
           </div>
         </motion.div>
-        {/* Banner 1: 勋章盲盒抽奖 */}
+        {/* Banner 2: 勋章盲盒抽奖 */}
         <motion.div
           whileTap={{ scale: 0.98 }}
           initial={{ opacity: 0, y: 20 }}
@@ -157,7 +162,7 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay }: EventsT
           </div>
         </motion.div>
 
-        {/* Banner 2: 百人百城计划 */}
+        {/* Banner 3: 百人百城计划 */}
         <motion.div
           whileTap={{ scale: 0.98 }}
           initial={{ opacity: 0, y: 20 }}

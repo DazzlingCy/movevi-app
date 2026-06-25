@@ -14,11 +14,14 @@ import LitRecordsView from './components/LitRecordsView';
 import LeaderboardView from './components/LeaderboardView';
 import WeekendMedleyView from './components/WeekendMedleyView';
 import TeamRelayView, { type TeamRelayMember, type TeamRelayTask } from './components/TeamRelayView';
+import GlowCenterView, { type GlowExchangeType } from './components/GlowCenterView';
+import { getGlowRank } from './lib/glow';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
+  const [showEventsBadge, setShowEventsBadge] = useState(true);
   const [showIntro, setShowIntro] = useState(true);
-  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'runPlayback' | 'litRecords' | 'leaderboard' | 'weekendMedley' | 'teamRelay', data?: any} | null>(null);
+  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'runPlayback' | 'litRecords' | 'leaderboard' | 'weekendMedley' | 'teamRelay' | 'glowCenter', data?: any} | null>(null);
 
   // Weekend City Memory Medley Activity states
   const [medleySelectedRouteIds, setMedleySelectedRouteIds] = useState<string[]>([]);
@@ -28,7 +31,7 @@ export default function App() {
   const [medleyShareBonusClaimed, setMedleyShareBonusClaimed] = useState<boolean>(false);
   const [medleyActivityStarted, setMedleyActivityStarted] = useState<boolean>(false);
 
-  // City Memory Team Relay Activity states
+  // City Puzzle Team Activity states
   const [teamRelayStarted, setTeamRelayStarted] = useState<boolean>(false);
   const [teamRelayMembers, setTeamRelayMembers] = useState<TeamRelayMember[]>([]);
   const [teamRelayTasks, setTeamRelayTasks] = useState<TeamRelayTask[]>([]);
@@ -58,7 +61,16 @@ export default function App() {
     completedRoutes: 36,
     totalDistance: 62.0,
     totalTimeHours: 12.0,
-    lightValue: 120
+    lightValue: 120,
+    lifetimeLightValue: 120,
+    dailyCheckedIn: false,
+    dailyDistance: 0,
+    dailyCompletedRoutes: 0,
+    weeklyCompletedCities: 0,
+    claimedDailyTaskIds: [] as string[],
+    claimedWeeklyTaskIds: [] as string[],
+    medalMysteryTickets: 0,
+    weeklyGlowExchangeIds: [] as string[]
   });
 
   const tabs = [
@@ -125,6 +137,54 @@ export default function App() {
     }
   };
 
+  const handleGlowExchange = (type: GlowExchangeType) => {
+    const exchangeMeta = {
+      activityTicket: { title: '活动补给券', cost: 30, requiredRankLevel: 3, weeklyLimit: 1 },
+      rerollCity: { title: '下一城重选券', cost: 10, requiredRankLevel: 0, weeklyLimit: 0 },
+      medalMysteryTicket: { title: '勋章盲盒抽奖券', cost: 20, requiredRankLevel: 3, weeklyLimit: 1 }
+    }[type];
+    const currentGlowRank = getGlowRank(userStats.lifetimeLightValue ?? userStats.lightValue ?? 0).current;
+    const weeklyGlowExchangeIds = userStats.weeklyGlowExchangeIds || [];
+
+    if (exchangeMeta.requiredRankLevel && currentGlowRank.level < exchangeMeta.requiredRankLevel) {
+      return { success: false, message: '黄金段位以上可兑换' };
+    }
+
+    if (exchangeMeta.weeklyLimit && weeklyGlowExchangeIds.includes(type)) {
+      return { success: false, message: '本周已兑换' };
+    }
+
+    if ((userStats.lightValue || 0) < exchangeMeta.cost) {
+      return { success: false, message: '光迹值不足' };
+    }
+
+    setUserStats(prev => ({
+      ...prev,
+      lightValue: Math.max(0, (prev.lightValue || 0) - exchangeMeta.cost),
+      medalMysteryTickets: type === 'medalMysteryTicket'
+        ? (prev.medalMysteryTickets || 0) + 1
+        : (prev.medalMysteryTickets || 0),
+      weeklyGlowExchangeIds: exchangeMeta.weeklyLimit
+        ? [...(prev.weeklyGlowExchangeIds || []), type]
+        : (prev.weeklyGlowExchangeIds || [])
+    }));
+
+    if (type === 'activityTicket') {
+      setMedleyLotteryChances(prev => prev + 1);
+      return { success: true, message: '周末串烧抽奖机会 +1' };
+    }
+
+    if (type === 'medalMysteryTicket') {
+      return { success: true, message: '已获得勋章盲盒抽奖券' };
+    }
+
+    const currentCityId = CITIES.find(city => city.status === 'in-progress')?.id || litCityIds[litCityIds.length - 1] || '1';
+    setActiveTab('home');
+    setFullScreenPage(null);
+    setPendingSelectionFrom(currentCityId);
+    return { success: true, message: '已开启下一城重选' };
+  };
+
   return (
     <div className="flex flex-col h-screen w-full max-w-md mx-auto bg-[#05070A] text-slate-100 overflow-hidden relative font-sans shadow-2xl sm:h-[800px] sm:mt-10 sm:rounded-[40px] sm:border-[8px] sm:border-slate-800">
       <AnimatePresence>
@@ -158,18 +218,29 @@ export default function App() {
             const isActive = activeTab === tab.id;
             const Icon = tab.icon;
             return (
-              <button
+              <motion.button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center space-y-1 transition-colors ${
-                  isActive ? 'text-cyan-400' : 'text-slate-500 hover:text-white'
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  if (tab.id === 'events') {
+                    setShowEventsBadge(false);
+                  }
+                }}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.92, y: 1 }}
+                transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                className={`flex flex-col items-center space-y-1 transition-colors focus:outline-none relative ${
+                  isActive ? 'text-cyan-400' : 'text-slate-500 hover:text-slate-300'
                 }`}
               >
-                <div className="w-6 h-6 flex items-center justify-center">
-                  <Icon size={20} className={isActive ? 'drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]' : ''} />
+                <div className="w-6 h-6 flex items-center justify-center relative">
+                  <Icon size={20} className={isActive ? 'drop-shadow-[0_0_8px_rgba(34,211,238,0.8)] text-cyan-400 transition-all' : 'transition-colors'} />
+                  {tab.id === 'events' && showEventsBadge && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-rose-500 rounded-full border border-black shadow-[0_0_6px_rgba(244,63,94,0.8)]" />
+                  )}
                 </div>
                 <span className="text-[10px] font-bold uppercase tracking-widest">{tab.label}</span>
-              </button>
+              </motion.button>
             );
           })}
         </div>
@@ -219,12 +290,16 @@ export default function App() {
                  {...fullScreenPage.data}
                  onExit={() => setFullScreenPage({ type: 'routeDetail', data: fullScreenPage.data })}
                  onComplete={(stats) => {
+                   const earnedLightValue = stats.calories || Math.floor(stats.distance * 65);
                    // Update user stats
                    setUserStats(prev => ({
                      ...prev,
                      totalDistance: prev.totalDistance + stats.distance,
                      totalTimeHours: prev.totalTimeHours + (stats.duration / 3600),
-                     lightValue: (prev.lightValue || 0) + (stats.calories || Math.floor(stats.distance * 65))
+                     lightValue: (prev.lightValue || 0) + earnedLightValue,
+                     lifetimeLightValue: (prev.lifetimeLightValue ?? prev.lightValue ?? 0) + earnedLightValue,
+                     dailyDistance: (prev.dailyDistance || 0) + stats.distance,
+                     dailyCompletedRoutes: (prev.dailyCompletedRoutes || 0) + 1
                    }));
 
                    if (fullScreenPage.data.isActivityRoute) {
@@ -276,7 +351,11 @@ export default function App() {
                      realCityData.status = 'lit';
                      realCityData.justLit = true;
                      // Increment completed cities counter
-                     setUserStats(prev => ({ ...prev, completedCities: prev.completedCities + 1 }));
+                     setUserStats(prev => ({
+                       ...prev,
+                       completedCities: prev.completedCities + 1,
+                       weeklyCompletedCities: (prev.weeklyCompletedCities || 0) + 1
+                     }));
                    }
 
                    setCompletedChapters(prev => {
@@ -309,6 +388,13 @@ export default function App() {
             )}
             {fullScreenPage.type === 'leaderboard' && (
               <LeaderboardView onBack={() => setFullScreenPage(null)} />
+            )}
+            {fullScreenPage.type === 'glowCenter' && (
+              <GlowCenterView
+                userStats={userStats}
+                onBack={() => setFullScreenPage(null)}
+                onExchange={handleGlowExchange}
+              />
             )}
             {fullScreenPage.type === 'weekendMedley' && (
                <WeekendMedleyView 

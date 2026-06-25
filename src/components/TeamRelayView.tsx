@@ -83,14 +83,15 @@ const DEFAULT_MEMBERS: TeamRelayMember[] = [
   { id: 'teammate-ye', name: '夜航员', role: '终点守望者', avatar: 'Y', color: 'from-indigo-300 to-sky-400' }
 ];
 
+const TEAM_SIZE = 2;
+
 const LOBBY_ROOMS: TeamRelayRoom[] = [
   {
     id: 'room-orbit-07',
     name: '晨跑拼图 07 队',
     captainId: 'lobby-captain-a',
     members: [
-      { id: 'lobby-captain-a', name: '北岸', role: '队长', avatar: 'B', color: 'from-sky-300 to-cyan-400' },
-      { id: 'lobby-member-a', name: '青柠', role: '队员', avatar: 'Q', color: 'from-lime-200 to-emerald-300' }
+      { id: 'lobby-captain-a', name: '北岸', role: '队长', avatar: 'B', color: 'from-sky-300 to-cyan-400' }
     ],
     createdAt: '刚刚',
     status: 'recruiting'
@@ -101,15 +102,44 @@ const LOBBY_ROOMS: TeamRelayRoom[] = [
     captainId: 'lobby-captain-b',
     members: [
       { id: 'lobby-captain-b', name: '远星', role: '队长', avatar: 'Y', color: 'from-violet-300 to-fuchsia-400' },
-      { id: 'lobby-member-b', name: '拾光', role: '队员', avatar: 'S', color: 'from-amber-200 to-orange-400' },
-      { id: 'lobby-member-c', name: '南桥', role: '队员', avatar: 'N', color: 'from-teal-200 to-cyan-400' }
+      { id: 'lobby-member-b', name: '拾光', role: '队员', avatar: 'S', color: 'from-amber-200 to-orange-400' }
     ],
     createdAt: '3分钟前',
+    status: 'full'
+  },
+  {
+    id: 'room-river-03',
+    name: '河岸拾光 03 队',
+    captainId: 'lobby-captain-c',
+    members: [
+      { id: 'lobby-captain-c', name: '江临', role: '队长', avatar: 'J', color: 'from-cyan-200 to-blue-400' }
+    ],
+    createdAt: '6分钟前',
+    status: 'recruiting'
+  },
+  {
+    id: 'room-echo-18',
+    name: '旧街回声 18 队',
+    captainId: 'lobby-captain-d',
+    members: [
+      { id: 'lobby-captain-d', name: '阿衡', role: '队长', avatar: 'H', color: 'from-rose-200 to-pink-400' }
+    ],
+    createdAt: '8分钟前',
+    status: 'recruiting'
+  },
+  {
+    id: 'room-dawn-21',
+    name: '晨光地图 21 队',
+    captainId: 'lobby-captain-e',
+    members: [
+      { id: 'lobby-captain-e', name: '晓川', role: '队长', avatar: 'X', color: 'from-amber-200 to-yellow-400' }
+    ],
+    createdAt: '12分钟前',
     status: 'recruiting'
   }
 ];
 
-const MEMBER_ORDER = ['self', 'teammate-lin', 'teammate-chen', 'teammate-ye'];
+const MEMBER_ORDER = ['self', 'teammate-lin'];
 const PUZZLE_ROUTE_COUNT = 8;
 const TOTAL_SPLIT_REWARD = 20;
 const PIECE_COLORS = [
@@ -228,7 +258,7 @@ export default function TeamRelayView({
 
   const activeMembers = members.length > 0 ? members : [];
   const hasTeam = activeMembers.length > 0;
-  const isTeamFull = activeMembers.length >= 4;
+  const isTeamFull = activeMembers.length >= TEAM_SIZE;
   const activeRoom = activeRoomId ? lobbyRooms.find(room => room.id === activeRoomId) || null : null;
   const activeCity = CITIES.find(city => city.id === (cityId || tasks[0]?.cityId)) || null;
   const activeTasks = started ? tasks : [];
@@ -246,7 +276,7 @@ export default function TeamRelayView({
     }, 0).toFixed(1);
   }, [activeTasks]);
 
-  const splitMembers = activeMembers.slice(0, 4);
+  const splitMembers = activeMembers.slice(0, TEAM_SIZE);
   const splitRoundComplete = splitMembers.length > 0 && splitMembers.every(member => splitRewards.some(reward => reward.memberId === member.id));
   const splitTotalReward = splitRewards.reduce((sum, reward) => sum + reward.amount, 0);
   const isSelfCaptain = activeRoom?.captainId === 'self';
@@ -292,7 +322,7 @@ export default function TeamRelayView({
       return {
         ...room,
         members: nextMembers,
-        status: nextMembers.length >= 4 ? 'full' : 'recruiting'
+        status: nextMembers.length >= TEAM_SIZE ? 'full' : 'recruiting'
       };
     }));
     setActiveRoomId(roomId);
@@ -306,6 +336,33 @@ export default function TeamRelayView({
     });
   };
 
+  const startPuzzleForTeam = (membersForPuzzle: TeamRelayMember[], roomId: string | null = activeRoomId) => {
+    if (membersForPuzzle.length === 0) {
+      showToast('请先在组队大厅创建或加入小队');
+      return;
+    }
+    if (membersForPuzzle.length < TEAM_SIZE) {
+      showToast(`小队满 ${TEAM_SIZE} 人后会自动开启任务`);
+      return;
+    }
+
+    const selectedCity = pickRandomCity();
+    const taskMembers = membersForPuzzle.slice(0, TEAM_SIZE);
+    onUpdateState({
+      started: true,
+      cityId: selectedCity.id,
+      members: taskMembers,
+      tasks: buildPuzzleTasks(selectedCity.id, taskMembers.map(member => member.id)),
+      completedTaskIds: [],
+      shareBonusClaimed: false,
+      puzzleAwarded: false
+    });
+    if (roomId) {
+      setLobbyRooms(prev => prev.map(room => (room.id === roomId ? { ...room, status: 'started' } : room)));
+    }
+    showToast(`已成功组队，${selectedCity.name}拼图任务已开启`);
+  };
+
   const handleJoinRoom = (room: TeamRelayRoom) => {
     if (started) return;
     if (room.members.some(member => member.id === 'self')) {
@@ -317,53 +374,38 @@ export default function TeamRelayView({
       showToast('你已在一个小队中，不能重复创建或加入队伍');
       return;
     }
-    if (room.members.length >= 4) {
+    if (room.members.length >= TEAM_SIZE) {
       showToast('该小队已满员，请选择其他队伍');
       return;
     }
 
-    updateRoomMembers(room.id, [...room.members, { ...DEFAULT_MEMBERS[0], role: '队员' }]);
+    const nextMembers = [...room.members, { ...DEFAULT_MEMBERS[0], role: '队员' }];
+    updateRoomMembers(room.id, nextMembers);
     showToast(`已加入 ${room.name}`);
+    if (nextMembers.length >= TEAM_SIZE) {
+      window.setTimeout(() => startPuzzleForTeam(nextMembers, room.id), 300);
+    }
   };
 
   const handleSimulateJoin = () => {
     if (!activeRoom || started) return;
-    if (activeMembers.length >= 4) {
-      showToast('小队已满员，可以开启城市拼图任务');
+    if (activeMembers.length >= TEAM_SIZE) {
+      showToast('已成功组队，任务将自动开启');
       return;
     }
 
     const nextMember = DEFAULT_MEMBERS.find(member => !activeMembers.some(activeMember => activeMember.id === member.id));
     if (!nextMember) return;
-    updateRoomMembers(activeRoom.id, [...activeMembers, nextMember]);
+    const nextMembers = [...activeMembers, nextMember];
+    updateRoomMembers(activeRoom.id, nextMembers);
     showToast(`${nextMember.name} 已加入小队`);
+    if (nextMembers.length >= TEAM_SIZE) {
+      window.setTimeout(() => startPuzzleForTeam(nextMembers, activeRoom.id), 300);
+    }
   };
 
   const handleStartPuzzle = () => {
-    if (!hasTeam) {
-      showToast('请先在组队大厅创建或加入小队');
-      return;
-    }
-    if (!isTeamFull) {
-      showToast('小队满 4 人后才可以开启任务');
-      return;
-    }
-
-    const selectedCity = pickRandomCity();
-    const taskMembers = activeMembers.slice(0, 4);
-    onUpdateState({
-      started: true,
-      cityId: selectedCity.id,
-      members: taskMembers,
-      tasks: buildPuzzleTasks(selectedCity.id, taskMembers.map(member => member.id)),
-      completedTaskIds: [],
-      shareBonusClaimed: false,
-      puzzleAwarded: false
-    });
-    if (activeRoomId) {
-      setLobbyRooms(prev => prev.map(room => (room.id === activeRoomId ? { ...room, status: 'started' } : room)));
-    }
-    showToast(`已抽取 ${selectedCity.name}，城市拼图任务生成完成`);
+    startPuzzleForTeam(activeMembers, activeRoomId);
   };
 
   const buildRewardState = (nextCompletedIds: string[]) => {
@@ -378,11 +420,11 @@ export default function TeamRelayView({
   const handleMainAction = () => {
     if (!started) {
       if (!hasTeam) {
-        handleCreateRoom();
+        setViewMode('lobby');
         return;
       }
       if (!isTeamFull) {
-        handleSimulateJoin();
+        setViewMode('lobby');
         return;
       }
       handleStartPuzzle();
@@ -487,7 +529,7 @@ export default function TeamRelayView({
               <div className="mt-4 grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-2xl bg-white/70 p-2">
                   <p className="text-[9px] text-[#776d55] font-bold">小队成员</p>
-                  <p className="text-base font-black">4人</p>
+                  <p className="text-base font-black">{TEAM_SIZE}人</p>
                 </div>
                 <div className="rounded-2xl bg-white/70 p-2">
                   <p className="text-[9px] text-[#776d55] font-bold">拼图路线</p>
@@ -574,7 +616,7 @@ export default function TeamRelayView({
           </button>
           <div className="text-center">
             <h2 className="text-sm font-black tracking-widest text-cyan-200">组队大厅</h2>
-            <p className="text-[9px] text-slate-500 font-bold mt-0.5">创建或加入 4 人城市拼图小队</p>
+            <p className="text-[9px] text-slate-500 font-bold mt-0.5">创建或加入 {TEAM_SIZE} 人城市拼图小队</p>
           </div>
           <div className="w-10" />
         </div>
@@ -603,14 +645,14 @@ export default function TeamRelayView({
                       {isSelfCaptain ? '队长' : '队员'}
                     </span>
                   </div>
-                  <p className="mt-1 text-[10px] font-bold text-slate-500">{isTeamFull ? '小队已满员，可以开启任务' : '等待其他用户加入，满 4 人开启任务'}</p>
+                  <p className="mt-1 text-[10px] font-bold text-slate-500">{isTeamFull ? '已成功组队，任务将自动开启' : `等待其他用户加入，满 ${TEAM_SIZE} 人自动开启任务`}</p>
                 </div>
                 <div className="shrink-0 rounded-full bg-cyan-400 px-3 py-2 text-[10px] font-black text-slate-950">
                   已加入
                 </div>
               </div>
               <div className="mt-3 flex -space-x-2">
-                {Array.from({ length: 4 }).map((_, index) => {
+                {Array.from({ length: TEAM_SIZE }).map((_, index) => {
                   const member = activeMembers[index];
                   return member ? (
                     <div
@@ -646,7 +688,7 @@ export default function TeamRelayView({
             </div>
             {lobbyRooms.map(room => {
               const isJoined = activeRoomId === room.id || room.members.some(member => member.id === 'self');
-              const roomFull = room.members.length >= 4;
+              const roomFull = room.members.length >= TEAM_SIZE;
               const isBlockedByExistingTeam = hasTeam && !isJoined;
               return (
                 <div key={room.id} className={`rounded-3xl border p-4 ${isJoined ? 'border-cyan-400/55 bg-cyan-950/25' : 'border-white/8 bg-[#080d15]'}`}>
@@ -658,7 +700,7 @@ export default function TeamRelayView({
                           <span className="rounded-full bg-[#f5d06e]/15 px-1.5 py-0.5 text-[8px] font-black text-[#f5d06e]">队长</span>
                         )}
                       </div>
-                      <p className="mt-1 text-[9px] font-bold text-slate-500">{room.createdAt} · {room.members.length}/4 人 · {roomFull ? '已满员' : '招募中'}</p>
+                      <p className="mt-1 text-[9px] font-bold text-slate-500">{room.createdAt} · {room.members.length}/{TEAM_SIZE} 人 · {roomFull ? '已满员' : '招募中'}</p>
                     </div>
                     <button
                       onClick={() => handleJoinRoom(room)}
@@ -727,7 +769,7 @@ export default function TeamRelayView({
               </div>
             </div>
             <p className="mt-3 text-[10px] text-slate-500 font-bold">
-              {splitRoundActive ? `本轮已翻 ${splitRewards.length}/4 张` : '点击任意现金卡开启瓜分'}
+              {splitRoundActive ? `本轮已翻 ${splitRewards.length}/${TEAM_SIZE} 张` : '点击任意现金卡开启瓜分'}
             </p>
 
             <div className="mt-5 grid grid-cols-2 gap-3">
@@ -836,7 +878,7 @@ export default function TeamRelayView({
               <p className="text-[10px] font-black tracking-[0.28em] text-cyan-300">TEAM PUZZLE EVENT</p>
               <h1 className="mt-2 text-[28px] leading-tight font-black text-white tracking-wide">城市拼图小队</h1>
               <p className="mt-3 text-[12px] leading-relaxed text-slate-300 font-semibold max-w-[340px]">
-                进入组队大厅创建或加入 4 人小队。满员后由队长开启随机城市地图，团队每完成一条路线，就点亮一块地图区域。
+                进入组队大厅创建或加入 {TEAM_SIZE} 人小队。满员后提示组队成功并自动生成随机城市地图，团队每完成一条路线，就点亮一块地图区域。
               </p>
 
               <div className="mt-5 rounded-3xl border border-white/10 bg-black/35 p-3 backdrop-blur-md">
@@ -844,12 +886,12 @@ export default function TeamRelayView({
                   <div className="min-w-0">
                     <p className="text-[10px] text-slate-400 font-black">{started ? '当前拼图城市' : hasTeam ? '当前小队' : '组队大厅'}</p>
                     <p className="text-sm font-black text-slate-100 mt-0.5 truncate">
-                      {started && activeCity ? `${activeCity.name} · ${activeCity.englishName}` : hasTeam ? `${activeRoom?.name || '我的拼图小队'} · ${activeMembers.length}/4` : '创建小队或加入他人队伍'}
+                      {started && activeCity ? `${activeCity.name} · ${activeCity.englishName}` : hasTeam ? `${activeRoom?.name || '我的拼图小队'} · ${activeMembers.length}/${TEAM_SIZE}` : '创建小队或加入他人队伍'}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-[10px] text-slate-400 font-black">{started ? '路线数量' : '满员状态'}</p>
-                    <p className="text-sm font-black font-mono text-[#f5d06e] mt-0.5">{started ? routeCountLabel : `${activeMembers.length}/4`}</p>
+                    <p className="text-sm font-black font-mono text-[#f5d06e] mt-0.5">{started ? routeCountLabel : `${activeMembers.length}/${TEAM_SIZE}`}</p>
                   </div>
                 </div>
                 <div className="mt-3 h-2 rounded-full bg-white/10 overflow-hidden">
@@ -944,11 +986,17 @@ export default function TeamRelayView({
               </div>
             ) : (
               <button
-                onClick={hasTeam ? (isTeamFull ? handleStartPuzzle : handleSimulateJoin) : handleCreateRoom}
+                onClick={() => {
+                  if (hasTeam && isTeamFull) {
+                    handleStartPuzzle();
+                    return;
+                  }
+                  setViewMode('lobby');
+                }}
                 className="w-full py-8 rounded-2xl border border-dashed border-[#f5d06e]/25 bg-black/20 flex flex-col items-center gap-2.5 text-center"
               >
                 {isTeamFull ? <Shuffle size={22} className="text-[#f5d06e]" /> : <Lock size={22} className="text-[#f5d06e]" />}
-                <span className="text-sm font-black text-slate-100">{isTeamFull ? '满员后开启随机城市地图' : hasTeam ? '小队满员后解锁城市地图' : '先进入组队大厅创建或加入小队'}</span>
+                <span className="text-sm font-black text-slate-100">{isTeamFull ? '组队成功，正在生成城市地图' : hasTeam ? '等待满员后自动解锁城市地图' : '前往组队大厅创建或加入小队'}</span>
                 <span className="text-[10px] text-slate-500 font-bold">地图会被拆成 8 块路线区域，完成路线即可点亮</span>
               </button>
             )}
@@ -960,10 +1008,10 @@ export default function TeamRelayView({
                 <Users size={15} className="text-cyan-300" />
                 拼图小队
               </h2>
-              <span className="text-[10px] font-black text-slate-500">{hasTeam ? `${activeMembers.length}/4` : '待组队'}</span>
+              <span className="text-[10px] font-black text-slate-500">{hasTeam ? `${activeMembers.length}/${TEAM_SIZE}` : '待组队'}</span>
             </div>
-            <div className="grid grid-cols-4 gap-2">
-              {Array.from({ length: 4 }).map((_, index) => {
+            <div className="grid grid-cols-2 gap-2">
+              {Array.from({ length: TEAM_SIZE }).map((_, index) => {
                 const member = activeMembers[index];
                 if (!member) {
                   return (
@@ -1058,8 +1106,8 @@ export default function TeamRelayView({
               活动规则
             </h2>
             <div className="space-y-2.5 text-[11px] text-slate-400 font-bold leading-relaxed">
-              <p>1. 队长可在组队大厅创建小队，其他用户可加入大厅中的未满员队伍。</p>
-              <p>2. 小队满 4 人后开启任务，系统随机生成 1 座当前可体验城市。</p>
+              <p>1. 用户可在组队大厅创建小队，也可加入大厅中的未满员队伍。</p>
+              <p>2. 小队满 {TEAM_SIZE} 人后提示组队成功，并自动开启任务，系统随机生成 1 座当前可体验城市。</p>
               <p>3. 每座城市默认生成 8 条活动路线，每条路线对应地图上的 1 块区域。</p>
               <p>4. 全部点亮后获得 1 次瓜分奖励机会，分享成果海报可额外获得 1 次。</p>
             </div>
@@ -1084,17 +1132,17 @@ export default function TeamRelayView({
             {!hasTeam ? (
               <>
                 <Users size={15} />
-                创建拼图小队
+                前往组队大厅
               </>
             ) : !started && !isTeamFull ? (
               <>
                 <UserPlus size={15} />
-                等待成员加入 {activeMembers.length}/4
+                前往组队大厅 {activeMembers.length}/{TEAM_SIZE}
               </>
             ) : !started ? (
               <>
                 <Shuffle size={15} />
-                开启城市拼图任务
+                任务自动开启中
               </>
             ) : isPuzzleCompleted ? (
               <>

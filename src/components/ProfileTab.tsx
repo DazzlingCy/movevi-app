@@ -1,14 +1,18 @@
 import { Settings, ChevronRight, Mail, SquarePen, Medal, Map as MapIcon, MonitorSmartphone, Wallet, HeadphonesIcon, FileText, BookOpen, ClipboardList } from 'lucide-react';
 import { motion } from 'motion/react';
+import { getGlowRank } from '../lib/glow';
 
 interface UserStats {
   completedCities: number;
   completedRoutes: number;
   totalDistance: number;
   totalTimeHours: number;
+  lightValue?: number;
+  lifetimeLightValue?: number;
 }
 
 export default function ProfileTab({ userStats }: { userStats: UserStats }) {
+  const rankInfo = getGlowRank(userStats.lifetimeLightValue ?? userStats.lightValue ?? 0);
   const stats = [
     { label: '完成城市', value: userStats.completedCities.toString() },
     { label: '完成路线', value: userStats.completedRoutes.toString() },
@@ -55,11 +59,11 @@ export default function ProfileTab({ userStats }: { userStats: UserStats }) {
             <div className="flex-1 flex flex-col justify-center">
               <h1 className="text-xl font-bold text-slate-100 tracking-wide mb-2">尘缘</h1>
               <div className="flex items-center gap-2">
-                <span className="bg-amber-400 text-amber-950 text-xs font-bold px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(251,191,36,0.3)]">
-                  LV.3
+                <span className={`bg-gradient-to-r ${rankInfo.current.color} text-slate-950 text-xs font-bold px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(251,191,36,0.3)]`}>
+                  LV.{rankInfo.current.level}
                 </span>
                 <span className="text-amber-400 text-sm font-semibold tracking-widest drop-shadow-[0_0_5px_rgba(251,191,36,0.4)]">
-                  黄金
+                  {rankInfo.current.name}
                 </span>
               </div>
             </div>

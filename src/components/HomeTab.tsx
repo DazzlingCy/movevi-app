@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, useMotionValue, animate, AnimatePresence } from 'motion/react';
-import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, MapPin, Route, Milestone, Activity, Plane, Compass, RefreshCw } from 'lucide-react';
+import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, MapPin, Route, Milestone, Activity, Plane, Compass, RefreshCw, ClipboardCheck, Gift, Sparkles } from 'lucide-react';
 import { CITIES, CityData } from '../data/cities';
 import { cn } from '../lib/utils';
+import { getGlowRank } from '../lib/glow';
 
 export default function HomeTab({ onNavigate, completedChapters = [], targetFlight, onFlightComplete, pendingSelectionFrom, onCitySelected, litCityIds = [], userStats, setUserStats }: { onNavigate?: (type: string, data: any) => void; completedChapters?: number[]; targetFlight?: {fromCityId: string, toCityId: string} | null; onFlightComplete?: () => void; pendingSelectionFrom?: string | null; onCitySelected?: (cityId: string) => void; litCityIds?: string[]; userStats?: any; setUserStats?: any; }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -14,6 +15,18 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   const [isTreadmillConnected, setIsTreadmillConnected] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
+  const [showTaskPanel, setShowTaskPanel] = useState(false);
+  const [rewardBurst, setRewardBurst] = useState<{ id: number; reward: number; title: string } | null>(null);
+  const currentGlowRank = getGlowRank(userStats?.lifetimeLightValue ?? userStats?.lightValue ?? 0).current;
+  const avatarFrameStyles: Record<number, { ring: string; shadow: string; badge: string }> = {
+    1: { ring: 'from-orange-300 via-amber-500 to-stone-700', shadow: 'shadow-[0_0_16px_rgba(251,146,60,0.42)]', badge: 'text-orange-200' },
+    2: { ring: 'from-white via-slate-300 to-slate-500', shadow: 'shadow-[0_0_16px_rgba(226,232,240,0.38)]', badge: 'text-slate-100' },
+    3: { ring: 'from-amber-100 via-yellow-300 to-amber-600', shadow: 'shadow-[0_0_18px_rgba(251,191,36,0.5)]', badge: 'text-amber-200' },
+    4: { ring: 'from-cyan-100 via-sky-300 to-blue-600', shadow: 'shadow-[0_0_20px_rgba(34,211,238,0.5)]', badge: 'text-cyan-200' },
+    5: { ring: 'from-fuchsia-100 via-violet-300 to-indigo-600', shadow: 'shadow-[0_0_20px_rgba(217,70,239,0.48)]', badge: 'text-fuchsia-200' },
+    6: { ring: 'from-rose-100 via-amber-200 to-yellow-500', shadow: 'shadow-[0_0_22px_rgba(251,113,133,0.5)]', badge: 'text-rose-100' }
+  };
+  const avatarFrame = avatarFrameStyles[currentGlowRank.level] || avatarFrameStyles[1];
 
   useEffect(() => {
     if (pendingSelectionFrom) {
@@ -60,6 +73,105 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
     setTimeout(() => {
       setToastMessage(null);
     }, 3000);
+  };
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setTimeout(() => setToastMessage(null), 3000);
+  };
+
+  const triggerRewardBurst = (reward: number, title: string) => {
+    const id = Date.now();
+    setRewardBurst({ id, reward, title });
+    window.setTimeout(() => {
+      setRewardBurst(current => current?.id === id ? null : current);
+    }, 1800);
+  };
+
+  const claimedDailyTaskIds: string[] = userStats?.claimedDailyTaskIds || [];
+  const claimedWeeklyTaskIds: string[] = userStats?.claimedWeeklyTaskIds || [];
+  const dailyTasks = [
+    {
+      id: 'daily-checkin',
+      title: '每日签到',
+      progress: userStats?.dailyCheckedIn ? 1 : 0,
+      target: 1,
+      reward: 1,
+      actionLabel: '签到',
+      ready: !userStats?.dailyCheckedIn,
+      claimed: !!userStats?.dailyCheckedIn
+    },
+    {
+      id: 'daily-route',
+      title: '今日完成 1 条路线',
+      progress: Math.min(userStats?.dailyCompletedRoutes || 0, 1),
+      target: 1,
+      reward: 1,
+      ready: (userStats?.dailyCompletedRoutes || 0) >= 1,
+      claimed: claimedDailyTaskIds.includes('daily-route')
+    },
+    {
+      id: 'daily-3km',
+      title: '今日累计跑步 3km',
+      progress: Math.min(userStats?.dailyDistance || 0, 3),
+      target: 3,
+      reward: 1,
+      unit: 'km',
+      ready: (userStats?.dailyDistance || 0) >= 3,
+      claimed: claimedDailyTaskIds.includes('daily-3km')
+    }
+  ];
+  const weeklyTasks = [
+    {
+      id: 'weekly-city',
+      title: '本周完成 1 座城市',
+      progress: Math.min(userStats?.weeklyCompletedCities || 0, 1),
+      target: 1,
+      reward: 10,
+      ready: (userStats?.weeklyCompletedCities || 0) >= 1,
+      claimed: claimedWeeklyTaskIds.includes('weekly-city')
+    }
+  ];
+  const completedDailyCount = dailyTasks.filter(task => task.claimed || task.ready).length;
+  const completedWeeklyCount = weeklyTasks.filter(task => task.claimed || task.ready).length;
+
+  const handleClaimDailyTask = (taskId: string, reward: number) => {
+    if (!setUserStats) return;
+
+    if (taskId === 'daily-checkin') {
+      if (userStats?.dailyCheckedIn) return;
+      setUserStats((prev: any) => ({
+        ...prev,
+        dailyCheckedIn: true,
+        lightValue: (prev.lightValue || 0) + reward,
+        lifetimeLightValue: (prev.lifetimeLightValue ?? prev.lightValue ?? 0) + reward
+      }));
+      triggerRewardBurst(reward, '签到成功');
+      showToast(`签到成功，获得 ${reward} 点光迹值`);
+      return;
+    }
+
+    if (claimedDailyTaskIds.includes(taskId)) return;
+    setUserStats((prev: any) => ({
+      ...prev,
+      claimedDailyTaskIds: [...(prev.claimedDailyTaskIds || []), taskId],
+      lightValue: (prev.lightValue || 0) + reward,
+      lifetimeLightValue: (prev.lifetimeLightValue ?? prev.lightValue ?? 0) + reward
+    }));
+    triggerRewardBurst(reward, '任务完成');
+    showToast(`获得 ${reward} 点光迹值`);
+  };
+
+  const handleClaimWeeklyTask = (taskId: string, reward: number) => {
+    if (!setUserStats || claimedWeeklyTaskIds.includes(taskId)) return;
+    setUserStats((prev: any) => ({
+      ...prev,
+      claimedWeeklyTaskIds: [...(prev.claimedWeeklyTaskIds || []), taskId],
+      lightValue: (prev.lightValue || 0) + reward,
+      lifetimeLightValue: (prev.lifetimeLightValue ?? prev.lightValue ?? 0) + reward
+    }));
+    triggerRewardBurst(reward, '本周任务完成');
+    showToast(`获得 ${reward} 点光迹值`);
   };
 
   const x = useMotionValue(0);
@@ -379,13 +491,21 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       <div className="absolute top-0 left-0 right-0 px-6 py-4 z-20 flex items-center justify-between pointer-events-none bg-gradient-to-b from-black/40 to-transparent">
         
         {/* User Info */}
-        <div className="flex items-center space-x-4 bg-white/5 border border-white/10 p-1.5 pr-5 rounded-full backdrop-blur-md shadow-xl pointer-events-auto">
-          <div className="w-10 h-10 rounded-full border border-cyan-400 overflow-hidden bg-slate-800 p-[1px]">
-            <img 
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100" 
-              alt="User Avatar"
-              className="w-full h-full rounded-full object-cover"
-            />
+        <button
+          onClick={() => onNavigate && onNavigate('glowCenter', null)}
+          className="flex items-center space-x-4 bg-white/5 border border-white/10 p-1.5 pr-5 rounded-full backdrop-blur-md shadow-xl pointer-events-auto hover:border-cyan-300/40 hover:bg-white/10 transition-colors text-left"
+        >
+          <div className={`relative h-11 w-11 rounded-full bg-gradient-to-br ${avatarFrame.ring} p-[2px] ${avatarFrame.shadow}`}>
+            <div className="h-full w-full rounded-full bg-slate-950 p-[2px]">
+              <img
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100"
+                alt="User Avatar"
+                className="h-full w-full rounded-full object-cover"
+              />
+            </div>
+            <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-slate-950/90 px-1.5 py-[1px] text-[8px] font-black leading-none ${avatarFrame.badge}`}>
+              LV.{currentGlowRank.level}
+            </div>
           </div>
           <div>
             <div className="text-xs font-semibold tracking-wide text-slate-100">木小六</div>
@@ -394,7 +514,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
               <span className="font-mono font-bold">{userStats?.lightValue || 120}</span>
             </div>
           </div>
-        </div>
+        </button>
 
         {/* Top Right Actions */}
         <div className="flex items-center gap-2 pointer-events-auto">
@@ -435,6 +555,15 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
           >
             <Award className="text-cyan-400 mr-1.5" size={16} />
             <span className="text-[10px] font-medium text-slate-100 uppercase tracking-widest">排行榜</span>
+          </button>
+
+          <button 
+            className="flex items-center bg-amber-400/18 border border-amber-300/45 px-3 py-2 rounded-xl backdrop-blur-md hover:bg-amber-400/25 transition-colors shadow-[0_0_18px_rgba(251,191,36,0.18)]"
+            onClick={() => setShowTaskPanel(true)}
+          >
+            <ClipboardCheck className="text-amber-300 mr-1.5" size={16} />
+            <span className="text-[10px] font-bold text-amber-100 uppercase tracking-widest">任务</span>
+            <span className="ml-1 text-[10px] font-black font-mono text-amber-300">{completedDailyCount + completedWeeklyCount}/4</span>
           </button>
         </div>
 
@@ -787,6 +916,197 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
         )}
       </AnimatePresence>
 
+      {/* Reward Burst */}
+      <AnimatePresence>
+        {rewardBurst && (
+          <motion.div
+            key={rewardBurst.id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="pointer-events-none absolute inset-0 z-[95] flex items-center justify-center px-6"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.72, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: -18 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+              className="relative w-full max-w-[280px] overflow-hidden rounded-[30px] border border-amber-300/45 bg-[#08111d]/95 px-7 py-7 text-center shadow-[0_0_70px_rgba(251,191,36,0.38)] backdrop-blur-xl"
+            >
+              <motion.div
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: [0.6, 1.15, 1], opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-amber-200/60 bg-amber-300 text-slate-950 shadow-[0_0_34px_rgba(251,191,36,0.55)]"
+              >
+                <Sparkles size={30} strokeWidth={2.8} />
+              </motion.div>
+
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.12 }}
+                className="mt-5 text-[11px] font-black tracking-[0.22em] text-amber-100"
+              >
+                光迹值到账
+              </motion.p>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.75 }}
+                animate={{ opacity: 1, scale: [0.75, 1.12, 1] }}
+                transition={{ delay: 0.18, duration: 0.5 }}
+                className="mt-1 font-mono text-5xl font-black text-white"
+              >
+                +{rewardBurst.reward}
+              </motion.div>
+              <motion.p
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.24 }}
+                className="mt-2 text-xs font-bold text-cyan-200"
+              >
+                {rewardBurst.title}
+              </motion.p>
+
+              {Array.from({ length: 14 }).map((_, index) => {
+                const angle = (index / 14) * Math.PI * 2;
+                const distance = 86 + (index % 4) * 14;
+                return (
+                  <motion.span
+                    key={index}
+                    initial={{ x: 0, y: 0, scale: 0, opacity: 0 }}
+                    animate={{
+                      x: Math.cos(angle) * distance,
+                      y: Math.sin(angle) * distance,
+                      scale: [0, 1, 0.6],
+                      opacity: [0, 1, 0]
+                    }}
+                    transition={{ duration: 1.15, delay: index * 0.025, ease: 'easeOut' }}
+                    className="absolute left-1/2 top-1/2 h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_14px_rgba(251,191,36,0.8)]"
+                  />
+                );
+              })}
+
+              <motion.div
+                initial={{ opacity: 0, y: 26 }}
+                animate={{ opacity: [0, 1, 0], y: -110 }}
+                transition={{ duration: 1.25, delay: 0.18, ease: 'easeOut' }}
+                className="absolute left-1/2 top-1/2 h-20 w-1 -translate-x-1/2 rounded-full bg-gradient-to-t from-cyan-300/0 via-cyan-200/70 to-amber-200/0 blur-[1px]"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Task Panel */}
+      <AnimatePresence>
+        {showTaskPanel && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[70] bg-black/75 flex items-end justify-center backdrop-blur-sm"
+            onClick={() => setShowTaskPanel(false)}
+          >
+            <motion.div
+              initial={{ y: 60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 60, opacity: 0 }}
+              className="w-full max-w-md rounded-t-[28px] border border-white/10 bg-[#07111b] p-5 pb-7 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black tracking-[0.24em] text-cyan-300">GLOW TASKS</p>
+                  <h2 className="mt-1 text-xl font-black text-white">光迹任务</h2>
+                </div>
+                <button
+                  onClick={() => setShowTaskPanel(false)}
+                  className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400">今日任务</p>
+                  <p className="mt-1 text-sm font-black text-white">{completedDailyCount}/3 已达成</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-bold text-slate-400">当前光迹值</p>
+                  <p className="mt-1 text-lg font-black font-mono text-cyan-300">{userStats?.lightValue || 0}</p>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-3">
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-xs font-black text-slate-200">今日任务</h3>
+                    <span className="text-[10px] font-bold text-slate-500">每日刷新</span>
+                  </div>
+                  <div className="space-y-2">
+                    {dailyTasks.map(task => {
+                      const progressText = task.unit === 'km'
+                        ? `${task.progress.toFixed(1)}/${task.target}${task.unit}`
+                        : `${task.progress}/${task.target}`;
+                      const canClaim = task.ready && !task.claimed;
+                      return (
+                        <div key={task.id} className="rounded-2xl border border-white/8 bg-black/20 p-3 flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${task.claimed ? 'bg-emerald-500/15 text-emerald-300' : task.ready ? 'bg-cyan-500/15 text-cyan-300' : 'bg-white/5 text-slate-500'}`}>
+                            {task.claimed ? <CheckCircle2 size={18} /> : <Gift size={17} />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-black text-slate-100 truncate">{task.title}</p>
+                            <p className="mt-1 text-[10px] font-bold text-slate-500">{progressText} · 奖励 +{task.reward} 光迹值</p>
+                          </div>
+                          <button
+                            disabled={!canClaim}
+                            onClick={() => handleClaimDailyTask(task.id, task.reward)}
+                            className={`shrink-0 rounded-xl px-3 py-2 text-[10px] font-black ${canClaim ? 'bg-cyan-400 text-slate-950' : task.claimed ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-white/5 text-slate-500'}`}
+                          >
+                            {task.claimed ? '已领取' : task.actionLabel || '领取'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <h3 className="text-xs font-black text-slate-200">本周任务</h3>
+                    <span className="text-[10px] font-bold text-slate-500">{completedWeeklyCount}/1</span>
+                  </div>
+                  <div className="space-y-2">
+                    {weeklyTasks.map(task => {
+                      const canClaim = task.ready && !task.claimed;
+                      return (
+                        <div key={task.id} className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-3 flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${task.claimed ? 'bg-emerald-500/15 text-emerald-300' : task.ready ? 'bg-amber-500/15 text-amber-300' : 'bg-white/5 text-slate-500'}`}>
+                            {task.claimed ? <CheckCircle2 size={18} /> : <Award size={17} />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-black text-slate-100 truncate">{task.title}</p>
+                            <p className="mt-1 text-[10px] font-bold text-slate-500">{task.progress}/{task.target} · 奖励 +{task.reward} 光迹值</p>
+                          </div>
+                          <button
+                            disabled={!canClaim}
+                            onClick={() => handleClaimWeeklyTask(task.id, task.reward)}
+                            className={`shrink-0 rounded-xl px-3 py-2 text-[10px] font-black ${canClaim ? 'bg-amber-300 text-slate-950' : task.claimed ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-white/5 text-slate-500'}`}
+                          >
+                            {task.claimed ? '已领取' : '领取'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Switch City Confirmation */}
       <AnimatePresence>
         {showSwitchConfirm && (
@@ -804,7 +1124,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
             >
                <h3 className="text-xl font-bold text-white mb-3">切换城市</h3>
                <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                 切换城市将消耗<span className="text-amber-400 font-bold mx-1">3点光迹值</span>。<br/>
+                 切换城市将消耗<span className="text-amber-400 font-bold mx-1">30点光迹值</span>。<br/>
                  是否继续？
                </p>
                
@@ -817,9 +1137,9 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                  </button>
                  <button 
                    onClick={() => {
-                      if (userStats && userStats.lightValue >= 3) {
+                      if (userStats && userStats.lightValue >= 30) {
                         if (setUserStats) {
-                          setUserStats((prev: any) => ({ ...prev, lightValue: prev.lightValue - 3 }));
+                          setUserStats((prev: any) => ({ ...prev, lightValue: prev.lightValue - 30 }));
                         }
                         const available = CITIES.filter(c => c.status !== 'lit' && c.status !== 'upcoming');
                         const shuffled = [...available].sort(() => 0.5 - Math.random());
@@ -827,11 +1147,11 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                         setShowSwitchConfirm(false);
                         setShowStoryPanel(false); // Close story panel as well right away
                         setShowCitySelection(true);
-                        setToastMessage('已消耗3点光迹值重新选择城市');
+                        setToastMessage('已消耗30点光迹值重新选择城市');
                         setTimeout(() => setToastMessage(null), 3000);
                       } else {
                         setShowSwitchConfirm(false);
-                        setToastMessage('光迹值不足 (需要3点)');
+                        setToastMessage('光迹值不足 (需要30点)');
                         setTimeout(() => setToastMessage(null), 3000);
                       }
                    }}
