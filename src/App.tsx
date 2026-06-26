@@ -20,7 +20,7 @@ import { getGlowRank } from './lib/glow';
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [showEventsBadge, setShowEventsBadge] = useState(true);
-  const [showIntro, setShowIntro] = useState(true);
+  const [showIntro, setShowIntro] = useState(false);
   const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'runPlayback' | 'litRecords' | 'leaderboard' | 'weekendMedley' | 'teamRelay' | 'glowCenter', data?: any} | null>(null);
 
   // Weekend City Memory Medley Activity states
