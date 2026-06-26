@@ -5,6 +5,49 @@ import { CITIES, CityData } from '../data/cities';
 import { cn } from '../lib/utils';
 import { getGlowRank } from '../lib/glow';
 
+function LocalWorldMap() {
+  const landClass = "fill-slate-200/55 stroke-cyan-100/30";
+  const glowClass = "fill-cyan-200/12";
+
+  return (
+    <svg
+      viewBox="0 0 1200 800"
+      className="absolute inset-0 h-full w-full pointer-events-none"
+      aria-hidden="true"
+    >
+      <defs>
+        <filter id="world-map-glow" x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation="5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <g filter="url(#world-map-glow)">
+        <path className={glowClass} d="M95 170L160 112L255 105L330 145L365 218L325 300L245 338L160 315L92 250Z" />
+        <path className={glowClass} d="M355 350L430 385L455 490L425 640L360 705L320 618L305 500Z" />
+        <path className={glowClass} d="M500 190L610 150L705 185L735 265L650 315L545 285Z" />
+        <path className={glowClass} d="M610 315L700 335L742 455L705 612L610 600L560 485Z" />
+        <path className={glowClass} d="M675 185L850 125L1065 170L1120 280L1010 380L820 355L705 285Z" />
+        <path className={glowClass} d="M930 520L1045 545L1100 625L1030 680L920 640Z" />
+      </g>
+      <g strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round">
+        <path className={landClass} d="M88 178L143 120L230 95L307 118L358 166L382 230L345 282L290 315L215 330L145 306L86 255L60 205Z" />
+        <path className={landClass} d="M245 96L282 70L345 82L386 116L350 150L298 132Z" />
+        <path className={landClass} d="M366 332L430 365L470 435L452 548L410 655L350 710L318 620L300 520L323 420Z" />
+        <path className={landClass} d="M498 204L548 163L632 152L700 190L715 248L654 296L565 285L510 250Z" />
+        <path className={landClass} d="M610 306L690 328L742 410L735 520L694 624L625 604L575 520L550 430Z" />
+        <path className={landClass} d="M680 184L790 128L930 118L1062 160L1134 230L1110 320L1018 386L875 374L750 325L705 252Z" />
+        <path className={landClass} d="M780 330L830 358L812 410L750 390Z" />
+        <path className={landClass} d="M915 516L1025 538L1102 605L1074 665L980 684L910 638Z" />
+        <path className={landClass} d="M642 612L678 638L650 680L610 650Z" />
+        <path className={landClass} d="M530 165L548 132L585 142L570 178Z" />
+      </g>
+    </svg>
+  );
+}
+
 export default function HomeTab({ onNavigate, completedChapters = [], targetFlight, onFlightComplete, pendingSelectionFrom, onCitySelected, litCityIds = [], userStats, setUserStats }: { onNavigate?: (type: string, data: any) => void; completedChapters?: number[]; targetFlight?: {fromCityId: string, toCityId: string} | null; onFlightComplete?: () => void; pendingSelectionFrom?: string | null; onCitySelected?: (cityId: string) => void; litCityIds?: string[]; userStats?: any; setUserStats?: any; }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -134,6 +177,12 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   ];
   const completedDailyCount = dailyTasks.filter(task => task.claimed || task.ready).length;
   const completedWeeklyCount = weeklyTasks.filter(task => task.claimed || task.ready).length;
+  const allGlowTasks = [...dailyTasks, ...weeklyTasks];
+  const totalTaskCount = allGlowTasks.length;
+  const completedTaskCount = completedDailyCount + completedWeeklyCount;
+  const claimableReward = allGlowTasks.reduce((sum, task) => {
+    return task.ready && !task.claimed ? sum + task.reward : sum;
+  }, 0);
 
   const handleClaimDailyTask = (taskId: string, reward: number) => {
     if (!setUserStats) return;
@@ -558,7 +607,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
           </button>
 
           <button 
-            className="flex items-center bg-amber-400/18 border border-amber-300/45 px-3 py-2 rounded-xl backdrop-blur-md hover:bg-amber-400/25 transition-colors shadow-[0_0_18px_rgba(251,191,36,0.18)]"
+            className="flex items-center bg-amber-400/[0.18] border border-amber-300/45 px-3 py-2 rounded-xl backdrop-blur-md hover:bg-amber-400/25 transition-colors shadow-[0_0_18px_rgba(251,191,36,0.18)]"
             onClick={() => setShowTaskPanel(true)}
           >
             <ClipboardCheck className="text-amber-300 mr-1.5" size={16} />
@@ -1004,103 +1053,148 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-[70] bg-black/75 flex items-end justify-center backdrop-blur-sm"
+            className="absolute inset-0 z-[70] flex items-end justify-center bg-black/80 backdrop-blur-md"
             onClick={() => setShowTaskPanel(false)}
           >
             <motion.div
               initial={{ y: 60, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 60, opacity: 0 }}
-              className="w-full max-w-md rounded-t-[28px] border border-white/10 bg-[#07111b] p-5 pb-7 shadow-2xl"
+              className="relative w-full max-w-md overflow-hidden rounded-t-[30px] border border-white/10 bg-[#05070A] p-4 pb-6 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
+              <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_20%_0%,rgba(94,106,210,0.26),transparent_42%),radial-gradient(circle_at_84%_6%,rgba(251,191,36,0.18),transparent_36%)]" />
+              <div className="absolute inset-0 opacity-[0.06] bg-[linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.22)_1px,transparent_1px)] bg-[size:28px_28px]" />
+              <div className="relative">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-black tracking-[0.24em] text-cyan-300">GLOW TASKS</p>
-                  <h2 className="mt-1 text-xl font-black text-white">光迹任务</h2>
+                  <p className="text-[10px] font-black tracking-[0.24em] text-indigo-200">GLOW TASKS</p>
+                  <h2 className="mt-1 text-xl font-black tracking-tight text-white">光迹任务</h2>
                 </div>
                 <button
                   onClick={() => setShowTaskPanel(false)}
-                  className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300 transition-colors hover:bg-white/10"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="mt-5 rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-3 flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400">今日任务</p>
-                  <p className="mt-1 text-sm font-black text-white">{completedDailyCount}/3 已达成</p>
+              <div className="mt-5 overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.055] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-2xl border border-white/[0.08] bg-black/20 p-3">
+                    <p className="text-[10px] font-bold text-slate-500">完成度</p>
+                    <p className="mt-1 font-mono text-xl font-black text-white">{completedTaskCount}/{totalTaskCount}</p>
+                  </div>
+                  <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.06] p-3">
+                    <p className="text-[10px] font-bold text-amber-100/60">可领取</p>
+                    <p className="mt-1 font-mono text-xl font-black text-amber-200">+{claimableReward}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowTaskPanel(false);
+                      onNavigate && onNavigate('glowCenter', null);
+                    }}
+                    className="rounded-2xl border border-cyan-300/15 bg-cyan-300/[0.06] p-3 text-left transition-colors hover:border-cyan-200/30 hover:bg-cyan-300/[0.1]"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-[10px] font-bold text-cyan-100/60">余额</p>
+                      <ChevronRight size={12} className="text-cyan-200/70" />
+                    </div>
+                    <p className="mt-1 font-mono text-xl font-black text-cyan-200">{userStats?.lightValue || 0}</p>
+                  </button>
                 </div>
-                <div className="text-right">
-                  <p className="text-[10px] font-bold text-slate-400">当前光迹值</p>
-                  <p className="mt-1 text-lg font-black font-mono text-cyan-300">{userStats?.lightValue || 0}</p>
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(completedTaskCount / totalTaskCount) * 100}%` }}
+                    transition={{ duration: 0.7, ease: 'easeOut' }}
+                    className="h-full rounded-full bg-gradient-to-r from-indigo-300 via-cyan-300 to-amber-200"
+                  />
                 </div>
               </div>
 
-              <div className="mt-4 space-y-3">
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <h3 className="text-xs font-black text-slate-200">今日任务</h3>
-                    <span className="text-[10px] font-bold text-slate-500">每日刷新</span>
-                  </div>
-                  <div className="space-y-2">
-                    {dailyTasks.map(task => {
-                      const progressText = task.unit === 'km'
-                        ? `${task.progress.toFixed(1)}/${task.target}${task.unit}`
-                        : `${task.progress}/${task.target}`;
-                      const canClaim = task.ready && !task.claimed;
-                      return (
-                        <div key={task.id} className="rounded-2xl border border-white/8 bg-black/20 p-3 flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${task.claimed ? 'bg-emerald-500/15 text-emerald-300' : task.ready ? 'bg-cyan-500/15 text-cyan-300' : 'bg-white/5 text-slate-500'}`}>
-                            {task.claimed ? <CheckCircle2 size={18} /> : <Gift size={17} />}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-black text-slate-100 truncate">{task.title}</p>
-                            <p className="mt-1 text-[10px] font-bold text-slate-500">{progressText} · 奖励 +{task.reward} 光迹值</p>
-                          </div>
-                          <button
-                            disabled={!canClaim}
-                            onClick={() => handleClaimDailyTask(task.id, task.reward)}
-                            className={`shrink-0 rounded-xl px-3 py-2 text-[10px] font-black ${canClaim ? 'bg-cyan-400 text-slate-950' : task.claimed ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-white/5 text-slate-500'}`}
+              <div className="mt-4 space-y-4">
+                {[
+                  { title: '今日任务', meta: '每日刷新', tasks: dailyTasks, tone: 'cyan' },
+                  { title: '本周任务', meta: `${completedWeeklyCount}/1`, tasks: weeklyTasks, tone: 'amber' }
+                ].map(group => (
+                  <div key={group.title}>
+                    <div className="mb-2 flex items-center justify-between">
+                      <h3 className="text-xs font-black text-slate-100">{group.title}</h3>
+                      <span className="rounded-full border border-white/[0.08] bg-white/[0.04] px-2 py-1 text-[10px] font-bold text-slate-500">{group.meta}</span>
+                    </div>
+                    <div className="space-y-2">
+                      {group.tasks.map((task: any) => {
+                        const progressText = task.unit === 'km'
+                          ? `${task.progress.toFixed(1)}/${task.target}${task.unit}`
+                          : `${task.progress}/${task.target}`;
+                        const progressPercent = Math.min(100, (task.progress / task.target) * 100);
+                        const canClaim = task.ready && !task.claimed;
+                        const isWeekly = group.tone === 'amber';
+                        return (
+                          <div
+                            key={task.id}
+                            className={`rounded-[18px] border p-3 ${
+                              task.claimed
+                                ? 'border-emerald-300/[0.14] bg-emerald-300/[0.035]'
+                                : canClaim
+                                  ? isWeekly
+                                    ? 'border-amber-300/[0.24] bg-amber-300/[0.065]'
+                                    : 'border-cyan-300/[0.22] bg-cyan-300/[0.055]'
+                                  : 'border-white/[0.08] bg-[#0b1018]/80'
+                            }`}
                           >
-                            {task.claimed ? '已领取' : task.actionLabel || '领取'}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="mb-2 flex items-center justify-between">
-                    <h3 className="text-xs font-black text-slate-200">本周任务</h3>
-                    <span className="text-[10px] font-bold text-slate-500">{completedWeeklyCount}/1</span>
-                  </div>
-                  <div className="space-y-2">
-                    {weeklyTasks.map(task => {
-                      const canClaim = task.ready && !task.claimed;
-                      return (
-                        <div key={task.id} className="rounded-2xl border border-amber-500/15 bg-amber-500/5 p-3 flex items-center gap-3">
-                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${task.claimed ? 'bg-emerald-500/15 text-emerald-300' : task.ready ? 'bg-amber-500/15 text-amber-300' : 'bg-white/5 text-slate-500'}`}>
-                            {task.claimed ? <CheckCircle2 size={18} /> : <Award size={17} />}
+                            <div className="flex items-center gap-3">
+                              <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${
+                                task.claimed
+                                  ? 'border-emerald-300/20 bg-emerald-300/10 text-emerald-300'
+                                  : canClaim
+                                    ? isWeekly
+                                      ? 'border-amber-300/20 bg-amber-300/10 text-amber-200'
+                                      : 'border-cyan-300/20 bg-cyan-300/10 text-cyan-200'
+                                    : 'border-white/[0.08] bg-white/[0.035] text-slate-500'
+                              }`}>
+                                {task.claimed ? <CheckCircle2 size={18} /> : isWeekly ? <Award size={17} /> : <Gift size={17} />}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className="truncate text-xs font-black text-slate-100">{task.title}</p>
+                                  <span className={`shrink-0 font-mono text-[11px] font-black ${isWeekly ? 'text-amber-200' : 'text-cyan-200'}`}>+{task.reward}</span>
+                                </div>
+                                <div className="mt-2 flex items-center gap-2">
+                                  <div className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/[0.08]">
+                                    <div
+                                      className={`h-full rounded-full ${isWeekly ? 'bg-gradient-to-r from-amber-300 to-yellow-100' : 'bg-gradient-to-r from-indigo-300 to-cyan-200'}`}
+                                      style={{ width: `${progressPercent}%` }}
+                                    />
+                                  </div>
+                                  <span className="shrink-0 font-mono text-[10px] font-bold text-slate-500">{progressText}</span>
+                                </div>
+                              </div>
+                              <button
+                                disabled={!canClaim}
+                                onClick={() => task.id === 'weekly-city' ? handleClaimWeeklyTask(task.id, task.reward) : handleClaimDailyTask(task.id, task.reward)}
+                                className={`h-9 shrink-0 rounded-xl px-3 text-[10px] font-black transition-colors ${
+                                  canClaim
+                                    ? isWeekly
+                                      ? 'bg-amber-200 text-slate-950 shadow-[0_0_18px_rgba(251,191,36,0.22)]'
+                                      : 'bg-cyan-300 text-slate-950 shadow-[0_0_18px_rgba(103,232,249,0.2)]'
+                                    : task.claimed
+                                      ? 'border border-emerald-300/15 bg-emerald-300/[0.06] text-emerald-300'
+                                      : 'border border-white/[0.08] bg-white/[0.035] text-slate-500'
+                                }`}
+                              >
+                                {task.claimed ? '已领' : task.actionLabel || '领取'}
+                              </button>
+                            </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-xs font-black text-slate-100 truncate">{task.title}</p>
-                            <p className="mt-1 text-[10px] font-bold text-slate-500">{task.progress}/{task.target} · 奖励 +{task.reward} 光迹值</p>
-                          </div>
-                          <button
-                            disabled={!canClaim}
-                            onClick={() => handleClaimWeeklyTask(task.id, task.reward)}
-                            className={`shrink-0 rounded-xl px-3 py-2 text-[10px] font-black ${canClaim ? 'bg-amber-300 text-slate-950' : task.claimed ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-white/5 text-slate-500'}`}
-                          >
-                            {task.claimed ? '已领取' : '领取'}
-                          </button>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
+                ))}
+              </div>
               </div>
             </motion.div>
           </motion.div>

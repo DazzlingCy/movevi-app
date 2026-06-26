@@ -163,26 +163,26 @@ export default function GlowCenterView({ userStats, onBack, onExchange }: GlowCe
   };
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-[#05070A] text-slate-100">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.18),transparent_36%),radial-gradient(circle_at_75%_25%,rgba(251,191,36,0.14),transparent_32%),linear-gradient(180deg,#05070A_0%,#07111b_48%,#030507_100%)]" />
-      <div className="absolute inset-0 opacity-[0.07] bg-[linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.22)_1px,transparent_1px)] bg-[size:30px_30px]" />
+    <div className="relative h-full w-full overflow-hidden bg-[#020407] text-slate-100">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_0%,rgba(94,106,210,0.24),transparent_36%),radial-gradient(circle_at_84%_10%,rgba(251,191,36,0.18),transparent_34%),linear-gradient(180deg,#020407_0%,#07111b_46%,#030507_100%)]" />
+      <div className="absolute inset-0 opacity-[0.065] bg-[linear-gradient(rgba(255,255,255,0.22)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.22)_1px,transparent_1px)] bg-[size:28px_28px]" />
 
       <div className="relative z-10 flex h-full flex-col">
         <header className="shrink-0 px-5 pt-5 pb-3">
           <div className="flex items-center justify-between">
             <button
               onClick={onBack}
-              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-200 backdrop-blur-md"
+              className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.055] text-slate-200 backdrop-blur-md transition-colors hover:bg-white/10"
             >
               <ChevronLeft size={22} />
             </button>
             <div className="text-center">
-              <p className="text-[10px] font-black tracking-[0.24em] text-cyan-300">GLOW RANK</p>
-              <h1 className="text-lg font-black text-white">光迹值中心</h1>
+              <p className="text-[10px] font-black tracking-[0.24em] text-indigo-200">GLOW RANK</p>
+              <h1 className="text-lg font-black tracking-tight text-white">光迹值中心</h1>
             </div>
             <button
               onClick={() => setShowRankInfo(true)}
-              className="flex h-10 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 text-[10px] font-black text-slate-200 backdrop-blur-md"
+              className="flex h-10 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.055] px-3 text-[10px] font-black text-slate-200 backdrop-blur-md transition-colors hover:bg-white/10"
             >
               <Info size={14} />
               说明
@@ -191,25 +191,29 @@ export default function GlowCenterView({ userStats, onBack, onExchange }: GlowCe
         </header>
 
         <main className="min-h-0 flex-1 overflow-y-auto px-5 pb-8 hide-scrollbar">
-          <section className="relative overflow-hidden rounded-[32px] border border-white/10 bg-white/[0.055] p-5 shadow-2xl backdrop-blur-xl">
+          <section className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[#0a0f17]/[0.86] p-4 shadow-2xl backdrop-blur-xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_0%,rgba(94,106,210,0.2),transparent_46%),radial-gradient(circle_at_88%_10%,rgba(251,191,36,0.18),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.04),transparent_72%)]" />
             <div className="absolute -right-16 -top-16 h-44 w-44 rounded-full blur-3xl" style={{ backgroundColor: selectedCopy.aura }} />
-            <div className="relative flex items-center justify-between gap-4">
+            <div className="relative rounded-[24px] border border-white/10 bg-black/[0.24] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div className="flex items-center gap-3">
-                <div className="h-14 w-14 rounded-full border border-cyan-300/50 bg-slate-950 p-1 shadow-[0_0_26px_rgba(34,211,238,0.24)]">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className={`h-14 w-14 rounded-full bg-gradient-to-br ${rankInfo.current.color} p-[2px] shadow-[0_0_28px_rgba(103,232,249,0.16)]`}>
+                    <div className="h-full w-full rounded-full bg-slate-950 p-1">
                   <img
                     src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200&h=200"
                     alt="User Avatar"
                     className="h-full w-full rounded-full object-cover"
                   />
+                    </div>
                 </div>
-                <div>
-                  <p className="text-sm font-black text-white">木小六</p>
-                  <p className="mt-1 text-[10px] font-bold text-slate-400">累计光迹值 {lifetimeLightValue}</p>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="truncate text-sm font-black text-white">木小六</p>
+                      <span className={`rounded-full bg-gradient-to-r ${rankInfo.current.color} px-2 py-0.5 text-[9px] font-black text-slate-950`}>LV.{rankInfo.current.level}</span>
+                    </div>
+                    <p className="mt-1 font-mono text-[10px] font-bold text-slate-400">累计 {lifetimeLightValue} 光迹值</p>
+                  </div>
                 </div>
-              </div>
-              <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-2 text-right">
-                <p className="text-[10px] font-bold text-cyan-100/70">当前余额</p>
-                <p className="font-mono text-lg font-black text-cyan-200">{lightValue}</p>
               </div>
             </div>
 
@@ -222,31 +226,33 @@ export default function GlowCenterView({ userStats, onBack, onExchange }: GlowCe
               initial={{ opacity: 0, y: 16, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{ type: 'spring', stiffness: 240, damping: 20 }}
-              className={`relative mt-7 cursor-grab overflow-hidden rounded-[28px] border p-5 text-center active:cursor-grabbing ${
+              className={`relative mt-4 cursor-grab overflow-hidden rounded-[26px] border p-5 text-center active:cursor-grabbing ${
                 selectedIsCurrent
-                  ? 'border-amber-300/45 bg-amber-300/[0.07] shadow-[0_0_34px_rgba(251,191,36,0.18)]'
-                  : 'border-white/10 bg-black/24'
+                  ? 'border-amber-300/45 bg-amber-300/[0.065] shadow-[0_0_34px_rgba(251,191,36,0.16)]'
+                  : selectedUnlocked
+                    ? 'border-white/10 bg-black/[0.28]'
+                    : 'border-white/[0.08] bg-black/[0.18] opacity-[0.82]'
               }`}
             >
               <div className="absolute inset-x-10 top-8 h-24 rounded-full blur-3xl" style={{ backgroundColor: selectedCopy.aura }} />
               {selectedIsCurrent && (
-                <div className="absolute right-4 top-4 rounded-full border border-amber-200/35 bg-amber-300/12 px-3 py-1 text-[10px] font-black text-amber-100">
+                <div className="absolute right-4 top-4 rounded-full border border-amber-200/35 bg-amber-300/12 px-3 py-1 text-[10px] font-black text-amber-100 shadow-[0_0_18px_rgba(251,191,36,0.15)]">
                   当前段位
                 </div>
               )}
-              <div className="relative mx-auto flex h-32 w-32 items-center justify-center rounded-full border border-white/15 bg-slate-950/80 shadow-[inset_0_0_30px_rgba(255,255,255,0.04)]">
-                <div className={`absolute inset-2 rounded-full bg-gradient-to-br ${selectedRank.color} opacity-95 blur-[1px]`} />
-                <div className="absolute inset-[14px] rounded-full border border-black/35 bg-black/20" />
-                <div className="absolute inset-[22px] rounded-full border border-white/10" />
+              <div className="relative mx-auto flex h-[120px] w-[120px] items-center justify-center rounded-[30px] border border-white/15 bg-slate-950/80 shadow-[inset_0_0_30px_rgba(255,255,255,0.04)]">
+                <div className={`absolute inset-2 rounded-[26px] bg-gradient-to-br ${selectedRank.color} opacity-95 blur-[1px]`} />
+                <div className="absolute inset-[12px] rounded-[22px] border border-black/35 bg-black/[0.24]" />
+                <div className="absolute inset-[21px] rounded-2xl border border-white/10" />
                 {selectedIsCurrent && (
                   <motion.div
-                    className={`absolute inset-0 rounded-full bg-gradient-to-br ${selectedRank.color} opacity-40 blur-md`}
+                    className={`absolute inset-0 rounded-[30px] bg-gradient-to-br ${selectedRank.color} opacity-[0.38] blur-md`}
                     animate={{ scale: [1, 1.12, 1] }}
                     transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
                   />
                 )}
-                <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-[#07111b] text-white shadow-[inset_0_0_18px_rgba(255,255,255,0.04),0_10px_28px_rgba(0,0,0,0.35)]">
-                  <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_35%_22%,rgba(255,255,255,0.16),transparent_28%)]" />
+                <div className="relative flex h-20 w-20 items-center justify-center rounded-2xl bg-[#07111b] text-white shadow-[inset_0_0_18px_rgba(255,255,255,0.04),0_10px_28px_rgba(0,0,0,0.35)]">
+                  <div className="absolute inset-0 rounded-2xl bg-[radial-gradient(circle_at_35%_22%,rgba(255,255,255,0.16),transparent_28%)]" />
                   <RankBadgeIcon level={selectedRank.level} />
                 </div>
               </div>
@@ -263,11 +269,11 @@ export default function GlowCenterView({ userStats, onBack, onExchange }: GlowCe
               </div>
 
               <div className="relative mt-5 grid grid-cols-2 gap-3 text-left">
-                <div className="rounded-2xl border border-white/8 bg-white/[0.04] p-3">
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                   <p className="text-[10px] font-bold text-slate-500">达成条件</p>
-                  <p className="mt-1 font-mono text-lg font-black text-white">{selectedRank.threshold}</p>
+                  <p className="mt-1 font-mono text-lg font-black text-white">{selectedRank.threshold}+</p>
                 </div>
-                <div className="rounded-2xl border border-white/8 bg-white/[0.04] p-3">
+                <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                   <p className="text-[10px] font-bold text-slate-500">当前状态</p>
                   <p className={`mt-1 text-sm font-black ${selectedUnlocked ? 'text-emerald-300' : 'text-slate-400'}`}>
                     {selectedIsCurrent ? '当前段位' : selectedUnlocked ? '已解锁' : '未解锁'}
@@ -302,14 +308,14 @@ export default function GlowCenterView({ userStats, onBack, onExchange }: GlowCe
             </div>
           </section>
 
-          <section className="mt-5">
+          <section className="mt-5 rounded-[28px] border border-white/10 bg-[#080d14]/82 p-4 shadow-2xl">
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-black tracking-[0.22em] text-amber-200">GLOW SHOP</p>
-                <h2 className="mt-1 text-base font-black text-white">兑换商城</h2>
+                <h2 className="mt-1 text-base font-black tracking-tight text-white">兑换商城</h2>
               </div>
-              <div className="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1.5 text-right">
-                <p className="text-[10px] font-bold text-cyan-100/70">可用光迹值</p>
+              <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-1.5 text-right">
+                <p className="text-[10px] font-bold text-cyan-100/65">可用光迹值</p>
                 <p className="font-mono text-sm font-black text-cyan-200">{lightValue}</p>
               </div>
             </div>
@@ -325,35 +331,42 @@ export default function GlowCenterView({ userStats, onBack, onExchange }: GlowCe
                   <motion.div
                     key={item.id}
                     whileTap={{ scale: canExchange ? 0.98 : 1 }}
-                    className="flex min-h-[190px] flex-col rounded-[24px] border border-white/10 bg-slate-950/62 p-3 shadow-xl"
+                    className={`relative flex min-h-[198px] flex-col overflow-hidden rounded-[22px] border p-3 shadow-xl ${
+                      canExchange
+                        ? 'border-cyan-300/20 bg-slate-950/80'
+                        : 'border-white/[0.08] bg-slate-950/[0.58]'
+                    }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${item.accent} text-slate-950 shadow-lg`}>
+                    <div className={`absolute -right-8 -top-8 h-20 w-20 rounded-full bg-gradient-to-br ${item.accent} opacity-20 blur-2xl`} />
+                    <div className="relative flex items-start justify-between gap-2">
+                      <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${item.accent} text-slate-950 shadow-lg`}>
                         <Icon size={20} />
                       </div>
-                      <span className="shrink-0 rounded-full bg-amber-300/10 px-2 py-1 font-mono text-[11px] font-black text-amber-200">-{item.cost}</span>
+                      <span className="shrink-0 rounded-full border border-amber-200/15 bg-amber-300/10 px-2.5 py-1 font-mono text-[11px] font-black text-amber-100">-{item.cost}</span>
                     </div>
-                    <div className="mt-3 flex-1">
-                      <h3 className="text-sm font-black leading-tight text-white">{item.title}</h3>
-                      {item.requiredRankLevel && (
-                        <span className={`mt-2 inline-flex rounded-full px-2 py-1 text-[10px] font-black ${rankLocked ? 'bg-amber-300/10 text-amber-200' : 'bg-emerald-300/10 text-emerald-200'}`}>
-                          黄金以上可兑
-                        </span>
-                      )}
-                      {item.weeklyLimit && (
-                        <span className={`ml-1 mt-2 inline-flex rounded-full px-2 py-1 text-[10px] font-black ${weeklyUsed ? 'bg-slate-500/10 text-slate-400' : 'bg-cyan-300/10 text-cyan-200'}`}>
-                          每周 1 张
-                        </span>
-                      )}
+                    <div className="relative mt-3 flex-1">
+                      <h3 className="text-sm font-black leading-tight tracking-tight text-white">{item.title}</h3>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {item.requiredRankLevel && (
+                          <span className={`inline-flex rounded-full px-2 py-1 text-[9px] font-black ${rankLocked ? 'bg-amber-300/10 text-amber-200' : 'bg-emerald-300/10 text-emerald-200'}`}>
+                            黄金解锁
+                          </span>
+                        )}
+                        {item.weeklyLimit && (
+                          <span className={`inline-flex rounded-full px-2 py-1 text-[9px] font-black ${weeklyUsed ? 'bg-slate-500/10 text-slate-400' : 'bg-indigo-300/10 text-indigo-200'}`}>
+                            每周 1 张
+                          </span>
+                        )}
+                      </div>
                       <p className="mt-2 text-[10px] font-medium leading-relaxed text-slate-400">{item.description}</p>
                     </div>
                     <button
                       disabled={!canExchange}
                       onClick={() => handleExchange(item.id)}
-                      className={`mt-4 h-10 w-full rounded-2xl text-[11px] font-black transition-colors ${
+                      className={`relative mt-4 h-10 w-full rounded-2xl text-[11px] font-black transition-colors ${
                         canExchange
-                          ? 'bg-cyan-300 text-slate-950 shadow-[0_0_22px_rgba(103,232,249,0.25)]'
-                          : 'border border-white/10 bg-white/5 text-slate-500'
+                          ? 'bg-gradient-to-r from-cyan-200 to-indigo-200 text-slate-950 shadow-[0_0_22px_rgba(103,232,249,0.22)]'
+                          : 'border border-white/10 bg-white/[0.035] text-slate-500'
                       }`}
                     >
                       {buttonText}
