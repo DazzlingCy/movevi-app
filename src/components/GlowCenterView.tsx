@@ -177,8 +177,7 @@ export default function GlowCenterView({ userStats, onBack, onExchange }: GlowCe
               <ChevronLeft size={22} />
             </button>
             <div className="text-center">
-              <p className="text-[10px] font-black tracking-[0.24em] text-indigo-200">GLOW RANK</p>
-              <h1 className="text-lg font-black tracking-tight text-white">光迹值中心</h1>
+              <h1 className="text-xl font-black tracking-tight text-white">光迹值中心</h1>
             </div>
             <button
               onClick={() => setShowRankInfo(true)}
