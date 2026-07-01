@@ -1632,9 +1632,6 @@ export default function WeekendMedleyView({
                     ¥{p.value.toFixed(2)}
                   </span>
                   <span className="text-[8px] text-[#8e8e93] font-bold block leading-none">
-                    {p.count}名
-                  </span>
-                  <span className="text-[8px] text-[#8e8e93] font-bold block leading-none">
                     {p.probability}
                   </span>
                 </div>
