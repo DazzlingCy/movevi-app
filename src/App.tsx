@@ -30,6 +30,7 @@ export default function App() {
   const [medleyDrawHistory, setMedleyDrawHistory] = useState<number[]>([]);
   const [medleyShareBonusClaimed, setMedleyShareBonusClaimed] = useState<boolean>(false);
   const [medleyActivityStarted, setMedleyActivityStarted] = useState<boolean>(false);
+  const [medleyCompletionRewardClaimed, setMedleyCompletionRewardClaimed] = useState<boolean>(false);
 
   // City Puzzle Team Activity states
   const [teamRelayStarted, setTeamRelayStarted] = useState<boolean>(false);
@@ -304,14 +305,15 @@ export default function App() {
 
                    if (fullScreenPage.data.isActivityRoute) {
                       const activityKey = `${fullScreenPage.data.cityId}-${fullScreenPage.data.routeIndex}`;
-                      setMedleyCompletedRouteIds(prevCompleted => {
-                        if (prevCompleted.includes(activityKey)) return prevCompleted;
-                        const nextCompleted = [...prevCompleted, activityKey];
-                        if (nextCompleted.length === 3) {
-                          setMedleyLotteryChances(prevChances => prevChances + 1);
-                        }
-                        return nextCompleted;
-                      });
+                      const alreadyCompleted = medleyCompletedRouteIds.includes(activityKey);
+                      const nextCompleted = alreadyCompleted
+                        ? medleyCompletedRouteIds
+                        : [...medleyCompletedRouteIds, activityKey];
+                      setMedleyCompletedRouteIds(nextCompleted);
+                      if (!alreadyCompleted && nextCompleted.length === 3 && !medleyCompletionRewardClaimed) {
+                        setMedleyLotteryChances(prevChances => prevChances + 5);
+                        setMedleyCompletionRewardClaimed(true);
+                      }
                       setFullScreenPage({ type: 'weekendMedley' });
                       return;
                     }
