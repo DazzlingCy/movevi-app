@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { AnimatePresence, motion, type PanInfo } from 'motion/react';
-import { ChevronLeft, Crown, Gift, Info, Medal, Shuffle, Sparkles, Ticket, Zap, X } from 'lucide-react';
+import { ChevronLeft, Crown, Gift, Info, Medal, RotateCw, Shuffle, Sparkles, Ticket, Zap, X } from 'lucide-react';
 import { getGlowRank, GLOW_RANKS } from '../lib/glow';
 
 export type GlowExchangeType = 'activityTicket' | 'rerollCity' | 'medalMysteryTicket';
@@ -9,6 +9,7 @@ interface GlowCenterViewProps {
   userStats: any;
   onBack: () => void;
   onExchange: (type: GlowExchangeType) => { success: boolean; message: string };
+  onOpenGlowWheel?: () => void;
 }
 
 const rankCopy: Record<number, { title: string; description: string; aura: string }> = {
@@ -128,7 +129,7 @@ const shopItems: Array<{
   }
 ];
 
-export default function GlowCenterView({ userStats, onBack, onExchange }: GlowCenterViewProps) {
+export default function GlowCenterView({ userStats, onBack, onExchange, onOpenGlowWheel }: GlowCenterViewProps) {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showRankInfo, setShowRankInfo] = useState(false);
   const lightValue = userStats?.lightValue || 0;
@@ -320,6 +321,35 @@ export default function GlowCenterView({ userStats, onBack, onExchange }: GlowCe
             </div>
 
             <div className="grid grid-cols-2 gap-3">
+              <motion.div
+                whileTap={{ scale: 0.98 }}
+                className="relative flex min-h-[198px] flex-col overflow-hidden rounded-[22px] border border-cyan-300/25 bg-slate-950/80 p-3 shadow-xl"
+              >
+                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-cyan-300 to-indigo-400 opacity-25 blur-2xl" />
+                <div className="relative flex items-start justify-between gap-2">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-200 to-indigo-300 text-slate-950 shadow-lg">
+                    <RotateCw size={20} />
+                  </div>
+                  <span className="shrink-0 rounded-full border border-amber-200/15 bg-amber-300/10 px-2.5 py-1 font-mono text-[11px] font-black text-amber-100">-{10}</span>
+                </div>
+                <div className="relative mt-3 flex-1">
+                  <h3 className="text-sm font-black leading-tight tracking-tight text-white">现金抽奖券</h3>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    <span className="inline-flex rounded-full bg-cyan-300/10 px-2 py-1 text-[9px] font-black text-cyan-200">
+                      已有 {userStats?.glowWheelChances || 0} 张
+                    </span>
+                  </div>
+                  <p className="mt-2 text-[10px] font-medium leading-relaxed text-slate-400">
+                    消耗光迹值兑换抽奖券，用抽奖券抽取现金奖励。
+                  </p>
+                </div>
+                <button
+                  onClick={onOpenGlowWheel}
+                  className="relative mt-4 h-10 w-full rounded-2xl bg-gradient-to-r from-cyan-200 to-indigo-200 text-[11px] font-black text-slate-950 shadow-[0_0_22px_rgba(103,232,249,0.22)] transition-colors"
+                >
+                  进入抽奖
+                </button>
+              </motion.div>
               {shopItems.map(item => {
                 const Icon = item.icon;
                 const rankLocked = !!item.requiredRankLevel && rankInfo.current.level < item.requiredRankLevel;

@@ -112,6 +112,12 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
 
   const handleConnectTreadmill = () => {
     setIsTreadmillConnected(true);
+    if (setUserStats) {
+      setUserStats((prev: any) => ({
+        ...prev,
+        dailyTreadmillStarted: true
+      }));
+    }
     setToastMessage('跑步机连接功能已启用，设备已连接');
     setTimeout(() => {
       setToastMessage(null);
@@ -154,16 +160,19 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       claimed: claimedDailyTaskIds.includes('daily-route')
     },
     {
-      id: 'daily-3km',
-      title: '今日累计跑步 3km',
-      progress: Math.min(userStats?.dailyDistance || 0, 3),
-      target: 3,
+      id: 'daily-treadmill',
+      title: '今日启动一次跑步机',
+      progress: userStats?.dailyTreadmillStarted ? 1 : 0,
+      target: 1,
       reward: 1,
-      unit: 'km',
-      ready: (userStats?.dailyDistance || 0) >= 3,
-      claimed: claimedDailyTaskIds.includes('daily-3km')
+      ready: !!userStats?.dailyTreadmillStarted,
+      claimed: claimedDailyTaskIds.includes('daily-treadmill')
     }
   ];
+  const orderedDailyTasks = [...dailyTasks].sort((a, b) => {
+    const order = ['daily-checkin', 'daily-treadmill', 'daily-route'];
+    return order.indexOf(a.id) - order.indexOf(b.id);
+  });
   const weeklyTasks = [
     {
       id: 'weekly-city',
@@ -175,9 +184,9 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       claimed: claimedWeeklyTaskIds.includes('weekly-city')
     }
   ];
-  const completedDailyCount = dailyTasks.filter(task => task.claimed || task.ready).length;
+  const completedDailyCount = orderedDailyTasks.filter(task => task.claimed || task.ready).length;
   const completedWeeklyCount = weeklyTasks.filter(task => task.claimed || task.ready).length;
-  const allGlowTasks = [...dailyTasks, ...weeklyTasks];
+  const allGlowTasks = [...orderedDailyTasks, ...weeklyTasks];
   const totalTaskCount = allGlowTasks.length;
   const completedTaskCount = completedDailyCount + completedWeeklyCount;
   const claimableReward = allGlowTasks.reduce((sum, task) => {
@@ -1116,7 +1125,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
 
               <div className="mt-4 space-y-4">
                 {[
-                  { title: '今日任务', meta: '每日刷新', tasks: dailyTasks, tone: 'cyan' },
+                  { title: '今日任务', meta: '每日刷新', tasks: orderedDailyTasks, tone: 'cyan' },
                   { title: '本周任务', meta: `${completedWeeklyCount}/1`, tasks: weeklyTasks, tone: 'amber' }
                 ].map(group => (
                   <div key={group.title}>

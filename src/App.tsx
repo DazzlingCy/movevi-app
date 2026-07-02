@@ -15,13 +15,14 @@ import LeaderboardView from './components/LeaderboardView';
 import WeekendMedleyView from './components/WeekendMedleyView';
 import TeamRelayView, { type TeamRelayMember, type TeamRelayTask } from './components/TeamRelayView';
 import GlowCenterView, { type GlowExchangeType } from './components/GlowCenterView';
+import GlowWheelView from './components/GlowWheelView';
 import { getGlowRank } from './lib/glow';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [showEventsBadge, setShowEventsBadge] = useState(true);
   const [showIntro, setShowIntro] = useState(false);
-  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'runPlayback' | 'litRecords' | 'leaderboard' | 'weekendMedley' | 'teamRelay' | 'glowCenter', data?: any} | null>(null);
+  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'runPlayback' | 'litRecords' | 'leaderboard' | 'weekendMedley' | 'teamRelay' | 'glowCenter' | 'glowWheel', data?: any} | null>(null);
 
   // Weekend City Memory Medley Activity states
   const [medleySelectedRouteIds, setMedleySelectedRouteIds] = useState<string[]>([]);
@@ -66,12 +67,15 @@ export default function App() {
     lifetimeLightValue: 120,
     dailyCheckedIn: false,
     dailyDistance: 0,
+    dailyTreadmillStarted: false,
     dailyCompletedRoutes: 0,
     weeklyCompletedCities: 0,
     claimedDailyTaskIds: [] as string[],
     claimedWeeklyTaskIds: [] as string[],
     medalMysteryTickets: 0,
-    weeklyGlowExchangeIds: [] as string[]
+    weeklyGlowExchangeIds: [] as string[],
+    glowWheelChances: 0,
+    glowWheelDrawHistory: [] as Array<{ id: string; amount: number; createdAt: string }>
   });
 
   const tabs = [
@@ -184,6 +188,46 @@ export default function App() {
     setFullScreenPage(null);
     setPendingSelectionFrom(currentCityId);
     return { success: true, message: '已开启下一城重选' };
+  };
+
+  const handleGlowWheelExchange = (cost: number) => {
+    if ((userStats.lightValue || 0) < cost) {
+      return { success: false, message: '光迹值不足' };
+    }
+
+    setUserStats(prev => ({
+      ...prev,
+      lightValue: Math.max(0, (prev.lightValue || 0) - cost),
+      glowWheelChances: (prev.glowWheelChances || 0) + 1
+    }));
+
+    return { success: true, message: '已兑换 1 张抽奖券' };
+  };
+
+  const handleGlowWheelDraw = (amount: number) => {
+    if ((userStats.glowWheelChances || 0) <= 0) {
+      return { success: false, message: '暂无抽奖机会' };
+    }
+
+    setUserStats(prev => ({
+      ...prev,
+      glowWheelChances: Math.max(0, (prev.glowWheelChances || 0) - 1),
+      glowWheelDrawHistory: [
+        {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          amount,
+          createdAt: new Date().toLocaleString('zh-CN', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        },
+        ...(prev.glowWheelDrawHistory || [])
+      ].slice(0, 20)
+    }));
+
+    return { success: true, message: `抽中 ¥${amount.toFixed(2)}` };
   };
 
   return (
@@ -396,6 +440,15 @@ export default function App() {
                 userStats={userStats}
                 onBack={() => setFullScreenPage(null)}
                 onExchange={handleGlowExchange}
+                onOpenGlowWheel={() => setFullScreenPage({ type: 'glowWheel' })}
+              />
+            )}
+            {fullScreenPage.type === 'glowWheel' && (
+              <GlowWheelView
+                userStats={userStats}
+                onBack={() => setFullScreenPage({ type: 'glowCenter' })}
+                onExchangeChance={handleGlowWheelExchange}
+                onDraw={handleGlowWheelDraw}
               />
             )}
             {fullScreenPage.type === 'weekendMedley' && (
