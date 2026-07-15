@@ -1,12 +1,14 @@
 import { motion } from 'motion/react';
-import { Gift, Globe2, ChevronRight, Sparkles, MessageSquare, Calendar, Users } from 'lucide-react';
+import { Gift, Globe2, ChevronRight, Sparkles, MessageSquare, Calendar, Users, Flame } from 'lucide-react';
 
 interface EventsTabProps {
   onSelectMedley?: () => void;
   onSelectTeamRelay?: () => void;
+  onSelectMedalLottery?: () => void;
+  onSelectWeightLossPlan?: () => void;
 }
 
-export default function EventsTab({ onSelectMedley, onSelectTeamRelay }: EventsTabProps) {
+export default function EventsTab({ onSelectMedley, onSelectTeamRelay, onSelectMedalLottery, onSelectWeightLossPlan }: EventsTabProps) {
   return (
     <div className="w-full h-full bg-[#05070A] overflow-y-auto pb-24 text-slate-100 font-sans hide-scrollbar relative">
       <div className="sticky top-0 z-20 bg-black/40 backdrop-blur-md pt-safeb flex items-center justify-center p-3.5 border-b border-white/10">
@@ -66,6 +68,46 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay }: EventsT
           </div>
         </motion.div>
         {/* Banner 1: 城市拼图小队 */}
+        {/* Banner: 30-day weight loss plan */}
+        <motion.div
+          whileTap={{ scale: 0.98 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+          onClick={onSelectWeightLossPlan}
+          className="relative w-full h-[170px] rounded-2xl overflow-hidden shadow-2xl cursor-pointer group border border-rose-400/30"
+        >
+          <img
+            src="https://images.unsplash.com/photo-1538805060514-97d9cc17730c?auto=format&fit=crop&q=80&w=600&h=400"
+            alt="30天燃脂计划"
+            className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-60"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-rose-950/20 mix-blend-multiply" />
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-400/20 via-transparent to-rose-500/10 pointer-events-none" />
+
+          <div className="absolute top-3 right-3 bg-rose-400/20 backdrop-blur-md text-[9px] tracking-widest font-extrabold px-2.5 py-1 rounded-full text-rose-100 flex items-center gap-1 shadow-lg border border-rose-300/40">
+            <Calendar size={10} />
+            30天计划
+          </div>
+
+          <div className="absolute bottom-0 left-0 right-0 p-3.5">
+            <div className="w-8 h-8 bg-orange-400/20 backdrop-blur-md rounded-lg flex items-center justify-center mb-2 border border-orange-300/30 shadow-inner">
+              <Flame size={16} className="text-orange-300 drop-shadow-[0_0_8px_rgba(251,146,60,0.8)]" />
+            </div>
+            <h2 className="text-base font-bold mb-0.5 tracking-wide text-orange-50">
+              30天燃脂计划
+            </h2>
+            <div className="flex items-center justify-between">
+              <p className="text-orange-100/65 text-[11px] max-w-[72%] leading-relaxed line-clamp-2">
+                每天推荐 1 条燃脂路线，完成关键节点即可开启现金红包盲盒。
+              </p>
+              <div className="w-7 h-7 rounded-full bg-orange-400/10 backdrop-blur flex items-center justify-center border border-orange-300/30 group-hover:bg-orange-400/25 transition-colors">
+                <ChevronRight size={14} className="text-orange-100" />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
         <motion.div
           whileTap={{ scale: 0.98 }}
           initial={{ opacity: 0, y: 20 }}
@@ -121,7 +163,8 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay }: EventsT
           whileTap={{ scale: 0.98 }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative w-full h-[170px] rounded-2xl overflow-hidden shadow-2xl cursor-pointer group border border-amber-500/30"
+          onClick={onSelectMedalLottery}
+          className="relative order-first w-full h-[170px] rounded-2xl overflow-hidden shadow-2xl cursor-pointer group border border-amber-500/30"
         >
           <img 
             src="https://images.unsplash.com/photo-1518609878373-06d740f60d8b?auto=format&fit=crop&q=80&w=600&h=400" 

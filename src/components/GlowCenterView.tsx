@@ -1,15 +1,22 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, type PanInfo } from 'motion/react';
-import { ChevronLeft, Crown, Gift, Info, Medal, RotateCw, Shuffle, Sparkles, Ticket, Zap, X } from 'lucide-react';
+import { ChevronLeft, Crown, Gift, Info, Medal, Shuffle, Sparkles, Ticket, Zap, X } from 'lucide-react';
 import { getGlowRank, GLOW_RANKS } from '../lib/glow';
 
-export type GlowExchangeType = 'activityTicket' | 'rerollCity' | 'medalMysteryTicket';
+export type GlowExchangeType =
+  | 'activityTicket'
+  | 'rerollCity'
+  | 'medalMysteryTicket'
+  | 'silverTrail'
+  | 'diamondFrame'
+  | 'starlightBadge'
+  | 'kingNameplate';
 
 interface GlowCenterViewProps {
   userStats: any;
   onBack: () => void;
   onExchange: (type: GlowExchangeType) => { success: boolean; message: string };
-  onOpenGlowWheel?: () => void;
+  onClaimRankReward: (level: number) => { success: boolean; message: string; amount?: string };
 }
 
 const rankCopy: Record<number, { title: string; description: string; aura: string }> = {
@@ -89,7 +96,7 @@ const RankBadgeIcon = ({ level }: { level: number }) => {
   return <Crown size={38} strokeWidth={2.5} />;
 };
 
-const shopItems: Array<{
+interface GlowShopItem {
   id: GlowExchangeType;
   title: string;
   cost: number;
@@ -98,11 +105,14 @@ const shopItems: Array<{
   accent: string;
   requiredRankLevel?: number;
   weeklyLimit?: number;
-}> = [
+  oneTime?: boolean;
+}
+
+const shopItems: GlowShopItem[] = [
   {
     id: 'activityTicket',
-    title: '活动补给券',
-    cost: 30,
+    title: '串烧补给券',
+    cost: 10,
     description: '为周末城市记忆串烧增加 1 次现金抽奖机会。',
     icon: Ticket,
     accent: 'from-fuchsia-300 to-rose-500',
@@ -112,7 +122,7 @@ const shopItems: Array<{
   {
     id: 'medalMysteryTicket',
     title: '勋章盲盒券',
-    cost: 20,
+    cost: 10,
     description: '兑换 1 张勋章盲盒抽奖券。',
     icon: Medal,
     accent: 'from-amber-200 to-yellow-500',
@@ -122,16 +132,69 @@ const shopItems: Array<{
   {
     id: 'rerollCity',
     title: '下一城重选券',
-    cost: 10,
+    cost: 3,
     description: '重新打开下一站城市选择，换一种探索路线。',
     icon: Shuffle,
     accent: 'from-cyan-300 to-blue-500'
+  },
+  {
+    id: 'silverTrail',
+    title: '银光路线主题',
+    cost: 8,
+    description: '解锁白银专属路线光效。',
+    icon: Sparkles,
+    accent: 'from-slate-100 to-slate-400',
+    requiredRankLevel: 2,
+    oneTime: true
+  },
+  {
+    id: 'diamondFrame',
+    title: '钻石头像框',
+    cost: 20,
+    description: '解锁钻石段位专属头像框。',
+    icon: Crown,
+    accent: 'from-cyan-200 to-blue-500',
+    requiredRankLevel: 4,
+    oneTime: true
+  },
+  {
+    id: 'starlightBadge',
+    title: '星耀徽记',
+    cost: 30,
+    description: '解锁星耀段位专属身份徽记。',
+    icon: Sparkles,
+    accent: 'from-fuchsia-200 to-violet-500',
+    requiredRankLevel: 5,
+    oneTime: true
+  },
+  {
+    id: 'kingNameplate',
+    title: '王者铭牌',
+    cost: 50,
+    description: '解锁王者专属昵称铭牌。',
+    icon: Crown,
+    accent: 'from-rose-200 to-amber-300',
+    requiredRankLevel: 6,
+    oneTime: true
   }
 ];
 
-export default function GlowCenterView({ userStats, onBack, onExchange, onOpenGlowWheel }: GlowCenterViewProps) {
+const rankShopItemIds: Record<number, GlowExchangeType[]> = {
+  1: ['rerollCity'],
+  2: ['silverTrail', 'rerollCity'],
+  3: ['activityTicket', 'medalMysteryTicket'],
+  4: ['diamondFrame', 'activityTicket'],
+  5: ['starlightBadge', 'medalMysteryTicket'],
+  6: ['kingNameplate', 'activityTicket']
+};
+
+export default function GlowCenterView({ userStats, onBack, onExchange, onClaimRankReward }: GlowCenterViewProps) {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showRankInfo, setShowRankInfo] = useState(false);
+  const [rankRewardResult, setRankRewardResult] = useState<{ level: number; amount: string } | null>(null);
+  const [rankRewardReveal, setRankRewardReveal] = useState<{ level: number; name: string; color: string; phase: 'activating' | 'opening' } | null>(null);
+  const [claimingRankLevel, setClaimingRankLevel] = useState<number | null>(null);
+  const rankRewardTimersRef = useRef<number[]>([]);
   const lightValue = userStats?.lightValue || 0;
   const lifetimeLightValue = userStats?.lifetimeLightValue ?? lightValue;
   const weeklyGlowExchangeIds: string[] = userStats?.weeklyGlowExchangeIds || [];
@@ -143,6 +206,18 @@ export default function GlowCenterView({ userStats, onBack, onExchange, onOpenGl
   const selectedIsCurrent = selectedRank.level === rankInfo.current.level;
   const selectedUnlocked = lifetimeLightValue >= selectedRank.threshold;
   const nextRank = GLOW_RANKS.find(rank => rank.level === selectedRank.level + 1) || null;
+  const claimedRankRewardLevels: number[] = userStats?.claimedGlowRankRewardLevels || [];
+  const unlockedGlowPerkIds: string[] = userStats?.unlockedGlowPerkIds || [];
+  const selectedShopItems = (rankShopItemIds[selectedRank.level] || [])
+    .map(id => shopItems.find(item => item.id === id))
+    .filter((item): item is GlowShopItem => Boolean(item));
+  const rankRewardClaimed = claimedRankRewardLevels.includes(selectedRank.level);
+
+  useEffect(() => {
+    return () => {
+      rankRewardTimersRef.current.forEach(timer => window.clearTimeout(timer));
+    };
+  }, []);
 
   const handleRankDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const swipe = info.offset.x + info.velocity.x * 0.18;
@@ -161,6 +236,43 @@ export default function GlowCenterView({ userStats, onBack, onExchange, onOpenGl
   const handleExchange = (type: GlowExchangeType) => {
     const result = onExchange(type);
     showToast(result.message);
+  };
+
+  const handleClaimRankReward = () => {
+    if (claimingRankLevel !== null) return;
+
+    const rewardRank = selectedRank;
+    setClaimingRankLevel(rewardRank.level);
+    setRankRewardReveal({
+      level: rewardRank.level,
+      name: rewardRank.name,
+      color: rewardRank.color,
+      phase: 'activating'
+    });
+
+    const openTimer = window.setTimeout(() => {
+      const result = onClaimRankReward(rewardRank.level);
+
+      if (!result.success || !result.amount) {
+        setRankRewardReveal(null);
+        setClaimingRankLevel(null);
+        showToast(result.message);
+        return;
+      }
+
+      setRankRewardReveal(current => current ? { ...current, phase: 'opening' } : current);
+
+      const resultTimer = window.setTimeout(() => {
+        setRankRewardReveal(null);
+        setClaimingRankLevel(null);
+        setRankRewardResult({ level: rewardRank.level, amount: result.amount! });
+        showToast(result.message);
+      }, 920);
+
+      rankRewardTimersRef.current.push(resultTimer);
+    }, 620);
+
+    rankRewardTimersRef.current.push(openTimer);
   };
 
   return (
@@ -263,9 +375,6 @@ export default function GlowCenterView({ userStats, onBack, onExchange, onOpenGl
                   {selectedRank.name}
                 </h2>
                 <p className="mt-2 text-sm font-black text-white">{selectedCopy.title}</p>
-                <p className="mx-auto mt-2 max-w-[260px] text-xs font-medium leading-relaxed text-slate-400">
-                  {selectedCopy.description}
-                </p>
               </div>
 
               <div className="relative mt-5 grid grid-cols-2 gap-3 text-left">
@@ -280,6 +389,19 @@ export default function GlowCenterView({ userStats, onBack, onExchange, onOpenGl
                   </p>
                 </div>
               </div>
+
+              <button
+                type="button"
+                disabled={!selectedUnlocked || rankRewardClaimed || claimingRankLevel !== null}
+                onClick={handleClaimRankReward}
+                className={`relative mt-4 h-11 w-full rounded-2xl text-xs font-black transition-all ${
+                  selectedUnlocked && !rankRewardClaimed && claimingRankLevel === null
+                    ? `bg-gradient-to-r ${selectedRank.color} text-slate-950 shadow-[0_0_24px_rgba(251,191,36,0.2)]`
+                    : 'border border-white/10 bg-white/[0.035] text-slate-500'
+                }`}
+              >
+                {claimingRankLevel === selectedRank.level ? '红包开启中' : !selectedUnlocked ? `${selectedRank.name}段位解锁` : rankRewardClaimed ? '段位红包已领取' : '领取段位红包'}
+              </button>
 
               <div className="relative mt-5 flex items-center justify-center gap-1.5">
                 {GLOW_RANKS.map((rank, index) => (
@@ -312,7 +434,7 @@ export default function GlowCenterView({ userStats, onBack, onExchange, onOpenGl
             <div className="mb-3 flex items-center justify-between">
               <div>
                 <p className="text-[10px] font-black tracking-[0.22em] text-amber-200">GLOW SHOP</p>
-                <h2 className="mt-1 text-base font-black tracking-tight text-white">兑换商城</h2>
+                <h2 className="mt-1 text-base font-black tracking-tight text-white">{selectedRank.name}兑换商城</h2>
               </div>
               <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-3 py-1.5 text-right">
                 <p className="text-[10px] font-bold text-cyan-100/65">可用光迹值</p>
@@ -321,41 +443,21 @@ export default function GlowCenterView({ userStats, onBack, onExchange, onOpenGl
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <motion.div
-                whileTap={{ scale: 0.98 }}
-                className="relative flex min-h-[198px] flex-col overflow-hidden rounded-[22px] border border-cyan-300/25 bg-slate-950/80 p-3 shadow-xl"
-              >
-                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-gradient-to-br from-cyan-300 to-indigo-400 opacity-25 blur-2xl" />
-                <div className="relative flex items-start justify-between gap-2">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-200 to-indigo-300 text-slate-950 shadow-lg">
-                    <RotateCw size={20} />
-                  </div>
-                  <span className="shrink-0 rounded-full border border-amber-200/15 bg-amber-300/10 px-2.5 py-1 font-mono text-[11px] font-black text-amber-100">-{10}</span>
-                </div>
-                <div className="relative mt-3 flex-1">
-                  <h3 className="text-sm font-black leading-tight tracking-tight text-white">现金抽奖券</h3>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    <span className="inline-flex rounded-full bg-cyan-300/10 px-2 py-1 text-[9px] font-black text-cyan-200">
-                      已有 {userStats?.glowWheelChances || 0} 张
-                    </span>
-                  </div>
-                  <p className="mt-2 text-[10px] font-medium leading-relaxed text-slate-400">
-                    消耗光迹值兑换抽奖券，用抽奖券抽取现金奖励。
-                  </p>
-                </div>
-                <button
-                  onClick={onOpenGlowWheel}
-                  className="relative mt-4 h-10 w-full rounded-2xl bg-gradient-to-r from-cyan-200 to-indigo-200 text-[11px] font-black text-slate-950 shadow-[0_0_22px_rgba(103,232,249,0.22)] transition-colors"
-                >
-                  进入抽奖
-                </button>
-              </motion.div>
-              {shopItems.map(item => {
+              {selectedShopItems.map(item => {
                 const Icon = item.icon;
-                const rankLocked = !!item.requiredRankLevel && rankInfo.current.level < item.requiredRankLevel;
+                const rankLocked = !selectedUnlocked || (!!item.requiredRankLevel && rankInfo.current.level < item.requiredRankLevel);
                 const weeklyUsed = !!item.weeklyLimit && weeklyGlowExchangeIds.includes(item.id);
-                const canExchange = !rankLocked && !weeklyUsed && lightValue >= item.cost;
-                const buttonText = weeklyUsed ? '本周已兑' : rankLocked ? '黄金解锁' : canExchange ? '立即兑换' : '光迹值不足';
+                const owned = !!item.oneTime && unlockedGlowPerkIds.includes(item.id);
+                const canExchange = !rankLocked && !weeklyUsed && !owned && lightValue >= item.cost;
+                const buttonText = owned
+                  ? '已拥有'
+                  : weeklyUsed
+                    ? '本周已兑'
+                    : rankLocked
+                      ? `${selectedRank.name}解锁`
+                      : canExchange
+                        ? '立即兑换'
+                        : '光迹值不足';
                 return (
                   <motion.div
                     key={item.id}
@@ -378,7 +480,7 @@ export default function GlowCenterView({ userStats, onBack, onExchange, onOpenGl
                       <div className="mt-2 flex flex-wrap gap-1">
                         {item.requiredRankLevel && (
                           <span className={`inline-flex rounded-full px-2 py-1 text-[9px] font-black ${rankLocked ? 'bg-amber-300/10 text-amber-200' : 'bg-emerald-300/10 text-emerald-200'}`}>
-                            黄金解锁
+                            {GLOW_RANKS.find(rank => rank.level === item.requiredRankLevel)?.name}解锁
                           </span>
                         )}
                         {item.weeklyLimit && (
@@ -403,6 +505,14 @@ export default function GlowCenterView({ userStats, onBack, onExchange, onOpenGl
                   </motion.div>
                 );
               })}
+              <div className="relative flex min-h-[198px] flex-col items-center justify-center overflow-hidden rounded-[22px] border border-dashed border-white/10 bg-white/[0.025] p-4 text-center">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(103,232,249,0.08),transparent_56%)]" />
+                <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-slate-500">
+                  <Sparkles size={22} />
+                </div>
+                <h3 className="relative mt-4 text-sm font-black text-slate-200">更多兑换物品</h3>
+                <p className="relative mt-2 text-[11px] font-bold text-slate-500">敬请期待</p>
+              </div>
             </div>
 
           </section>
@@ -440,6 +550,9 @@ export default function GlowCenterView({ userStats, onBack, onExchange, onOpenGl
               <p className="mt-4 text-sm font-medium leading-relaxed text-slate-400">
                 段位根据累计光迹值判定，用来记录你的长期探索进度。当前光迹值可以变化，但已达成的段位不会因为消耗而倒退。
               </p>
+              <p className="mt-3 text-sm font-medium leading-relaxed text-slate-400">
+                每次解锁新段位可领取 1 个段位红包；左右滑动段位卡，可预览对应段位的专属兑换物品。
+              </p>
               {nextRank && (
                 <div className="mt-5 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-4">
                   <p className="text-[10px] font-black tracking-[0.2em] text-cyan-200">下一目标</p>
@@ -448,6 +561,148 @@ export default function GlowCenterView({ userStats, onBack, onExchange, onOpenGl
                   </p>
                 </div>
               )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {rankRewardReveal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[60] flex items-center justify-center bg-black/82 p-6 backdrop-blur-lg"
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 26, scale: 0.88 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 14, scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 250, damping: 20 }}
+              className="relative w-full max-w-[320px] overflow-hidden rounded-[32px] border border-white/12 bg-[#0b1019] p-6 text-center shadow-[0_28px_90px_rgba(0,0,0,0.66)]"
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,191,36,0.28),transparent_44%),radial-gradient(circle_at_12%_18%,rgba(34,211,238,0.18),transparent_32%),linear-gradient(160deg,rgba(255,255,255,0.07),transparent_64%)]" />
+              <div className={`absolute -right-10 -top-10 h-36 w-36 rounded-full bg-gradient-to-br ${rankRewardReveal.color} opacity-25 blur-3xl`} />
+              <div className={`absolute -left-10 bottom-2 h-32 w-32 rounded-full bg-gradient-to-br ${rankRewardReveal.color} opacity-20 blur-3xl`} />
+
+              {[0, 1, 2, 3, 4, 5, 6, 7].map(item => (
+                <motion.span
+                  key={item}
+                  className={`absolute h-1.5 w-1.5 rounded-full bg-gradient-to-br ${rankRewardReveal.color} shadow-[0_0_16px_rgba(251,191,36,0.8)]`}
+                  initial={{
+                    opacity: 0,
+                    x: 150,
+                    y: 145,
+                    scale: 0.3
+                  }}
+                  animate={{
+                    opacity: [0, 1, 0],
+                    x: 150 + Math.cos((item / 8) * Math.PI * 2) * 122,
+                    y: 145 + Math.sin((item / 8) * Math.PI * 2) * 96,
+                    scale: [0.4, 1.2, 0.6]
+                  }}
+                  transition={{
+                    duration: 1.15,
+                    repeat: Infinity,
+                    delay: item * 0.07,
+                    ease: 'easeOut'
+                  }}
+                />
+              ))}
+
+              <div className="relative mx-auto mt-1 flex h-32 w-32 items-center justify-center">
+                <motion.div
+                  className={`absolute inset-0 rounded-full bg-gradient-to-br ${rankRewardReveal.color} opacity-25 blur-2xl`}
+                  animate={{
+                    scale: rankRewardReveal.phase === 'opening' ? [1, 1.36, 1.08] : [0.92, 1.12, 0.92],
+                    opacity: rankRewardReveal.phase === 'opening' ? [0.28, 0.72, 0.38] : [0.2, 0.42, 0.2]
+                  }}
+                  transition={{
+                    duration: rankRewardReveal.phase === 'opening' ? 0.72 : 1.5,
+                    repeat: rankRewardReveal.phase === 'opening' ? 0 : Infinity,
+                    ease: 'easeInOut'
+                  }}
+                />
+                <motion.div
+                  className={`absolute inset-2 rounded-[34px] bg-gradient-to-br ${rankRewardReveal.color} p-[2px] shadow-[0_20px_58px_rgba(0,0,0,0.42)]`}
+                  animate={rankRewardReveal.phase === 'opening'
+                    ? { rotateY: [0, 24, -18, 0], rotateZ: [0, -4, 4, 0], scale: [1, 1.08, 0.98, 1.12] }
+                    : { y: [0, -8, 0], rotateZ: [-2, 2, -2] }}
+                  transition={{ duration: rankRewardReveal.phase === 'opening' ? 0.82 : 1.55, repeat: rankRewardReveal.phase === 'opening' ? 0 : Infinity }}
+                >
+                  <div className="flex h-full w-full items-center justify-center rounded-[32px] bg-[#07111b] text-white">
+                    <div className="absolute inset-4 rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_34%_20%,rgba(255,255,255,0.18),transparent_32%)]" />
+                    <RankBadgeIcon level={rankRewardReveal.level} />
+                  </div>
+                </motion.div>
+                <motion.div
+                  className="absolute -bottom-2 flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-100/35 bg-gradient-to-br from-[#ff4b2e] via-[#ff7a1a] to-[#ffd15d] text-white shadow-[0_16px_44px_rgba(248,113,22,0.38)]"
+                  animate={rankRewardReveal.phase === 'opening'
+                    ? { y: [0, -18, 4, 0], scale: [1, 1.14, 0.94, 1.08] }
+                    : { y: [0, -5, 0] }}
+                  transition={{ duration: rankRewardReveal.phase === 'opening' ? 0.78 : 1.3, repeat: rankRewardReveal.phase === 'opening' ? 0 : Infinity }}
+                >
+                  <div className="absolute inset-x-2 top-6 h-px bg-yellow-100/70" />
+                  <Gift size={28} className="relative" />
+                </motion.div>
+              </div>
+
+              <p className="relative mt-6 text-[10px] font-black uppercase tracking-[0.28em] text-amber-100/80">
+                LV.{rankRewardReveal.level} {rankRewardReveal.name}
+              </p>
+              <h3 className="relative mt-2 text-2xl font-black text-white">
+                {rankRewardReveal.phase === 'activating' ? '段位红包已激活' : '正在开启红包'}
+              </h3>
+              <p className="relative mt-2 text-xs font-bold leading-5 text-slate-400">
+                {rankRewardReveal.phase === 'activating' ? '段位徽章正在确认，红包奖励即将入账。' : '好运正在展开，马上揭晓本次奖励。'}
+              </p>
+
+              <div className="relative mt-5 h-2 overflow-hidden rounded-full bg-white/10">
+                <motion.div
+                  className={`h-full rounded-full bg-gradient-to-r ${rankRewardReveal.color}`}
+                  initial={{ width: '16%' }}
+                  animate={{ width: rankRewardReveal.phase === 'activating' ? '56%' : '100%' }}
+                  transition={{ duration: rankRewardReveal.phase === 'activating' ? 0.58 : 0.82, ease: 'easeOut' }}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {rankRewardResult && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[60] flex items-center justify-center bg-black/80 p-6 backdrop-blur-md"
+            onClick={() => setRankRewardResult(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.95 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 21 }}
+              className="relative w-full max-w-[320px] overflow-hidden rounded-[30px] border border-rose-200/20 bg-[#10101a] p-6 text-center shadow-[0_24px_80px_rgba(244,63,94,0.28)]"
+              onClick={event => event.stopPropagation()}
+            >
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(251,113,133,0.24),transparent_52%),linear-gradient(160deg,rgba(251,191,36,0.09),transparent_60%)]" />
+              <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-300 to-red-500 text-white shadow-[0_0_34px_rgba(251,113,133,0.34)]">
+                <Gift size={30} />
+              </div>
+              <p className="relative mt-5 text-[10px] font-black tracking-[0.2em] text-rose-200">
+                LV.{rankRewardResult.level} 段位红包
+              </p>
+              <p className="relative mt-2 font-mono text-5xl font-black text-white">¥{rankRewardResult.amount}</p>
+              <p className="relative mt-3 text-xs font-semibold text-slate-400">恭喜解锁新的光迹段位</p>
+              <button
+                type="button"
+                onClick={() => setRankRewardResult(null)}
+                className="relative mt-6 h-11 w-full rounded-2xl bg-gradient-to-r from-rose-300 to-amber-200 text-xs font-black text-slate-950"
+              >
+                收下红包
+              </button>
             </motion.div>
           </motion.div>
         )}

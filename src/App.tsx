@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Compass, Trophy, Map as MapIcon, User } from 'lucide-react';
+import { Compass, Trophy, Map as MapIcon, User, Gift, Sparkles, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import HomeTab from './components/HomeTab';
 import EventsTab from './components/EventsTab';
@@ -16,13 +16,18 @@ import WeekendMedleyView from './components/WeekendMedleyView';
 import TeamRelayView, { type TeamRelayMember, type TeamRelayTask } from './components/TeamRelayView';
 import GlowCenterView, { type GlowExchangeType } from './components/GlowCenterView';
 import GlowWheelView from './components/GlowWheelView';
-import { getGlowRank } from './lib/glow';
+import MedalLotteryView from './components/MedalLotteryView';
+import WeightLossPlanView, { type WeightPlanRewardRecord } from './components/WeightLossPlanView';
+import { getGlowRank, getGlowWheelDailyExchangeLimit } from './lib/glow';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   const [showEventsBadge, setShowEventsBadge] = useState(true);
   const [showIntro, setShowIntro] = useState(false);
-  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'runPlayback' | 'litRecords' | 'leaderboard' | 'weekendMedley' | 'teamRelay' | 'glowCenter' | 'glowWheel', data?: any} | null>(null);
+  const [showSplash, setShowSplash] = useState(true);
+  const [showDailyRouteTaskGuide, setShowDailyRouteTaskGuide] = useState(false);
+  const [taskPanelOpenSignal, setTaskPanelOpenSignal] = useState(0);
+  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'runPlayback' | 'litRecords' | 'leaderboard' | 'weekendMedley' | 'teamRelay' | 'glowCenter' | 'glowWheel' | 'medalLottery' | 'weightLossPlan', data?: any} | null>(null);
 
   // Weekend City Memory Medley Activity states
   const [medleySelectedRouteIds, setMedleySelectedRouteIds] = useState<string[]>([]);
@@ -43,6 +48,13 @@ export default function App() {
   const [teamRelayShareBonusClaimed, setTeamRelayShareBonusClaimed] = useState<boolean>(false);
   const [teamRelayCityId, setTeamRelayCityId] = useState<string | null>(null);
   const [teamRelayPuzzleAwarded, setTeamRelayPuzzleAwarded] = useState<boolean>(false);
+
+  // 30-Day Weight Loss Plan states
+  const [weightPlanStarted, setWeightPlanStarted] = useState<boolean>(false);
+  const [weightPlanCompletedDays, setWeightPlanCompletedDays] = useState<number[]>([]);
+  const [weightPlanRewardBoxes, setWeightPlanRewardBoxes] = useState<number[]>([]);
+  const [weightPlanOpenedRewardDays, setWeightPlanOpenedRewardDays] = useState<number[]>([]);
+  const [weightPlanRewardHistory, setWeightPlanRewardHistory] = useState<WeightPlanRewardRecord[]>([]);
   const [litCityIds, setLitCityIds] = useState<string[]>(() => {
     // Always start fresh on load
     CITIES.forEach(c => {
@@ -74,7 +86,11 @@ export default function App() {
     claimedWeeklyTaskIds: [] as string[],
     medalMysteryTickets: 0,
     weeklyGlowExchangeIds: [] as string[],
+    unlockedGlowPerkIds: [] as string[],
+    claimedGlowRankRewardLevels: [] as number[],
+    glowRankRewardHistory: [] as Array<{ level: number; amount: string; claimedAt: string }>,
     glowWheelChances: 0,
+    dailyGlowWheelExchangeCount: 0,
     glowWheelDrawHistory: [] as Array<{ id: string; amount: number; createdAt: string }>
   });
 
@@ -85,12 +101,21 @@ export default function App() {
     { id: 'profile', label: '我的', icon: User },
   ];
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShowSplash(false);
+    }, 1800);
+
+    return () => window.clearTimeout(timer);
+  }, []);
+
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
         return <HomeTab 
           userStats={userStats}
           setUserStats={setUserStats}
+          taskPanelOpenSignal={taskPanelOpenSignal}
           onNavigate={(type, data) => setFullScreenPage({ type: type as any, data })} 
           completedChapters={completedChapters} 
           targetFlight={targetFlight} 
@@ -130,7 +155,9 @@ export default function App() {
         return (
           <EventsTab
             onSelectMedley={() => setFullScreenPage({ type: 'weekendMedley' })}
+            onSelectWeightLossPlan={() => setFullScreenPage({ type: 'weightLossPlan' })}
             onSelectTeamRelay={() => setFullScreenPage({ type: 'teamRelay' })}
+            onSelectMedalLottery={() => setFullScreenPage({ type: 'medalLottery' })}
           />
         );
       case 'cities':
@@ -144,9 +171,13 @@ export default function App() {
 
   const handleGlowExchange = (type: GlowExchangeType) => {
     const exchangeMeta = {
-      activityTicket: { title: '活动补给券', cost: 30, requiredRankLevel: 3, weeklyLimit: 1 },
-      rerollCity: { title: '下一城重选券', cost: 10, requiredRankLevel: 0, weeklyLimit: 0 },
-      medalMysteryTicket: { title: '勋章盲盒抽奖券', cost: 20, requiredRankLevel: 3, weeklyLimit: 1 }
+      activityTicket: { title: '串烧补给券', cost: 10, requiredRankLevel: 3, weeklyLimit: 1, oneTime: false },
+      rerollCity: { title: '下一城重选券', cost: 3, requiredRankLevel: 0, weeklyLimit: 0, oneTime: false },
+      medalMysteryTicket: { title: '勋章盲盒抽奖券', cost: 10, requiredRankLevel: 3, weeklyLimit: 1, oneTime: false },
+      silverTrail: { title: '银光路线主题', cost: 8, requiredRankLevel: 2, weeklyLimit: 0, oneTime: true },
+      diamondFrame: { title: '钻石头像框', cost: 20, requiredRankLevel: 4, weeklyLimit: 0, oneTime: true },
+      starlightBadge: { title: '星耀徽记', cost: 30, requiredRankLevel: 5, weeklyLimit: 0, oneTime: true },
+      kingNameplate: { title: '王者铭牌', cost: 50, requiredRankLevel: 6, weeklyLimit: 0, oneTime: true }
     }[type];
     const currentGlowRank = getGlowRank(userStats.lifetimeLightValue ?? userStats.lightValue ?? 0).current;
     const weeklyGlowExchangeIds = userStats.weeklyGlowExchangeIds || [];
@@ -157,6 +188,10 @@ export default function App() {
 
     if (exchangeMeta.weeklyLimit && weeklyGlowExchangeIds.includes(type)) {
       return { success: false, message: '本周已兑换' };
+    }
+
+    if (exchangeMeta.oneTime && (userStats.unlockedGlowPerkIds || []).includes(type)) {
+      return { success: false, message: '该权益已拥有' };
     }
 
     if ((userStats.lightValue || 0) < exchangeMeta.cost) {
@@ -171,7 +206,10 @@ export default function App() {
         : (prev.medalMysteryTickets || 0),
       weeklyGlowExchangeIds: exchangeMeta.weeklyLimit
         ? [...(prev.weeklyGlowExchangeIds || []), type]
-        : (prev.weeklyGlowExchangeIds || [])
+        : (prev.weeklyGlowExchangeIds || []),
+      unlockedGlowPerkIds: exchangeMeta.oneTime
+        ? [...(prev.unlockedGlowPerkIds || []), type]
+        : (prev.unlockedGlowPerkIds || [])
     }));
 
     if (type === 'activityTicket') {
@@ -183,6 +221,10 @@ export default function App() {
       return { success: true, message: '已获得勋章盲盒抽奖券' };
     }
 
+    if (exchangeMeta.oneTime) {
+      return { success: true, message: `已解锁${exchangeMeta.title}` };
+    }
+
     const currentCityId = CITIES.find(city => city.status === 'in-progress')?.id || litCityIds[litCityIds.length - 1] || '1';
     setActiveTab('home');
     setFullScreenPage(null);
@@ -190,7 +232,56 @@ export default function App() {
     return { success: true, message: '已开启下一城重选' };
   };
 
+  const handleClaimGlowRankReward = (level: number) => {
+    const currentGlowRank = getGlowRank(userStats.lifetimeLightValue ?? userStats.lightValue ?? 0).current;
+    if (level > currentGlowRank.level) {
+      return { success: false, message: '尚未达到该段位' };
+    }
+
+    if ((userStats.claimedGlowRankRewardLevels || []).includes(level)) {
+      return { success: false, message: '该段位红包已领取' };
+    }
+
+    const rewardAmounts: Record<number, string> = {
+      1: '0.18',
+      2: '0.38',
+      3: '0.88',
+      4: '1.88',
+      5: '5.88',
+      6: '8.88'
+    };
+    const amount = rewardAmounts[level] || '0.18';
+
+    setUserStats(prev => ({
+      ...prev,
+      claimedGlowRankRewardLevels: [...(prev.claimedGlowRankRewardLevels || []), level],
+      glowRankRewardHistory: [
+        {
+          level,
+          amount,
+          claimedAt: new Date().toLocaleString('zh-CN', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        },
+        ...(prev.glowRankRewardHistory || [])
+      ]
+    }));
+
+    return { success: true, message: `获得段位红包 ¥${amount}`, amount };
+  };
+
   const handleGlowWheelExchange = (cost: number) => {
+    const currentGlowRank = getGlowRank(userStats.lifetimeLightValue ?? userStats.lightValue ?? 0).current;
+    const dailyExchangeLimit = getGlowWheelDailyExchangeLimit(currentGlowRank.level);
+    const exchangedToday = userStats.dailyGlowWheelExchangeCount || 0;
+
+    if (exchangedToday >= dailyExchangeLimit) {
+      return { success: false, message: `今日兑换已达上限（${dailyExchangeLimit} 张）` };
+    }
+
     if ((userStats.lightValue || 0) < cost) {
       return { success: false, message: '光迹值不足' };
     }
@@ -198,7 +289,8 @@ export default function App() {
     setUserStats(prev => ({
       ...prev,
       lightValue: Math.max(0, (prev.lightValue || 0) - cost),
-      glowWheelChances: (prev.glowWheelChances || 0) + 1
+      glowWheelChances: (prev.glowWheelChances || 0) + 1,
+      dailyGlowWheelExchangeCount: (prev.dailyGlowWheelExchangeCount || 0) + 1
     }));
 
     return { success: true, message: '已兑换 1 张抽奖券' };
@@ -230,8 +322,75 @@ export default function App() {
     return { success: true, message: `抽中 ¥${amount.toFixed(2)}` };
   };
 
+  const handleMedalLotteryDraw = () => {
+    if ((userStats.medalMysteryTickets || 0) <= 0) {
+      return { success: false, message: '暂无勋章盲盒券，请先兑换抽奖机会' };
+    }
+
+    const prizePool = ['2.66 元', '1.66 元', '6 分', '2.66 元', '1.66 元', '6 分'];
+    const amount = prizePool[Math.floor(Math.random() * prizePool.length)];
+    setUserStats(prev => ({
+      ...prev,
+      medalMysteryTickets: Math.max(0, (prev.medalMysteryTickets || 0) - 1)
+    }));
+
+    return { success: true, message: `抽中 ${amount}`, amount };
+  };
+
+  const handleWeightPlanRewardOpen = (day: number) => {
+    if (!weightPlanRewardBoxes.includes(day)) {
+      return { success: false, message: '完成节点后可开启红包盲盒' };
+    }
+
+    const existingRecord = weightPlanRewardHistory.find(record => record.day === day);
+    if (existingRecord) {
+      return { success: false, message: '该盲盒已开启', amount: existingRecord.amount };
+    }
+
+    const rewardPools: Record<number, string[]> = {
+      1: ['¥0.18', '¥0.38'],
+      7: ['¥0.88', '¥1.88'],
+      15: ['¥1.88', '¥5.88'],
+      21: ['¥1.88', '¥5.88'],
+      30: ['¥5.88', '¥8.88', '¥18.88']
+    };
+    const pool = rewardPools[day] || ['¥0.18'];
+    const amount = pool[Math.floor(Math.random() * pool.length)];
+    const record: WeightPlanRewardRecord = {
+      day,
+      amount,
+      openedAt: new Date().toLocaleString('zh-CN', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    };
+
+    setWeightPlanOpenedRewardDays(prev => prev.includes(day) ? prev : [...prev, day]);
+    setWeightPlanRewardHistory(prev => [record, ...prev]);
+    return { success: true, message: `获得红包 ${amount}`, amount };
+  };
+
   return (
     <div className="flex flex-col h-screen w-full max-w-md mx-auto bg-[#05070A] text-slate-100 overflow-hidden relative font-sans shadow-2xl sm:h-[800px] sm:mt-10 sm:rounded-[40px] sm:border-[8px] sm:border-slate-800">
+      <AnimatePresence>
+        {showSplash && (
+          <motion.div
+            className="absolute inset-0 z-[200] bg-[#071226]"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+          >
+            <img
+              src="./splash.png"
+              alt="木卫六"
+              className="h-full w-full object-cover"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {showIntro && (
           <IntroScreen 
@@ -321,33 +480,45 @@ export default function App() {
                  onBack={() => {
                    if (fullScreenPage.data.isTeamRelayRoute) {
                      setFullScreenPage({ type: 'teamRelay' });
+                   } else if (fullScreenPage.data.isWeightPlanRoute) {
+                     setFullScreenPage({ type: 'weightLossPlan' });
                    } else if (fullScreenPage.data.isActivityRoute) {
                      setFullScreenPage({ type: 'weekendMedley' });
                    } else {
                      setFullScreenPage({ type: 'cityRoutes', data: fullScreenPage.data.previousCityData });
                    }
                  }}
-                 onStart={() => setFullScreenPage({ type: 'runPlayback', data: fullScreenPage.data })}
+                 onStart={() => {
+                   setUserStats(prev => ({
+                     ...prev,
+                     dailyTreadmillStarted: true
+                   }));
+                   setFullScreenPage({ type: 'runPlayback', data: fullScreenPage.data });
+                 }}
                />
             )}
             {fullScreenPage.type === 'runPlayback' && (
                <RunPlaybackView 
                  {...fullScreenPage.data}
                  onExit={() => setFullScreenPage({ type: 'routeDetail', data: fullScreenPage.data })}
-                 onComplete={(stats) => {
-                   const earnedLightValue = stats.calories || Math.floor(stats.distance * 65);
-                   // Update user stats
-                   setUserStats(prev => ({
-                     ...prev,
-                     totalDistance: prev.totalDistance + stats.distance,
-                     totalTimeHours: prev.totalTimeHours + (stats.duration / 3600),
-                     lightValue: (prev.lightValue || 0) + earnedLightValue,
-                     lifetimeLightValue: (prev.lifetimeLightValue ?? prev.lightValue ?? 0) + earnedLightValue,
-                     dailyDistance: (prev.dailyDistance || 0) + stats.distance,
-                     dailyCompletedRoutes: (prev.dailyCompletedRoutes || 0) + 1
-                   }));
+                  onComplete={(stats) => {
+                    const earnedLightValue = stats.calories || Math.floor(stats.distance * 65);
+                    // Update user stats
+                    const shouldShowDailyRouteTaskGuide = (userStats.dailyCompletedRoutes || 0) === 0;
+                    setUserStats(prev => ({
+                      ...prev,
+                      totalDistance: prev.totalDistance + stats.distance,
+                      totalTimeHours: prev.totalTimeHours + (stats.duration / 3600),
+                      lightValue: (prev.lightValue || 0) + earnedLightValue,
+                      lifetimeLightValue: (prev.lifetimeLightValue ?? prev.lightValue ?? 0) + earnedLightValue,
+                      dailyDistance: (prev.dailyDistance || 0) + stats.distance,
+                      dailyCompletedRoutes: (prev.dailyCompletedRoutes || 0) + 1
+                    }));
+                    if (shouldShowDailyRouteTaskGuide) {
+                      setShowDailyRouteTaskGuide(true);
+                    }
 
-                   if (fullScreenPage.data.isActivityRoute) {
+                    if (fullScreenPage.data.isActivityRoute) {
                       const activityKey = `${fullScreenPage.data.cityId}-${fullScreenPage.data.routeIndex}`;
                       const alreadyCompleted = medleyCompletedRouteIds.includes(activityKey);
                       const nextCompleted = alreadyCompleted
@@ -374,6 +545,20 @@ export default function App() {
                         return nextCompleted;
                       });
                       setFullScreenPage({ type: 'teamRelay' });
+                      return;
+                    }
+
+                    if (fullScreenPage.data.isWeightPlanRoute) {
+                      const day = fullScreenPage.data.weightPlanDay;
+                      const milestoneDays = [1, 7, 15, 21, 30];
+                      setWeightPlanCompletedDays(prevCompleted => {
+                        if (prevCompleted.includes(day)) return prevCompleted;
+                        return [...prevCompleted, day].sort((a, b) => a - b);
+                      });
+                      if (milestoneDays.includes(day)) {
+                        setWeightPlanRewardBoxes(prevBoxes => prevBoxes.includes(day) ? prevBoxes : [...prevBoxes, day]);
+                      }
+                      setFullScreenPage({ type: 'weightLossPlan' });
                       return;
                     }
 
@@ -440,16 +625,51 @@ export default function App() {
                 userStats={userStats}
                 onBack={() => setFullScreenPage(null)}
                 onExchange={handleGlowExchange}
-                onOpenGlowWheel={() => setFullScreenPage({ type: 'glowWheel' })}
+                onClaimRankReward={handleClaimGlowRankReward}
               />
             )}
             {fullScreenPage.type === 'glowWheel' && (
-              <GlowWheelView
-                userStats={userStats}
-                onBack={() => setFullScreenPage({ type: 'glowCenter' })}
-                onExchangeChance={handleGlowWheelExchange}
-                onDraw={handleGlowWheelDraw}
-              />
+               <GlowWheelView
+                 userStats={userStats}
+                 onBack={() => setFullScreenPage({ type: 'glowCenter' })}
+                 onExchangeChance={handleGlowWheelExchange}
+                 onDraw={handleGlowWheelDraw}
+               />
+            )}
+            {fullScreenPage.type === 'medalLottery' && (
+               <MedalLotteryView
+                 tickets={userStats.medalMysteryTickets || 0}
+                 onBack={() => setFullScreenPage(null)}
+                 onGoRun={() => {
+                   setFullScreenPage(null);
+                   setActiveTab('home');
+                 }}
+                 onDraw={handleMedalLotteryDraw}
+               />
+            )}
+            {fullScreenPage.type === 'weightLossPlan' && (
+               <WeightLossPlanView
+                 started={weightPlanStarted}
+                 completedDays={weightPlanCompletedDays}
+                 rewardBoxes={weightPlanRewardBoxes}
+                 openedRewardDays={weightPlanOpenedRewardDays}
+                 rewardHistory={weightPlanRewardHistory}
+                 onBack={() => setFullScreenPage(null)}
+                 onStartPlan={() => setWeightPlanStarted(true)}
+                 onOpenReward={handleWeightPlanRewardOpen}
+                 onNavigateToRouteDetail={(cityId, routeIndex, image, day) => {
+                   setFullScreenPage({
+                     type: 'routeDetail',
+                     data: {
+                       cityId,
+                       routeIndex,
+                       image,
+                       isWeightPlanRoute: true,
+                       weightPlanDay: day
+                     }
+                   });
+                 }}
+               />
             )}
             {fullScreenPage.type === 'weekendMedley' && (
                <WeekendMedleyView 
@@ -518,6 +738,55 @@ export default function App() {
                  }}
                />
             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showDailyRouteTaskGuide && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[140] flex items-center justify-center bg-black/72 p-6 backdrop-blur-md"
+            onClick={() => setShowDailyRouteTaskGuide(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 24, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 14, scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+              className="relative w-full max-w-xs overflow-hidden rounded-[28px] border border-cyan-200/20 bg-[#08101a] p-5 text-center shadow-[0_30px_90px_rgba(0,0,0,0.58)]"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_50%_0%,rgba(103,232,249,0.26),transparent_70%)]" />
+              <button
+                onClick={() => setShowDailyRouteTaskGuide(false)}
+                className="absolute right-4 top-4 z-10 flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-400"
+              >
+                <X size={15} />
+              </button>
+              <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-3xl border border-cyan-200/20 bg-cyan-300/10 text-cyan-100">
+                <Gift size={28} />
+                <Sparkles size={15} className="absolute -right-1 -top-1 text-amber-200" />
+              </div>
+              <p className="relative mt-4 text-[10px] font-black tracking-[0.26em] text-cyan-200">TASK READY</p>
+              <h3 className="relative mt-2 text-xl font-black text-white">今日路线任务已完成</h3>
+              <p className="relative mt-2 text-xs font-bold leading-6 text-slate-400">
+                去任务中心领取光迹值，也可以从任务中心进入光迹值现金抽奖。
+              </p>
+              <button
+                onClick={() => {
+                  setShowDailyRouteTaskGuide(false);
+                  setFullScreenPage(null);
+                  setActiveTab('home');
+                  setTaskPanelOpenSignal(prev => prev + 1);
+                }}
+                className="relative mt-5 h-11 w-full rounded-full bg-gradient-to-r from-cyan-200 to-indigo-200 text-sm font-black text-slate-950 shadow-[0_12px_30px_rgba(103,232,249,0.22)] active:scale-95"
+              >
+                去任务中心
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

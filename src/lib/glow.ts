@@ -33,3 +33,11 @@ export const getGlowRank = (lifetimeLightValue = 0) => {
     remaining: next ? Math.max(0, next.threshold - lifetimeLightValue) : 0
   };
 };
+
+export const getGlowWheelDailyExchangeLimit = (rankLevel = 1) => {
+  if (rankLevel >= 5) return 3;
+  if (rankLevel >= 3) return 2;
+  return 1;
+};
+
+export const GLOW_WHEEL_EXCHANGE_RULE_TEXT = '每日兑换上限：青铜/白银 1 张，黄金/钻石 2 张，星耀/王者 3 张。';

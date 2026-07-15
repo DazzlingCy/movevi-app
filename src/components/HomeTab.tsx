@@ -48,7 +48,7 @@ function LocalWorldMap() {
   );
 }
 
-export default function HomeTab({ onNavigate, completedChapters = [], targetFlight, onFlightComplete, pendingSelectionFrom, onCitySelected, litCityIds = [], userStats, setUserStats }: { onNavigate?: (type: string, data: any) => void; completedChapters?: number[]; targetFlight?: {fromCityId: string, toCityId: string} | null; onFlightComplete?: () => void; pendingSelectionFrom?: string | null; onCitySelected?: (cityId: string) => void; litCityIds?: string[]; userStats?: any; setUserStats?: any; }) {
+export default function HomeTab({ onNavigate, completedChapters = [], targetFlight, onFlightComplete, pendingSelectionFrom, onCitySelected, litCityIds = [], userStats, setUserStats, taskPanelOpenSignal = 0 }: { onNavigate?: (type: string, data: any) => void; completedChapters?: number[]; targetFlight?: {fromCityId: string, toCityId: string} | null; onFlightComplete?: () => void; pendingSelectionFrom?: string | null; onCitySelected?: (cityId: string) => void; litCityIds?: string[]; userStats?: any; setUserStats?: any; taskPanelOpenSignal?: number; }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [showStoryPanel, setShowStoryPanel] = useState(false);
@@ -72,6 +72,12 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   const avatarFrame = avatarFrameStyles[currentGlowRank.level] || avatarFrameStyles[1];
 
   useEffect(() => {
+    if (userStats?.dailyTreadmillStarted) {
+      setIsTreadmillConnected(true);
+    }
+  }, [userStats?.dailyTreadmillStarted]);
+
+  useEffect(() => {
     if (pendingSelectionFrom) {
       const available = CITIES.filter(c => c.status !== 'lit' && c.status !== 'upcoming' && c.id !== pendingSelectionFrom);
       const shuffled = [...available].sort(() => 0.5 - Math.random());
@@ -79,6 +85,12 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       setShowCitySelection(true);
     }
   }, [pendingSelectionFrom]);
+
+  useEffect(() => {
+    if (taskPanelOpenSignal > 0) {
+      setShowTaskPanel(true);
+    }
+  }, [taskPanelOpenSignal]);
 
   const litCount = CITIES.filter(c => c.status === 'lit').length;
   const inProgressCity = CITIES.find(c => c.status === 'in-progress');
@@ -155,7 +167,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       title: '今日完成 1 条路线',
       progress: Math.min(userStats?.dailyCompletedRoutes || 0, 1),
       target: 1,
-      reward: 1,
+      reward: 2,
       ready: (userStats?.dailyCompletedRoutes || 0) >= 1,
       claimed: claimedDailyTaskIds.includes('daily-route')
     },
@@ -189,10 +201,6 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   const allGlowTasks = [...orderedDailyTasks, ...weeklyTasks];
   const totalTaskCount = allGlowTasks.length;
   const completedTaskCount = completedDailyCount + completedWeeklyCount;
-  const claimableReward = allGlowTasks.reduce((sum, task) => {
-    return task.ready && !task.claimed ? sum + task.reward : sum;
-  }, 0);
-
   const handleClaimDailyTask = (taskId: string, reward: number) => {
     if (!setUserStats) return;
 
@@ -471,7 +479,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                     city.labelPosition === 'right' ? 'left-5' : 'top-5'
                   )}>
                     {city.name}
-                  </div>
+                    </div>
                 </div>
               </motion.div>
             );
@@ -1094,10 +1102,6 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                     <p className="text-[10px] font-bold text-slate-500">完成度</p>
                     <p className="mt-1 font-mono text-xl font-black text-white">{completedTaskCount}/{totalTaskCount}</p>
                   </div>
-                  <div className="rounded-2xl border border-amber-300/15 bg-amber-300/[0.06] p-3">
-                    <p className="text-[10px] font-bold text-amber-100/60">可领取</p>
-                    <p className="mt-1 font-mono text-xl font-black text-amber-200">+{claimableReward}</p>
-                  </div>
                   <button
                     type="button"
                     onClick={() => {
@@ -1111,6 +1115,24 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                       <ChevronRight size={12} className="text-cyan-200/70" />
                     </div>
                     <p className="mt-1 font-mono text-xl font-black text-cyan-200">{userStats?.lightValue || 0}</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowTaskPanel(false);
+                      onNavigate && onNavigate('glowWheel', null);
+                    }}
+                    className="relative overflow-hidden rounded-2xl border border-amber-200/25 bg-gradient-to-br from-amber-300/18 via-indigo-300/12 to-cyan-300/10 p-3 text-left transition-all hover:border-amber-200/45 hover:bg-amber-300/[0.12] active:scale-95"
+                  >
+                    <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(255,231,155,0.22),transparent_48%)]" />
+                    <div className="relative flex items-center justify-between gap-2">
+                      <p className="text-[10px] font-bold text-amber-100/70">光迹值</p>
+                      <ChevronRight size={12} className="text-amber-100/80" />
+                    </div>
+                    <div className="relative mt-1 flex items-center gap-1.5">
+                      <Gift size={16} className="text-amber-200" />
+                      <p className="text-sm font-black leading-tight text-amber-100">现金抽奖</p>
+                    </div>
                   </button>
                 </div>
                 <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/[0.08]">

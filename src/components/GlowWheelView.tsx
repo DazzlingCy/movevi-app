@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ChevronLeft, Gift, Sparkles, Ticket, Trophy, Zap } from 'lucide-react';
+import { ChevronLeft, Gift, Info, Sparkles, Ticket, Trophy, X, Zap } from 'lucide-react';
+import { getGlowRank, getGlowWheelDailyExchangeLimit, GLOW_WHEEL_EXCHANGE_RULE_TEXT } from '../lib/glow';
 
-const GLOW_WHEEL_COST = 10;
+const GLOW_WHEEL_COST = 5;
 
 const CASH_PRIZES = [
   { amount: 0.18, weight: 45, color: '#7dd3fc' },
@@ -55,11 +56,16 @@ export default function GlowWheelView({ userStats, onBack, onExchangeChance, onD
   const [isSpinning, setIsSpinning] = useState(false);
   const [result, setResult] = useState<number | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [showRules, setShowRules] = useState(false);
   const timeoutRef = useRef<number | null>(null);
   const lightValue = userStats?.lightValue || 0;
   const tickets = userStats?.glowWheelChances || 0;
   const drawHistory: Array<{ id: string; amount: number; createdAt: string }> = userStats?.glowWheelDrawHistory || [];
-  const canExchange = lightValue >= GLOW_WHEEL_COST;
+  const glowRank = getGlowRank(userStats?.lifetimeLightValue ?? lightValue).current;
+  const dailyExchangeLimit = getGlowWheelDailyExchangeLimit(glowRank.level);
+  const exchangedToday = userStats?.dailyGlowWheelExchangeCount || 0;
+  const exchangeLimitReached = exchangedToday >= dailyExchangeLimit;
+  const canExchange = lightValue >= GLOW_WHEEL_COST && !exchangeLimitReached;
   const canDraw = tickets > 0 && !isSpinning;
 
   useEffect(() => {
@@ -129,9 +135,13 @@ export default function GlowWheelView({ userStats, onBack, onExchangeChance, onD
               <p className="text-[10px] font-black tracking-[0.26em] text-indigo-200">GLOW CASH</p>
               <h1 className="mt-1 text-xl font-black tracking-tight text-white">光迹值现金抽奖</h1>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-200/10 bg-indigo-300/10 text-indigo-100">
-              <Sparkles size={18} />
-            </div>
+            <button
+              onClick={() => setShowRules(true)}
+              className="flex h-10 w-10 items-center justify-center rounded-xl border border-indigo-200/15 bg-indigo-300/10 text-indigo-100 backdrop-blur-md transition-colors hover:bg-indigo-300/18 focus:outline-none focus:ring-2 focus:ring-indigo-300/50"
+              aria-label="现金抽奖规则说明"
+            >
+              <Info size={18} />
+            </button>
           </div>
         </header>
 
@@ -149,14 +159,32 @@ export default function GlowWheelView({ userStats, onBack, onExchangeChance, onD
               <button
                 onClick={handleExchange}
                 disabled={!canExchange}
-                className={`rounded-2xl border p-3 text-left transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-indigo-300/50 ${
+                className={`group relative overflow-hidden rounded-2xl border p-3 text-left transition-all active:scale-95 focus:outline-none focus:ring-2 focus:ring-cyan-200/60 ${
                   canExchange
-                    ? 'border-indigo-300/30 bg-indigo-400/15 text-indigo-50 hover:bg-indigo-400/20'
+                    ? 'border-cyan-200/45 bg-gradient-to-br from-cyan-300 via-indigo-300 to-violet-400 text-[#06101b] shadow-[0_14px_34px_rgba(99,102,241,0.28)] hover:brightness-110'
                     : 'border-white/10 bg-white/[0.03] text-slate-500'
                 }`}
               >
-                <p className="text-[10px] font-semibold">兑换 1 张</p>
-                <p className="mt-1 font-mono text-xl font-black tabular-nums">-{GLOW_WHEEL_COST}</p>
+                {canExchange && (
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(255,255,255,0.55),transparent_42%)] opacity-70" />
+                )}
+                <div className="relative flex items-start justify-between gap-2">
+                  <div>
+                    <p className={`text-[10px] font-black ${canExchange ? 'text-[#062033]/70' : 'text-slate-500'}`}>
+                      {exchangeLimitReached ? '今日已满' : '立即兑换'}
+                    </p>
+                    <p className="mt-1 text-sm font-black leading-tight">抽奖券</p>
+                  </div>
+                  <span className={`flex h-7 w-7 items-center justify-center rounded-full ${
+                    canExchange ? 'bg-black/15 text-[#06101b]' : 'bg-white/5 text-slate-500'
+                  }`}>
+                    <Ticket size={15} />
+                  </span>
+                </div>
+                <div className="relative mt-2 flex items-center justify-between">
+                  <span className={`text-[10px] font-bold ${canExchange ? 'text-[#062033]/70' : 'text-slate-500'}`}>消耗</span>
+                  <span className="font-mono text-lg font-black tabular-nums">-{GLOW_WHEEL_COST}</span>
+                </div>
               </button>
             </div>
 
@@ -268,6 +296,12 @@ export default function GlowWheelView({ userStats, onBack, onExchangeChance, onD
                   <span className="font-bold text-slate-400">当前可用抽奖券</span>
                   <span className="font-mono text-lg font-black text-indigo-100 tabular-nums">{tickets}</span>
                 </div>
+                <div className="mt-2 flex items-center justify-between border-t border-white/5 pt-2 text-[10px] font-bold">
+                  <span className="text-slate-500">今日可兑</span>
+                  <span className={exchangeLimitReached ? 'text-amber-200' : 'text-cyan-200'}>
+                    {exchangedToday}/{dailyExchangeLimit} 张
+                  </span>
+                </div>
               </div>
             </div>
           </section>
@@ -351,6 +385,65 @@ export default function GlowWheelView({ userStats, onBack, onExchangeChance, onD
               >
                 收下奖励
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showRules && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/78 p-6 backdrop-blur-md"
+            onClick={() => setShowRules(false)}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 22, scale: 0.94 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 14, scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 360, damping: 28 }}
+              className="relative w-full max-w-[330px] overflow-hidden rounded-[28px] border border-indigo-200/15 bg-[#07101a] p-5 shadow-[0_30px_90px_rgba(0,0,0,0.58)]"
+              onClick={event => event.stopPropagation()}
+            >
+              <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_50%_0%,rgba(129,140,248,0.26),transparent_70%)]" />
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-2xl border border-indigo-200/15 bg-indigo-300/10 text-indigo-100">
+                    <Info size={18} />
+                  </div>
+                  <h2 className="text-lg font-black text-white">现金抽奖规则</h2>
+                </div>
+                <button
+                  onClick={() => setShowRules(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-300"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="relative mt-5 space-y-3">
+                <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-3">
+                  <p className="text-xs font-black text-indigo-100">兑换方式</p>
+                  <p className="mt-1 text-[11px] font-semibold leading-5 text-slate-400">
+                    消耗 {GLOW_WHEEL_COST} 点光迹值可兑换 1 张现金抽奖券，每次抽奖消耗 1 张券。
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-3">
+                  <p className="text-xs font-black text-cyan-100">每日上限</p>
+                  <p className="mt-1 text-[11px] font-semibold leading-5 text-slate-400">{GLOW_WHEEL_EXCHANGE_RULE_TEXT}</p>
+                  <p className="mt-2 font-mono text-xs font-black text-cyan-200">
+                    当前{glowRank.name}：今日已兑 {exchangedToday}/{dailyExchangeLimit} 张
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-3">
+                  <p className="text-xs font-black text-amber-100">奖池概率</p>
+                  <p className="mt-1 text-[11px] font-semibold leading-5 text-slate-400">
+                    奖池与概率在页面中公开展示，中奖金额以抽奖结果为准。
+                  </p>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
