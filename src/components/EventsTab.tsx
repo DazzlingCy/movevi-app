@@ -68,7 +68,7 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay, onSelectM
           </div>
         </motion.div>
         {/* Banner 1: 城市拼图小队 */}
-        {/* Banner: 30-day weight loss plan */}
+        {/* Banner: 120-day weight loss plan */}
         <motion.div
           whileTap={{ scale: 0.98 }}
           initial={{ opacity: 0, y: 20 }}
@@ -87,7 +87,7 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay, onSelectM
 
           <div className="absolute top-3 right-3 bg-rose-400/20 backdrop-blur-md text-[9px] tracking-widest font-extrabold px-2.5 py-1 rounded-full text-rose-100 flex items-center gap-1 shadow-lg border border-rose-300/40">
             <Calendar size={10} />
-            30天计划
+            120天期限
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-3.5">
@@ -99,7 +99,7 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay, onSelectM
             </h2>
             <div className="flex items-center justify-between">
               <p className="text-orange-100/65 text-[11px] max-w-[72%] leading-relaxed line-clamp-2">
-                每天推荐 1 条燃脂路线，完成关键节点即可开启现金红包盲盒。
+                120天内完成30天燃脂路线，达成节点即可开启现金红包盲盒。
               </p>
               <div className="w-7 h-7 rounded-full bg-orange-400/10 backdrop-blur flex items-center justify-center border border-orange-300/30 group-hover:bg-orange-400/25 transition-colors">
                 <ChevronRight size={14} className="text-orange-100" />

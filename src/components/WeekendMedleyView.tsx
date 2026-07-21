@@ -70,19 +70,19 @@ export const MEDLEY_CANDIDATE_ROUTES: MedleyRouteItem[] = [
     countryName: '中国'
   },
   {
-    id: '4-1',
-    cityId: '4',
+    id: '15-1',
+    cityId: '15',
     routeIndex: 1,
-    cityName: '南京',
-    routeName: '金陵古都路线',
-    title: '南京·金陵古都之行',
-    image: 'https://images.unsplash.com/photo-1547984609-444491a57c13?auto=format&fit=crop&w=500&q=80',
-    spots: '玄武湖 — 台城明城墙 — 夫子庙',
-    intro: '登上饱经风霜的台城明城墙，在风中聆听金陵帝王州的岁月绝唱。',
-    distance: '4.8',
-    duration: '约 28 分钟',
-    rating: 4.9,
-    countryName: '中国'
+    cityName: '???',
+    routeName: '?????????',
+    title: '???????????',
+    image: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&w=500&q=80',
+    spots: '????? ? ????? ? ?????',
+    intro: '?????????????????????????????????????????????',
+    distance: '4.6',
+    duration: '? 28 ??',
+    rating: 4.8,
+    countryName: '???'
   },
   {
     id: '5-1',
@@ -205,8 +205,8 @@ export const MEDLEY_CANDIDATE_ROUTES: MedleyRouteItem[] = [
     countryName: '中国'
   },
   {
-    id: '15-1',
-    cityId: '15',
+    id: '10-1',
+    cityId: '10',
     routeIndex: 1,
     cityName: '悉尼',
     routeName: '海港桥海岸漫步',

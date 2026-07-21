@@ -1,14 +1,9 @@
 import { Settings, ChevronRight, Mail, SquarePen, Medal, Map as MapIcon, MonitorSmartphone, Wallet, HeadphonesIcon, FileText, BookOpen, ClipboardList } from 'lucide-react';
 import { motion } from 'motion/react';
+import { getGlowRank, type GlowUserStats } from '../data/glow';
 
-interface UserStats {
-  completedCities: number;
-  completedRoutes: number;
-  totalDistance: number;
-  totalTimeHours: number;
-}
-
-export default function ProfileTab({ userStats }: { userStats: UserStats }) {
+export default function ProfileTab({ userStats }: { userStats: GlowUserStats }) {
+  const glowRank = getGlowRank(userStats.lightValue);
   const stats = [
     { label: '完成城市', value: userStats.completedCities.toString() },
     { label: '完成路线', value: userStats.completedRoutes.toString() },
@@ -56,11 +51,23 @@ export default function ProfileTab({ userStats }: { userStats: UserStats }) {
               <h1 className="text-xl font-bold text-slate-100 tracking-wide mb-2">尘缘</h1>
               <div className="flex items-center gap-2">
                 <span className="bg-amber-400 text-amber-950 text-xs font-bold px-2 py-0.5 rounded-full shadow-[0_0_10px_rgba(251,191,36,0.3)]">
-                  LV.3
+                  LV.{glowRank.level}
                 </span>
-                <span className="text-amber-400 text-sm font-semibold tracking-widest drop-shadow-[0_0_5px_rgba(251,191,36,0.4)]">
-                  黄金
+                <span className="text-sm font-semibold tracking-widest" style={{ color: glowRank.color }}>
+                  {glowRank.name}
                 </span>
+              </div>
+              <div className="mt-3 max-w-[190px]">
+                <div className="flex items-center justify-between text-[9px] font-bold">
+                  <span className="text-cyan-300">{userStats.lightValue.toFixed(1)} 光迹值</span>
+                  <span className="text-slate-500">{glowRank.nextName ? `距${glowRank.nextName} ${glowRank.remaining.toFixed(1)}` : '最高段位'}</span>
+                </div>
+                <div className="mt-1.5 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-400 to-amber-300"
+                    style={{ width: `${glowRank.progress}%` }}
+                  />
+                </div>
               </div>
             </div>
           </div>

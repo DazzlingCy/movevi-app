@@ -1,22 +1,25 @@
 import { ChevronRight, Trophy, Zap, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { getGlowRank, type GlowUserStats } from '../data/glow';
 
 interface LeaderboardViewProps {
   onBack: () => void;
+  userStats: GlowUserStats;
 }
 
 const leaderboardData = [
-  { id: 1, name: '极光闪电', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100', score: 18450 },
-  { id: 2, name: '城市探险家', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=100&h=100', score: 16200 },
-  { id: 3, name: '追光者·星', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100&h=100', score: 14500 },
-  { id: 4, name: '夜行猎手', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100&h=100', score: 12100 },
-  { id: 5, name: '风行无阻', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100&h=100', score: 11800 },
-  { id: 6, name: '地球狂奔', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100', score: 9500 },
-  { id: 7, name: '阿兹特克', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=100&h=100', score: 8200 },
-  { id: 8, name: '超越极限', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=100&h=100', score: 7100 },
+  { id: 1, name: '极光闪电', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100', score: 468 },
+  { id: 2, name: '城市探险家', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=100&h=100', score: 412 },
+  { id: 3, name: '追光者·星', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=100&h=100', score: 376 },
+  { id: 4, name: '夜行猎手', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100&h=100', score: 318 },
+  { id: 5, name: '风行无阻', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100&h=100', score: 284 },
+  { id: 6, name: '地球狂奔', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=100&h=100', score: 230 },
+  { id: 7, name: '阿兹特克', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=100&h=100', score: 176 },
+  { id: 8, name: '超越极限', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=100&h=100', score: 142 },
 ];
 
-export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
+export default function LeaderboardView({ onBack, userStats }: LeaderboardViewProps) {
+  const currentUserRank = getGlowRank(userStats.lightValue);
   return (
     <div className="w-full h-full bg-[#05070A] overflow-y-auto pb-24 text-slate-100 font-sans hide-scrollbar relative">
       <div className="sticky top-0 z-20 bg-black/40 backdrop-blur-md pt-safeb flex items-center px-4 py-4 border-b border-white/10">
@@ -46,6 +49,7 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
           </div>
           <div className="text-xs font-bold text-slate-200 mb-1">{leaderboardData[1].name}</div>
           <div className="text-[10px] text-cyan-400 flex items-center"><Zap size={10} className="mr-0.5" />{leaderboardData[1].score.toLocaleString()}</div>
+          <div className="mt-1 text-[8px] font-black" style={{ color: getGlowRank(leaderboardData[1].score).color }}>{getGlowRank(leaderboardData[1].score).name}</div>
         </motion.div>
 
         {/* 1st Place */}
@@ -65,6 +69,7 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
           </div>
           <div className="text-sm font-bold text-amber-400 mb-1">{leaderboardData[0].name}</div>
           <div className="text-xs text-cyan-400 flex items-center font-bold"><Zap size={12} className="mr-0.5" />{leaderboardData[0].score.toLocaleString()}</div>
+          <div className="mt-1 text-[9px] font-black" style={{ color: getGlowRank(leaderboardData[0].score).color }}>{getGlowRank(leaderboardData[0].score).name}</div>
         </motion.div>
 
         {/* 3rd Place */}
@@ -82,6 +87,7 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
           </div>
           <div className="text-xs font-bold text-slate-200 mb-1">{leaderboardData[2].name}</div>
           <div className="text-[10px] text-cyan-400 flex items-center"><Zap size={10} className="mr-0.5" />{leaderboardData[2].score.toLocaleString()}</div>
+          <div className="mt-1 text-[8px] font-black" style={{ color: getGlowRank(leaderboardData[2].score).color }}>{getGlowRank(leaderboardData[2].score).name}</div>
         </motion.div>
       </div>
 
@@ -98,7 +104,12 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
               <div className="flex items-center gap-4">
                  <div className="w-6 text-center text-slate-500 font-bold font-mono">{index + 4}</div>
                  <img src={user.avatar} className="w-10 h-10 rounded-full object-cover" />
-                 <div className="font-bold text-sm text-slate-200">{user.name}</div>
+                 <div>
+                   <div className="font-bold text-sm text-slate-200">{user.name}</div>
+                   <div className="text-[9px] font-black mt-0.5" style={{ color: getGlowRank(user.score).color }}>
+                     LV.{getGlowRank(user.score).level} {getGlowRank(user.score).name}
+                   </div>
+                 </div>
               </div>
               <div className="flex items-center text-cyan-400 font-mono text-xs">
                  <Zap size={12} className="mr-1" /> {user.score.toLocaleString()}
@@ -115,10 +126,15 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
                <div className="w-10 h-10 rounded-full bg-slate-800 border hover:bg-white/10 flex items-center justify-center border-slate-700">
                  <span className="text-sm font-bold">ME</span>
                </div>
-               <div className="font-bold text-sm text-cyan-400">当前排名</div>
+               <div>
+                 <div className="font-bold text-sm text-cyan-400">当前排名</div>
+                 <div className="text-[9px] font-black mt-0.5" style={{ color: currentUserRank.color }}>
+                   LV.{currentUserRank.level} {currentUserRank.name}
+                 </div>
+               </div>
             </div>
             <div className="flex items-center text-cyan-400 font-mono text-xs font-bold">
-               <Zap size={14} className="mr-1" /> 120
+               <Zap size={14} className="mr-1" /> {userStats.lightValue.toFixed(1)}
             </div>
          </div>
       </div>

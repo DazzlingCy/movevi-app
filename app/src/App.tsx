@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Compass, Trophy, Map as MapIcon, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import HomeTab from './components/HomeTab';
@@ -14,6 +14,7 @@ import LitRecordsView from './components/LitRecordsView';
 import LeaderboardView from './components/LeaderboardView';
 import WeekendMedleyView, { type WeekendDrawRecord } from './components/WeekendMedleyView';
 import TeamRelayView, { type TeamRelayMember, type TeamRelayTask } from './components/TeamRelayView';
+import { getGlowTaskProgress, type GlowUserStats } from './data/glow';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
@@ -53,13 +54,57 @@ export default function App() {
   const [completedChapters, setCompletedChapters] = useState<number[]>([]);
   const [targetFlight, setTargetFlight] = useState<{fromCityId: string, toCityId: string} | null>(null);
   const [pendingSelectionFrom, setPendingSelectionFrom] = useState<string | null>(null);
-  const [userStats, setUserStats] = useState({
+  const [userStats, setUserStats] = useState<GlowUserStats>({
     completedCities: 3,
     completedRoutes: 36,
     totalDistance: 62.0,
     totalTimeHours: 12.0,
-    lightValue: 120
+    lightValue: 120,
+    weeklyLightEarned: 0,
+    dailyDistance: 0,
+    dailyTreadmillStarted: false,
+    weeklyCitySwitches: 0,
+    dailyCompletedRoutes: 0,
+    weeklyCompletedRoutes: 0
   });
+  const [rankTaskNotice, setRankTaskNotice] = useState<string | null>(null);
+  const previousRankTaskStatusRef = useRef<Record<string, boolean> | null>(null);
+  const pendingRankTaskNoticesRef = useRef<string[]>([]);
+
+  useEffect(() => {
+    const tasks = getGlowTaskProgress(userStats);
+    const nextStatus = Object.fromEntries(tasks.map(task => [task.id, task.completed]));
+
+    if (previousRankTaskStatusRef.current === null) {
+      previousRankTaskStatusRef.current = nextStatus;
+      return;
+    }
+
+    const newlyCompleted = tasks.filter(
+      task => task.completed && !previousRankTaskStatusRef.current?.[task.id]
+    );
+    previousRankTaskStatusRef.current = nextStatus;
+
+    if (newlyCompleted.length > 0) {
+      pendingRankTaskNoticesRef.current.push(
+        ...newlyCompleted.map(task => `完成段位任务：${task.period}${task.label}`)
+      );
+      if (!rankTaskNotice) {
+        setRankTaskNotice(pendingRankTaskNoticesRef.current.shift() || null);
+      }
+    }
+  }, [userStats, rankTaskNotice]);
+
+  useEffect(() => {
+    if (!rankTaskNotice) {
+      const nextNotice = pendingRankTaskNoticesRef.current.shift();
+      if (nextNotice) setRankTaskNotice(nextNotice);
+      return;
+    }
+
+    const timer = window.setTimeout(() => setRankTaskNotice(null), 2600);
+    return () => window.clearTimeout(timer);
+  }, [rankTaskNotice]);
 
   const tabs = [
     { id: 'home', label: '首页', icon: Compass },
@@ -224,7 +269,11 @@ export default function App() {
                      ...prev,
                      totalDistance: prev.totalDistance + stats.distance,
                      totalTimeHours: prev.totalTimeHours + (stats.duration / 3600),
-                     lightValue: (prev.lightValue || 0) + (stats.calories || Math.floor(stats.distance * 65))
+                     lightValue: prev.lightValue + stats.distance,
+                     weeklyLightEarned: prev.weeklyLightEarned + stats.distance,
+                     dailyDistance: prev.dailyDistance + stats.distance,
+                     dailyCompletedRoutes: prev.dailyCompletedRoutes + 1,
+                     weeklyCompletedRoutes: prev.weeklyCompletedRoutes + 1
                    }));
 
                    if (fullScreenPage.data.isActivityRoute) {
@@ -269,7 +318,10 @@ export default function App() {
                      realCityData.completed = Math.min(realCityData.completedRouteIndices.length, realCityData.routes);
                      
                      // If this is a newly completed route, increment completedRoutes counter
-                     setUserStats(prev => ({ ...prev, completedRoutes: prev.completedRoutes + 1 }));
+                     setUserStats(prev => ({
+                       ...prev,
+                       completedRoutes: prev.completedRoutes + 1
+                     }));
                    }
                    
                    if (realCityData.completed === realCityData.routes && realCityData.status !== 'lit') {
@@ -308,7 +360,7 @@ export default function App() {
               <LitRecordsView onBack={() => setFullScreenPage(null)} />
             )}
             {fullScreenPage.type === 'leaderboard' && (
-              <LeaderboardView onBack={() => setFullScreenPage(null)} />
+              <LeaderboardView onBack={() => setFullScreenPage(null)} userStats={userStats} />
             )}
             {fullScreenPage.type === 'weekendMedley' && (
                <WeekendMedleyView 
@@ -377,6 +429,19 @@ export default function App() {
                  }}
                />
             )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {rankTaskNotice && (
+          <motion.div
+            initial={{ opacity: 0, y: -14, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.98 }}
+            className="absolute top-5 left-4 right-4 z-[200] rounded-2xl border border-emerald-300/30 bg-[#082019]/95 px-4 py-3 text-center text-xs font-black text-emerald-200 shadow-[0_14px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl"
+          >
+            {rankTaskNotice}
           </motion.div>
         )}
       </AnimatePresence>

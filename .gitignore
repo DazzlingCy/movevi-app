@@ -2,6 +2,15 @@ node_modules/
 build/
 dist/
 coverage/
+app/.npm-cache/
+app/*.png
+movevi-prd/
+movevi-slogan-video/
+movevi-strategy-page/
+movevi-strategy-pdf/
+movevi-strategy-ppt/
+movevi-strategy-video/
+outputs/
 .DS_Store
 *.log
 .env*

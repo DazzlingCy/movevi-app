@@ -22,11 +22,12 @@ interface WeightLossPlanViewProps {
 }
 
 const MILESTONE_DAYS = [1, 7, 15, 21, 30];
-const TOTAL_DAYS = 30;
+const PLAN_WINDOW_DAYS = 120;
+const COMPLETION_TARGET_DAYS = 30;
 
 const generatePlanRoutes = () => {
   const cities = CITIES.filter(city => city.status !== 'upcoming');
-  return Array.from({ length: TOTAL_DAYS }, (_, index) => {
+  return Array.from({ length: PLAN_WINDOW_DAYS }, (_, index) => {
     const city = cities[index % cities.length];
     const routeIndex = Math.floor(index / cities.length) % Math.max(city.routes, 3) + 1;
     const routeData = getRouteData(city.id, routeIndex);
@@ -62,9 +63,9 @@ export default function WeightLossPlanView({
   const rewardTimersRef = useRef<number[]>([]);
   const planRoutes = useMemo(() => generatePlanRoutes(), []);
   const completedSet = new Set(completedDays);
-  const nextDay = Math.min(completedDays.length + 1, TOTAL_DAYS);
+  const nextDay = Math.min(completedDays.length + 1, PLAN_WINDOW_DAYS);
   const [displayDay, setDisplayDay] = useState(Math.max(1, completedDays.length));
-  const activeDay = Math.min(displayDay, TOTAL_DAYS);
+  const activeDay = Math.min(displayDay, PLAN_WINDOW_DAYS);
   const todayRoute = routeOverrides[activeDay] || planRoutes[activeDay - 1];
   const todayCompleted = completedSet.has(activeDay);
   const isFutureDay = activeDay > nextDay;
@@ -73,11 +74,11 @@ export default function WeightLossPlanView({
     .reduce((sum, item) => sum + Number(item.routeData.distance || 0), 0);
   const earnedBoxes = rewardBoxes.length;
   const openedBoxes = openedRewardDays.length;
-  const planComplete = completedDays.length >= TOTAL_DAYS;
-  const progressPercent = Math.round((completedDays.length / TOTAL_DAYS) * 100);
+  const planComplete = completedDays.length >= COMPLETION_TARGET_DAYS;
+  const progressPercent = Math.min(100, Math.round((completedDays.length / COMPLETION_TARGET_DAYS) * 100));
   const nextRewardDay = MILESTONE_DAYS.find(day => day > completedDays.length);
   const daysToNextReward = nextRewardDay ? Math.max(0, nextRewardDay - completedDays.length) : 0;
-  const clampDisplayDay = (day: number) => Math.min(TOTAL_DAYS, Math.max(1, day));
+  const clampDisplayDay = (day: number) => Math.min(PLAN_WINDOW_DAYS, Math.max(1, day));
   const handleRouteSwipe = (_event: MouseEvent | TouchEvent | PointerEvent, info: { offset: { x: number } }) => {
     if (Math.abs(info.offset.x) < 44) return;
     setDisplayDay(prev => clampDisplayDay(prev + (info.offset.x < 0 ? 1 : -1)));
@@ -161,7 +162,6 @@ export default function WeightLossPlanView({
               <ChevronLeft size={22} />
             </button>
             <div className="text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-300/70">30 DAY BURN</p>
               <h1 className="text-xl font-black tracking-tight text-white">30天燃脂计划</h1>
             </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-300/15 bg-emerald-300/10 text-emerald-200">
@@ -179,16 +179,27 @@ export default function WeightLossPlanView({
                 每日一条路线
               </div>
               <h2 className="mt-3 text-[32px] font-black leading-[0.98] tracking-[-0.04em] text-white">
-                用30天，<br />跑出轻盈节奏
+                完成30天燃脂
               </h2>
               <p className="mt-3 max-w-[280px] text-sm font-semibold leading-5 text-slate-400">
-                每天完成一条推荐路线，在关键节点开启现金红包盲盒。
+                每天完成一条推荐路线，120天期限内累计完成30天，即可达成整期计划。
               </p>
+
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl border border-emerald-200/12 bg-emerald-200/[0.055] p-3">
+                  <p className="text-[10px] font-bold text-emerald-100/55">开始日期</p>
+                  <p className="mt-1 font-mono text-sm font-black tabular-nums text-emerald-100">2026.07.21</p>
+                </div>
+                <div className="rounded-2xl border border-amber-200/12 bg-amber-200/[0.055] p-3">
+                  <p className="text-[10px] font-bold text-amber-100/55">结束日期</p>
+                  <p className="mt-1 font-mono text-sm font-black tabular-nums text-amber-100">2026.11.17</p>
+                </div>
+              </div>
 
               <div className="mt-5 grid grid-cols-3 gap-2">
                 <div className="rounded-2xl border border-white/10 bg-black/24 p-3">
                   <p className="text-[10px] font-bold text-slate-500">完成天数</p>
-                  <p className="mt-1 font-mono text-xl font-black tabular-nums text-white">{completedDays.length}/30</p>
+                  <p className="mt-1 font-mono text-xl font-black tabular-nums text-white">{completedDays.length}/{COMPLETION_TARGET_DAYS}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-black/24 p-3">
                   <p className="text-[10px] font-bold text-slate-500">累计公里</p>
@@ -241,7 +252,7 @@ export default function WeightLossPlanView({
                   </div>
                 </div>
                 <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 font-mono text-xs font-black text-emerald-100">
-                  {activeDay}/30
+                  {activeDay}/{PLAN_WINDOW_DAYS}
                 </div>
               </div>
               <p className="mt-2 text-[11px] font-bold text-slate-500">左右滑动切换日期查看路线</p>
@@ -308,14 +319,14 @@ export default function WeightLossPlanView({
             <div className="relative flex items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#8f9bff]">PROGRESS</p>
-                <h2 className="mt-1 text-lg font-black tracking-tight text-white">30天进度</h2>
+                <h2 className="mt-1 text-lg font-black tracking-tight text-white">燃脂进度</h2>
                 <p className="mt-1 text-[11px] font-bold text-slate-500">
                   {planComplete ? '计划已完成' : nextRewardDay ? `下一奖励：第${nextRewardDay}天，还差${daysToNextReward}天` : '全部奖励已解锁'}
                 </p>
               </div>
               <div className="rounded-2xl border border-emerald-200/20 bg-emerald-200/10 px-3 py-2 text-right">
                 <p className="text-[10px] font-bold text-emerald-100/70">完成</p>
-                <p className="font-mono text-sm font-black text-emerald-100">{completedDays.length}/{TOTAL_DAYS}</p>
+                <p className="font-mono text-sm font-black text-emerald-100">{completedDays.length}/{COMPLETION_TARGET_DAYS}</p>
               </div>
             </div>
 
@@ -371,7 +382,7 @@ export default function WeightLossPlanView({
                 <span className="rounded-full border border-emerald-200/20 bg-emerald-200/10 px-2.5 py-1 font-mono text-emerald-200 shadow-[0_0_18px_rgba(52,211,153,0.12)]">
                   {progressPercent}%
                 </span>
-                <span>DAY 30</span>
+                <span>目标30天</span>
               </div>
               <div className="relative mt-4 h-3 overflow-hidden rounded-full bg-white/[0.07]">
                 <motion.div
@@ -383,7 +394,7 @@ export default function WeightLossPlanView({
               </div>
               <div className="mt-3 flex items-center justify-between text-[10px] font-bold text-slate-500">
                 <span>已完成 {completedDays.length} 天</span>
-                <span>{planComplete ? '全部完成' : `剩余 ${TOTAL_DAYS - completedDays.length} 天`}</span>
+                <span>{planComplete ? '全部完成' : `还需 ${COMPLETION_TARGET_DAYS - completedDays.length} 天`}</span>
               </div>
             </div>
           </section>
@@ -396,7 +407,7 @@ export default function WeightLossPlanView({
               <div>
                 <h3 className="text-sm font-black text-white">活动规则</h3>
                 <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">
-                  每天按顺序完成 1 条推荐路线。完成第 1、7、15、21、30 天时获得红包盲盒，打开后可查看现金奖励。
+                  120天期限内，每天按顺序完成 1 条推荐路线；累计完成30天即完成计划。完成第 1、7、15、21、30 天时获得红包盲盒，打开后可查看现金奖励。
                 </p>
               </div>
             </div>

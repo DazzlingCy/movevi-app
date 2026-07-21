@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, useMotionValue, animate, AnimatePresence } from 'motion/react';
-import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, MapPin, Route, Milestone, Activity, Plane, Compass, RefreshCw, ClipboardCheck, Gift, Sparkles } from 'lucide-react';
+import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, MapPin, Route, Milestone, Activity, Plane, Compass, RefreshCw, ClipboardCheck, Gift, Sparkles, Flame, Waves, Landmark, Building2, Castle, RadioTower, Crown, Ship, Mountain, Palmtree } from 'lucide-react';
 import { CITIES, CityData } from '../data/cities';
 import { cn } from '../lib/utils';
 import { getGlowRank } from '../lib/glow';
@@ -48,7 +48,22 @@ function LocalWorldMap() {
   );
 }
 
-export default function HomeTab({ onNavigate, completedChapters = [], targetFlight, onFlightComplete, pendingSelectionFrom, onCitySelected, litCityIds = [], userStats, setUserStats, taskPanelOpenSignal = 0 }: { onNavigate?: (type: string, data: any) => void; completedChapters?: number[]; targetFlight?: {fromCityId: string, toCityId: string} | null; onFlightComplete?: () => void; pendingSelectionFrom?: string | null; onCitySelected?: (cityId: string) => void; litCityIds?: string[]; userStats?: any; setUserStats?: any; taskPanelOpenSignal?: number; }) {
+const ENABLE_GLOW_TASKS = false;
+
+const cityPreviewFallbacks: Record<string, string> = {
+  Singapore: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&q=80&w=240&h=240',
+  Hangzhou: 'https://images.unsplash.com/photo-1599572415662-119c861b1b68?auto=format&fit=crop&q=80&w=240&h=240',
+  Beijing: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?auto=format&fit=crop&q=80&w=240&h=240',
+  Shanghai: 'https://images.unsplash.com/photo-1538428494232-9c0d8a3ab403?auto=format&fit=crop&q=80&w=240&h=240',
+  Tokyo: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&q=80&w=240&h=240'
+};
+
+const getCityPreviewImage = (city?: CityData | null) => {
+  if (!city) return '';
+  return cityPreviewFallbacks[city.englishName] || city.image;
+};
+
+export default function HomeTab({ onNavigate, completedChapters = [], targetFlight, onFlightComplete, pendingSelectionFrom, onCitySelected, litCityIds = [], userStats, setUserStats, taskPanelOpenSignal = 0, onTreadmillActivated }: { onNavigate?: (type: string, data: any) => void; completedChapters?: number[]; targetFlight?: {fromCityId: string, toCityId: string} | null; onFlightComplete?: () => void; pendingSelectionFrom?: string | null; onCitySelected?: (cityId: string) => void; litCityIds?: string[]; userStats?: any; setUserStats?: any; taskPanelOpenSignal?: number; onTreadmillActivated?: () => void; }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [showStoryPanel, setShowStoryPanel] = useState(false);
@@ -60,7 +75,8 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
   const [showTaskPanel, setShowTaskPanel] = useState(false);
   const [rewardBurst, setRewardBurst] = useState<{ id: number; reward: number; title: string } | null>(null);
-  const currentGlowRank = getGlowRank(userStats?.lifetimeLightValue ?? userStats?.lightValue ?? 0).current;
+  const glowRankDetails = getGlowRank(userStats?.lifetimeLightValue ?? userStats?.lightValue ?? 0);
+  const currentGlowRank = glowRankDetails.current;
   const avatarFrameStyles: Record<number, { ring: string; shadow: string; badge: string }> = {
     1: { ring: 'from-orange-300 via-amber-500 to-stone-700', shadow: 'shadow-[0_0_16px_rgba(251,146,60,0.42)]', badge: 'text-orange-200' },
     2: { ring: 'from-white via-slate-300 to-slate-500', shadow: 'shadow-[0_0_16px_rgba(226,232,240,0.38)]', badge: 'text-slate-100' },
@@ -87,13 +103,15 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   }, [pendingSelectionFrom]);
 
   useEffect(() => {
-    if (taskPanelOpenSignal > 0) {
+    if (ENABLE_GLOW_TASKS && taskPanelOpenSignal > 0) {
       setShowTaskPanel(true);
     }
   }, [taskPanelOpenSignal]);
 
   const litCount = CITIES.filter(c => c.status === 'lit').length;
   const inProgressCity = CITIES.find(c => c.status === 'in-progress');
+  const nextFocusCity = inProgressCity || CITIES.find(c => c.status !== 'lit' && c.status !== 'upcoming') || CITIES.find(c => c.status !== 'upcoming');
+  const earthRestoreProgress = Math.round((litCount / Math.max(1, CITIES.filter(c => c.status !== 'upcoming').length)) * 100);
   
   const numMap = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
 
@@ -124,6 +142,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
 
   const handleConnectTreadmill = () => {
     setIsTreadmillConnected(true);
+    onTreadmillActivated?.();
     if (setUserStats) {
       setUserStats((prev: any) => ({
         ...prev,
@@ -395,10 +414,13 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   };
 
   return (
-    <div className="relative w-full h-full bg-[#133643] overflow-hidden flex items-center justify-center">
-      {/* Decorative Radial Glow */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-        <div className="w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[120px]"></div>
+    <div className="relative w-full h-full overflow-hidden bg-[#081827] flex items-center justify-center">
+      {/* Solid atmospheric backdrop */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 bg-[#081827]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_52%_32%,rgba(34,211,238,0.18),transparent_38%),radial-gradient(circle_at_24%_74%,rgba(20,184,166,0.14),transparent_32%)]" />
+        <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-[#081827]/76 via-[#081827]/20 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#081827] via-[#081827]/62 to-transparent" />
       </div>
 
       {/* Pannable/Zoomable Map Area */}
@@ -423,7 +445,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
             opacity: 1,
-            filter: 'contrast(1.2) brightness(2)' // Make continents brighter
+            filter: 'contrast(1.18) brightness(2.35)' // Make continents brighter
           }}
           animate={{ scale }}
           transition={{ scale: { type: 'spring', bounce: 0.1, duration: 0.4 } }}
@@ -431,22 +453,42 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
         >
           {/* Cities Nodes */}
           {CITIES.map((city) => {
+            const cityIconMap: Record<string, React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>> = {
+              '1': Waves,
+              '2': Landmark,
+              '3': Building2,
+              '4': Castle,
+              '5': Castle,
+              '6': RadioTower,
+              '7': Landmark,
+              '8': Crown,
+              '9': Building2,
+              '10': Ship,
+              '11': Mountain,
+              '12': Palmtree,
+              '13': Landmark,
+              '14': Landmark,
+              '15': Building2,
+              '16': Castle,
+              '17': Palmtree
+            };
+            const CityIcon = cityIconMap[city.id] || Landmark;
             const statusConfig = {
               'unlit': {
-                dot: 'bg-[#218F8D] ring-[#218F8D]/30 shadow-[0_0_15px_#218F8D]',
-                text: 'text-[#218F8D] bg-black/60 border border-[#218F8D]/30',
+                dot: 'bg-slate-700/60 text-slate-400 ring-slate-800/30 border-slate-600/50 shadow-none',
+                text: 'text-slate-500/80 bg-black/40',
               },
               'in-progress': {
-                dot: 'bg-amber-400 ring-amber-400/30 shadow-[0_0_15px_rgba(251,191,36,0.8)]',
+                dot: 'bg-[#211804]/82 text-amber-200 ring-amber-400/24 border-yellow-200/48 shadow-[0_0_12px_rgba(251,191,36,0.48)]',
                 text: 'text-amber-100 bg-amber-950/80 border border-amber-500/30',
               },
               'lit': {
-                dot: 'bg-[#2ecc71] ring-[#2ecc71]/40 shadow-[0_0_25px_rgba(46,204,113,0.8)] z-10',
+                dot: 'bg-[#052319]/78 text-emerald-200 ring-[#2ecc71]/24 border-emerald-200/52 shadow-[0_0_12px_rgba(46,204,113,0.42)] z-10',
                 text: 'text-[#2ecc71] bg-black/80 border border-[#2ecc71]/40',
               },
               'upcoming': {
-                dot: 'bg-slate-700/60 ring-slate-800/30 shadow-none',
-                text: 'text-slate-500/80 bg-black/40',
+                dot: 'bg-slate-700/22 text-slate-500/50 ring-slate-800/15 border-slate-500/20 shadow-none opacity-55',
+                text: 'text-slate-500/50 bg-black/25 border border-slate-600/12',
               }
             };
             const config = statusConfig[city.status];
@@ -463,20 +505,21 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                 whileTap={{ scale: 0.9 }}
                 onClick={() => handleCityClick(city)}
               >
-                <div className={cn("w-3 h-3 rounded-full cursor-pointer ring-4 relative flex items-center justify-center", config.dot)}>
+                <div className={cn("h-5 w-5 rounded-full cursor-pointer ring-2 relative flex items-center justify-center border backdrop-blur-sm", config.dot)}>
                   {city.status === 'lit' && (
                      <>
-                       <div className="absolute inset-0 rounded-full bg-[#2ecc71] opacity-40 blur-[8px] animate-pulse pointer-events-none" style={{ transform: 'scale(3)' }}></div>
-                       <span className="absolute inline-flex h-full w-full rounded-full bg-[#2ecc71] opacity-60 animate-ping pointer-events-none" style={{ animationDuration: '2s' }}></span>
+                       <div className="absolute inset-0 rounded-full bg-[#2ecc71] opacity-24 blur-[6px] animate-pulse pointer-events-none" style={{ transform: 'scale(2.1)' }}></div>
+                       <span className="absolute inline-flex h-full w-full rounded-full border border-emerald-200/55 opacity-45 animate-ping pointer-events-none" style={{ animationDuration: '2.5s' }}></span>
                      </>
                   )}
+                  <CityIcon className="relative z-10 drop-shadow-[0_1px_4px_rgba(0,0,0,0.45)]" size={11} strokeWidth={2.6} />
                   <div className={cn(
                     "absolute px-2 py-1 rounded-md text-[10px] font-medium whitespace-nowrap shadow-sm pointer-events-none transition-all duration-300", 
                     config.text,
-                    city.labelPosition === 'top' ? 'bottom-5' :
-                    city.labelPosition === 'bottom' ? 'top-5' :
-                    city.labelPosition === 'left' ? 'right-5' :
-                    city.labelPosition === 'right' ? 'left-5' : 'top-5'
+                    city.labelPosition === 'top' ? 'bottom-6' :
+                    city.labelPosition === 'bottom' ? 'top-6' :
+                    city.labelPosition === 'left' ? 'right-6' :
+                    city.labelPosition === 'right' ? 'left-6' : 'top-6'
                   )}>
                     {city.name}
                     </div>
@@ -554,14 +597,14 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       </div>
 
       {/* HUD: Top Overlay */}
-      <div className="absolute top-0 left-0 right-0 px-6 py-4 z-20 flex items-center justify-between pointer-events-none bg-gradient-to-b from-black/40 to-transparent">
+      <div className="absolute top-0 left-0 right-0 px-5 pt-5 z-20 flex items-start justify-between gap-3 pointer-events-none bg-gradient-to-b from-[#081827]/68 to-transparent">
         
         {/* User Info */}
         <button
           onClick={() => onNavigate && onNavigate('glowCenter', null)}
-          className="flex items-center space-x-4 bg-white/5 border border-white/10 p-1.5 pr-5 rounded-full backdrop-blur-md shadow-xl pointer-events-auto hover:border-cyan-300/40 hover:bg-white/10 transition-colors text-left"
+          className="flex items-center gap-3 rounded-full border border-white/12 bg-slate-950/24 p-1.5 pr-4 text-left shadow-[0_18px_44px_rgba(0,0,0,0.24)] backdrop-blur-md pointer-events-auto hover:border-cyan-200/35 hover:bg-white/[0.075] transition-colors"
         >
-          <div className={`relative h-11 w-11 rounded-full bg-gradient-to-br ${avatarFrame.ring} p-[2px] ${avatarFrame.shadow}`}>
+          <div className={`relative h-12 w-12 rounded-full bg-gradient-to-br ${avatarFrame.ring} p-[2px] ${avatarFrame.shadow}`}>
             <div className="h-full w-full rounded-full bg-slate-950 p-[2px]">
               <img
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100"
@@ -569,32 +612,83 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                 className="h-full w-full rounded-full object-cover"
               />
             </div>
-            <div className={`absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full border border-white/15 bg-slate-950/90 px-1.5 py-[1px] text-[8px] font-black leading-none ${avatarFrame.badge}`}>
-              LV.{currentGlowRank.level}
-            </div>
           </div>
           <div>
-            <div className="text-xs font-semibold tracking-wide text-slate-100">木小六</div>
-            <div className="flex items-center text-[10px] text-cyan-300">
-              <span className="mr-1">光迹值:</span>
-              <span className="font-mono font-bold">{userStats?.lightValue || 120}</span>
+            <div className="text-sm font-black tracking-wide text-slate-50">木小六</div>
+            <div className="mt-0.5 flex items-center gap-1.5 text-[10px] font-bold text-slate-300">
+              <span>{currentGlowRank.name}</span>
+              <span className="text-slate-500">LV.{currentGlowRank.level}</span>
+            </div>
+            <div className="mt-1 h-1 w-20 overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-cyan-200 to-amber-200"
+                style={{ width: `${glowRankDetails.progress}%` }}
+              />
             </div>
           </div>
         </button>
 
         {/* Top Right Actions */}
         <div className="flex items-center gap-2 pointer-events-auto">
-          <button 
+          <button
+            type="button"
             onClick={handleConnectTreadmill}
+            aria-label={isTreadmillConnected ? '跑步机已连接' : '连接跑步机'}
+            title={isTreadmillConnected ? '跑步机已连接' : '连接跑步机'}
             className={cn(
-              "flex items-center px-3 py-2 rounded-xl backdrop-blur-md transition-colors shadow-lg border",
+              "group relative flex h-11 w-11 items-center justify-center rounded-2xl backdrop-blur-md transition-all duration-300 shadow-lg border active:scale-95",
               isTreadmillConnected 
-                ? "bg-emerald-500/20 border-emerald-500/50 hover:bg-emerald-500/30" 
-                : "bg-white/5 border-white/10 hover:bg-white/10"
+                ? "bg-emerald-500/20 border-emerald-300/60 hover:bg-emerald-500/25 shadow-[0_0_22px_rgba(52,211,153,0.24)]" 
+                : "bg-slate-950/35 border-cyan-300/30 hover:bg-cyan-400/15 hover:border-cyan-200/70 hover:shadow-[0_0_22px_rgba(34,211,238,0.2)]"
             )}
           >
-            <Activity className={cn("mr-1.5", isTreadmillConnected ? "text-emerald-400" : "text-cyan-400")} size={16} />
-            <span className={cn("text-[10px] font-medium uppercase tracking-widest", isTreadmillConnected ? "text-emerald-100" : "text-slate-100")}>
+            <span className={cn(
+              "absolute inset-1 rounded-xl opacity-0 transition-opacity",
+              isTreadmillConnected ? "bg-emerald-300/10 opacity-100" : "bg-cyan-300/10 group-hover:opacity-100"
+            )} />
+            <svg
+              className={cn("relative z-10 h-6 w-6", isTreadmillConnected ? "text-emerald-300" : "text-cyan-300")}
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M5 17.5h10.4c1.4 0 2.6-.9 3-2.2l1.2-3.8"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M3.8 19.5h13.8"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M8.5 17.5 13 7.5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path
+                d="M12.2 7.5h5.3c.7 0 1.2.5 1.2 1.2v1.1c0 .7-.5 1.2-1.2 1.2h-6.9"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M16.1 8.9h.1"
+                stroke="currentColor"
+                strokeWidth="2.6"
+                strokeLinecap="round"
+              />
+            </svg>
+            {isTreadmillConnected && (
+              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(52,211,153,0.85)]" />
+            )}
+            <span className="sr-only">
               {isTreadmillConnected ? "跑步机已连接" : "连接跑步机"}
             </span>
           </button>
@@ -602,69 +696,126 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       </div>
 
 
+      {/* Right Quick Rail */}
+      <div className="absolute right-5 top-[42%] z-20 flex -translate-y-1/2 flex-col items-center gap-3 pointer-events-auto">
+        <button
+          className="group flex flex-col items-center gap-1.5 text-[10px] font-black text-slate-200"
+          onClick={() => onNavigate && onNavigate('litRecords', null)}
+        >
+          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/14 bg-slate-950/34 text-cyan-200 shadow-[0_12px_34px_rgba(0,0,0,0.26)] backdrop-blur-md transition group-hover:border-cyan-200/50 group-hover:bg-cyan-300/12">
+            <Zap size={18} />
+          </span>
+          点亮记录
+        </button>
+        <button
+          className="group flex flex-col items-center gap-1.5 text-[10px] font-black text-slate-200"
+          onClick={() => onNavigate && onNavigate('leaderboard', null)}
+        >
+          <span className="relative flex h-11 w-11 items-center justify-center rounded-full border border-white/14 bg-slate-950/34 text-cyan-200 shadow-[0_12px_34px_rgba(0,0,0,0.26)] backdrop-blur-md transition group-hover:border-cyan-200/50 group-hover:bg-cyan-300/12">
+            <Award size={18} />
+          </span>
+          排行榜
+        </button>
+        <button
+          className="group flex flex-col items-center gap-1.5 text-[10px] font-black text-orange-100"
+          onClick={() => onNavigate && onNavigate('weightLossPlan', null)}
+        >
+          <span className="flex h-11 w-11 items-center justify-center rounded-full border border-orange-200/24 bg-orange-300/12 text-orange-200 shadow-[0_12px_34px_rgba(0,0,0,0.26)] backdrop-blur-md transition group-hover:border-orange-200/50 group-hover:bg-orange-300/18">
+            <Flame size={18} />
+          </span>
+          燃脂计划
+        </button>
+      </div>
 
       {/* Bottom Area */}
-      <div className="absolute bottom-6 left-6 right-6 z-20 pointer-events-none flex flex-col gap-4">
-        {/* Utilities */}
-        <div className="flex justify-start gap-2 pointer-events-auto">
-          <button 
-            className="flex items-center bg-white/5 border border-white/10 px-3 py-2 rounded-xl backdrop-blur-md hover:bg-white/10 transition-colors shadow-lg"
-            onClick={() => onNavigate && onNavigate('litRecords', null)}
-          >
-            <Zap className="text-cyan-400 mr-1.5" size={16} />
-            <span className="text-[10px] font-medium text-slate-100 uppercase tracking-widest">点亮记录</span>
-          </button>
-          
-          <button 
-            className="flex items-center bg-white/5 border border-white/10 px-3 py-2 rounded-xl backdrop-blur-md hover:bg-white/10 transition-colors shadow-lg"
-            onClick={() => onNavigate && onNavigate('leaderboard', null)}
-          >
-            <Award className="text-cyan-400 mr-1.5" size={16} />
-            <span className="text-[10px] font-medium text-slate-100 uppercase tracking-widest">排行榜</span>
-          </button>
-
-          <button 
-            className="flex items-center bg-amber-400/[0.18] border border-amber-300/45 px-3 py-2 rounded-xl backdrop-blur-md hover:bg-amber-400/25 transition-colors shadow-[0_0_18px_rgba(251,191,36,0.18)]"
-            onClick={() => setShowTaskPanel(true)}
-          >
-            <ClipboardCheck className="text-amber-300 mr-1.5" size={16} />
-            <span className="text-[10px] font-bold text-amber-100 uppercase tracking-widest">任务</span>
-            <span className="ml-1 text-[10px] font-black font-mono text-amber-300">{completedDailyCount + completedWeeklyCount}/4</span>
-          </button>
-        </div>
+      <div className="absolute bottom-6 left-4 right-4 z-20 pointer-events-none flex flex-col gap-3">
 
         {/* Bottom Mission Card (Teaser) */}
-        <div 
-          className="bg-slate-900/60 border border-white/10 rounded-2xl p-5 shadow-2xl relative overflow-hidden backdrop-blur-xl pointer-events-auto cursor-pointer hover:border-cyan-500/30 transition-colors w-full"
+        <div
+          className="relative w-full cursor-pointer overflow-hidden rounded-[22px] border border-cyan-100/16 bg-[#142538]/76 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl pointer-events-auto transition-colors hover:border-cyan-200/32"
           onClick={() => setShowStoryPanel(true)}
         >
-           <div className="absolute -bottom-10 right-0 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
-           <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 mb-1 drop-shadow-sm">奔跑·点亮地球计划</h3>
-                <p className="text-xs text-slate-400 line-clamp-1">{currentChapterText}</p>
-                {inProgressCity && (
-                  <div className="mt-2 text-[10px] text-cyan-400 font-mono flex items-center bg-cyan-500/10 w-fit px-2 py-1 rounded">
-                    <MapPin size={12} className="mr-1" />
-                    当前运动: {inProgressCity.name}({inProgressCity.completed}/{inProgressCity.routes}路线)
-                  </div>
-                )}
+          <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_18%_0%,rgba(103,232,249,0.18),transparent_48%),radial-gradient(circle_at_84%_0%,rgba(148,163,184,0.14),transparent_46%)] pointer-events-none" />
+          <div className="relative grid grid-cols-[0.9fr_1.1fr] gap-3">
+            <div className="border-r border-white/10 pr-3">
+              <div className="flex items-center gap-1.5">
+                <h3 className="text-xs font-black tracking-wide text-white">点亮地球计划</h3>
+                <span className="flex h-4 w-4 items-center justify-center rounded-full border border-white/12 text-[10px] text-slate-400">i</span>
               </div>
-              <button className="w-10 h-10 border border-white/10 rounded-full bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors shrink-0">
-                <ChevronRight className="text-cyan-400" size={20} />
+              <p className="mt-3 font-mono text-[34px] font-black leading-none tracking-[-0.06em] text-cyan-100">{earthRestoreProgress}%</p>
+              <p className="mt-1 text-[10px] font-bold text-slate-400">地球记忆恢复进度</p>
+              <div className="mt-3 text-[10px] font-bold leading-5 text-slate-500">
+                <p>已点亮 <span className="font-mono text-slate-200">{litCount}</span> 座城市</p>
+                <p>共 <span className="font-mono text-slate-200">{CITIES.filter(c => c.status !== 'upcoming').length}</span> 座路线城市</p>
+              </div>
+            </div>
+
+            <div className="min-w-0 pl-1">
+              <p className="text-[10px] font-bold text-slate-400">正在点亮的城市</p>
+              <div className="mt-2 flex items-center gap-3">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                  {nextFocusCity && (
+                    <img
+                      src={getCityPreviewImage(nextFocusCity)}
+                      alt={nextFocusCity.name}
+                      className="h-full w-full object-cover object-center"
+                      referrerPolicy="no-referrer"
+                      onError={(event) => {
+                        const fallback = cityPreviewFallbacks[nextFocusCity.englishName];
+                        if (fallback && event.currentTarget.src !== fallback) {
+                          event.currentTarget.src = fallback;
+                        }
+                      }}
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 to-transparent" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="truncate text-lg font-black text-white">{nextFocusCity?.name || '下一城'}</h4>
+                  <p className="mt-0.5 truncate text-[11px] font-bold text-slate-400">{inProgressCity ? '信号接收中...' : '等待开启探索'}</p>
+                  <div className="mt-2 flex items-center gap-0.5">
+                    {Array.from({ length: 18 }).map((_, index) => (
+                      <span
+                        key={index}
+                        className={cn(
+                          "h-3 w-0.5 rounded-full",
+                          index < Math.round((Number.parseFloat(progressWidth) || 0) / 100 * 18) ? "bg-cyan-200" : "bg-white/10"
+                        )}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (nextFocusCity && onNavigate) {
+                    onNavigate('cityRoutes', nextFocusCity);
+                  } else {
+                    setShowStoryPanel(true);
+                  }
+                }}
+                className="mt-3 flex h-10 w-full items-center justify-center rounded-full border border-cyan-100/18 bg-cyan-100/[0.08] text-xs font-black text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] active:scale-95"
+              >
+                前往探索
               </button>
-           </div>
-           
-           <div className="mt-5 flex items-center w-full bg-white/5 rounded-full h-1 overflow-hidden border border-white/5">
-             <motion.div 
-               initial={{ width: 0 }}
-               animate={{ width: progressWidth }}
-               transition={{ duration: 1, delay: 0.5 }}
-               className="h-full bg-cyan-400 relative"
-             >
-             </motion.div>
-           </div>
+            </div>
+          </div>
         </div>
+
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onNavigate && onNavigate('medalLottery', null);
+          }}
+          className="flex w-full items-center gap-3 rounded-[18px] border border-white/10 bg-[#14283c]/74 px-3.5 py-3 text-left shadow-[0_16px_44px_rgba(0,0,0,0.24)] backdrop-blur-xl pointer-events-auto transition-colors hover:border-amber-200/24 hover:bg-[#173048]/78 active:scale-[0.99]"
+        >
+          <Gift size={16} className="shrink-0 text-amber-200" />
+          <p className="min-w-0 flex-1 truncate text-[11px] font-bold text-slate-300">完成路线获取勋章，抽取现金红包</p>
+          <ChevronRight size={15} className="shrink-0 text-slate-500" />
+        </button>
       </div>
 
       {/* City Popup Card Overlay */}
@@ -797,7 +948,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                   "600年以后，人类早已离开地球，生活在群星之间。我们建造了新的城市、新的轨道、新的家园。"
                 </p>
                 <p className="text-xs text-slate-300 leading-relaxed font-medium italic mb-3">
-                  "可是走向宇宙深处，人们越开始想念那颗蓝色的母星。想念巴黎清晨的雾，想念东京街口的人潮，想念开罗金字塔前吹来的热风，也想念南京城墙下，梧桐叶落在路面的声音..."
+                  "可是走向宇宙深处，人们越开始想念那颗蓝色的母星。想念巴黎清晨的雾，想念东京街口的人潮，想念开罗金字塔前吹来的热风，也想念新加坡滨海湾，海风穿过花园城市的声音..."
                 </p>
                 <p className="text-xs text-slate-300 leading-relaxed font-medium">
                   你，不是普通运动者。你是一名<span className="text-cyan-400 font-bold mx-1">光迹探索者 (Glowtrail Explorer)</span>。<br/>
@@ -819,7 +970,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                 </div>
               ) : (
                 <div className="space-y-6 relative before:absolute before:inset-0 before:ml-[15px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-cyan-500 before:via-slate-700 before:to-slate-800">
-                  {Array.from({ length: Math.min(litCityIds.length + 1, 12) }).map((_, index) => {
+                  {Array.from({ length: Math.min(litCityIds.length + 1, CITIES.length) }).map((_, index) => {
                     const cityId = litCityIds[index];
                     const numStr = numMap[index] || (index + 1).toString();
                     
@@ -1065,7 +1216,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
 
       {/* Task Panel */}
       <AnimatePresence>
-        {showTaskPanel && (
+        {ENABLE_GLOW_TASKS && showTaskPanel && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

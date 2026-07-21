@@ -1,10 +1,23 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, useMotionValue, animate, AnimatePresence } from 'motion/react';
-import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, MapPin, Route, Milestone, Activity, Plane, Compass, RefreshCw } from 'lucide-react';
+import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, MapPin, Route, Milestone, Activity, Plane, Compass, RefreshCw, Target } from 'lucide-react';
 import { CITIES, CityData } from '../data/cities';
+import { getGlowRank, getGlowTaskProgress, type GlowTask, type GlowUserStats } from '../data/glow';
 import { cn } from '../lib/utils';
 
-export default function HomeTab({ onNavigate, completedChapters = [], targetFlight, onFlightComplete, pendingSelectionFrom, onCitySelected, litCityIds = [], userStats, setUserStats }: { onNavigate?: (type: string, data: any) => void; completedChapters?: number[]; targetFlight?: {fromCityId: string, toCityId: string} | null; onFlightComplete?: () => void; pendingSelectionFrom?: string | null; onCitySelected?: (cityId: string) => void; litCityIds?: string[]; userStats?: any; setUserStats?: any; }) {
+interface HomeTabProps {
+  onNavigate?: (type: string, data: any) => void;
+  completedChapters?: number[];
+  targetFlight?: { fromCityId: string; toCityId: string } | null;
+  onFlightComplete?: () => void;
+  pendingSelectionFrom?: string | null;
+  onCitySelected?: (cityId: string) => void;
+  litCityIds?: string[];
+  userStats: GlowUserStats;
+  setUserStats: React.Dispatch<React.SetStateAction<GlowUserStats>>;
+}
+
+export default function HomeTab({ onNavigate, completedChapters = [], targetFlight, onFlightComplete, pendingSelectionFrom, onCitySelected, litCityIds = [], userStats, setUserStats }: HomeTabProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [showStoryPanel, setShowStoryPanel] = useState(false);
@@ -14,6 +27,14 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   const [isTreadmillConnected, setIsTreadmillConnected] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
+  const [showGlowTasks, setShowGlowTasks] = useState(false);
+
+  const glowRank = getGlowRank(userStats.lightValue);
+  const postSwitchLightValue = Math.max(0, userStats.lightValue - 3);
+  const postSwitchRank = getGlowRank(postSwitchLightValue);
+  const willDropRank = postSwitchRank.level < glowRank.level;
+  const glowTasks = getGlowTaskProgress(userStats);
+  const completedGlowTasks = glowTasks.filter(task => task.completed).length;
 
   useEffect(() => {
     if (pendingSelectionFrom) {
@@ -56,6 +77,10 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
 
   const handleConnectTreadmill = () => {
     setIsTreadmillConnected(true);
+    setUserStats(prev => ({
+      ...prev,
+      dailyTreadmillStarted: true
+    }));
     setToastMessage('跑步机连接功能已启用，设备已连接');
     setTimeout(() => {
       setToastMessage(null);
@@ -214,6 +239,38 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
 
   const handleCityClick = (city: CityData) => {
     setSelectedCity(city);
+  };
+
+  const renderGlowTask = (task: GlowTask) => {
+    const progress = Math.min(task.progress, task.target);
+    const progressPercent = Math.min(100, (progress / task.target) * 100);
+
+    return (
+      <div key={task.id} className={`rounded-2xl border p-3.5 ${task.completed ? 'border-emerald-400/25 bg-emerald-400/[0.07]' : 'border-white/8 bg-white/[0.03]'}`}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${task.completed ? 'bg-emerald-400 text-slate-950' : 'bg-white/8 text-slate-500'}`}>
+                {task.completed ? <CheckCircle2 size={13} /> : <Target size={11} />}
+              </span>
+              <span className={`rounded-md px-1.5 py-0.5 text-[8px] font-black ${task.period === '今日' ? 'bg-cyan-400/10 text-cyan-300' : 'bg-amber-400/10 text-amber-300'}`}>
+                {task.period}
+              </span>
+              <p className={`text-xs font-bold truncate ${task.completed ? 'text-emerald-200' : 'text-slate-200'}`}>{task.label}</p>
+            </div>
+          </div>
+          <span className={`text-[10px] font-mono font-black shrink-0 ${task.completed ? 'text-emerald-300' : 'text-cyan-300'}`}>
+            {Number.isInteger(progress) ? progress : progress.toFixed(1)}/{task.target}{task.unit}
+          </span>
+        </div>
+        <div className="mt-3 ml-7 h-1.5 rounded-full bg-white/5 overflow-hidden">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ${task.completed ? 'bg-emerald-400' : 'bg-cyan-400'}`}
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -379,7 +436,11 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       <div className="absolute top-0 left-0 right-0 px-6 py-4 z-20 flex items-center justify-between pointer-events-none bg-gradient-to-b from-black/40 to-transparent">
         
         {/* User Info */}
-        <div className="flex items-center space-x-4 bg-white/5 border border-white/10 p-1.5 pr-5 rounded-full backdrop-blur-md shadow-xl pointer-events-auto">
+        <button
+          onClick={() => setShowGlowTasks(true)}
+          className="flex items-center space-x-3 bg-white/5 border border-white/10 p-1.5 pr-4 rounded-full backdrop-blur-md shadow-xl pointer-events-auto text-left hover:bg-white/10 hover:border-cyan-400/25 transition-colors"
+          title="查看光迹段位任务"
+        >
           <div className="w-10 h-10 rounded-full border border-cyan-400 overflow-hidden bg-slate-800 p-[1px]">
             <img 
               src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100" 
@@ -388,13 +449,20 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
             />
           </div>
           <div>
-            <div className="text-xs font-semibold tracking-wide text-slate-100">木小六</div>
-            <div className="flex items-center text-[10px] text-cyan-300">
-              <span className="mr-1">光迹值:</span>
-              <span className="font-mono font-bold">{userStats?.lightValue || 120}</span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold tracking-wide text-slate-100">木小六</span>
+              <span className="text-[8px] font-black px-1.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-300/20 text-amber-300">
+                LV.{glowRank.level} {glowRank.name}
+              </span>
+            </div>
+            <div className="flex items-center text-[10px] text-cyan-300 mt-0.5">
+              <span className="mr-1">光迹值</span>
+              <span className="font-mono font-bold">{userStats.lightValue.toFixed(1)}</span>
+              <span className="mx-1 text-white/20">·</span>
+              <span className="text-slate-400">{glowRank.nextName ? `距${glowRank.nextName} ${glowRank.remaining.toFixed(1)}` : '已达最高段位'}</span>
             </div>
           </div>
-        </div>
+        </button>
 
         {/* Top Right Actions */}
         <div className="flex items-center gap-2 pointer-events-auto">
@@ -435,6 +503,14 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
           >
             <Award className="text-cyan-400 mr-1.5" size={16} />
             <span className="text-[10px] font-medium text-slate-100 uppercase tracking-widest">排行榜</span>
+          </button>
+
+          <button
+            className="flex items-center bg-white/5 border border-white/10 px-3 py-2 rounded-xl backdrop-blur-md hover:bg-white/10 transition-colors shadow-lg"
+            onClick={() => setShowGlowTasks(true)}
+          >
+            <Target className="text-amber-300 mr-1.5" size={16} />
+            <span className="text-[10px] font-medium text-slate-100 uppercase tracking-widest">段位任务</span>
           </button>
         </div>
 
@@ -569,6 +645,78 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                  )}
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Glow Rank Tasks Overlay */}
+      <AnimatePresence>
+        {showGlowTasks && (
+          <motion.div
+            initial={{ opacity: 0, y: 60 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 40 }}
+            className="absolute inset-0 z-50 bg-[#05070A] flex flex-col"
+          >
+            <div className="shrink-0 px-5 pt-5 pb-4 border-b border-white/8 bg-gradient-to-b from-cyan-950/35 to-transparent">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[9px] font-black tracking-[0.24em] text-cyan-400">GLOW RANK MISSIONS</p>
+                  <h2 className="mt-1 text-xl font-black text-white">光迹段位任务</h2>
+                </div>
+                <button
+                  onClick={() => setShowGlowTasks(false)}
+                  className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:bg-white/10"
+                  title="关闭"
+                >
+                  <X size={19} />
+                </button>
+              </div>
+
+              <div className="mt-5 rounded-2xl border border-cyan-400/20 bg-[#08111e]/90 p-4 shadow-[0_18px_50px_rgba(6,182,212,0.10)]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] text-slate-500 font-bold">当前段位</p>
+                    <div className="mt-1 flex items-baseline gap-2">
+                      <span className="text-2xl font-black" style={{ color: glowRank.color }}>{glowRank.name}</span>
+                      <span className="text-[10px] font-black text-slate-500">LV.{glowRank.level}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[10px] text-slate-500 font-bold">当前光迹值</p>
+                    <p className="mt-1 text-2xl font-black font-mono text-cyan-300">{userStats.lightValue.toFixed(1)}</p>
+                  </div>
+                </div>
+                <div className="mt-4 h-2 rounded-full bg-white/5 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${glowRank.progress}%` }}
+                    className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-emerald-300 to-amber-300"
+                  />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-[10px] font-bold">
+                  <span className="text-slate-500">每跑 1km 获得 1 点</span>
+                  <span className="text-cyan-300">
+                    {glowRank.nextName ? `距离${glowRank.nextName}还差 ${glowRank.remaining.toFixed(1)} 点` : '已达到最高段位'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto hide-scrollbar px-5 py-5 pb-10">
+              <section>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-black text-slate-100 flex items-center gap-2">
+                    <Target size={15} className="text-cyan-300" />
+                    本期任务
+                  </h3>
+                  <span className="rounded-full bg-white/5 border border-white/8 px-2.5 py-1 text-[10px] font-mono font-black text-slate-400">
+                    {completedGlowTasks}/{glowTasks.length}
+                  </span>
+                </div>
+                <div className="space-y-2.5">{glowTasks.map(renderGlowTask)}</div>
+              </section>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -803,10 +951,29 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
               className="bg-slate-900 border border-white/10 p-6 rounded-2xl w-full max-w-xs text-center shadow-2xl"
             >
                <h3 className="text-xl font-bold text-white mb-3">切换城市</h3>
-               <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                 切换城市将消耗<span className="text-amber-400 font-bold mx-1">3点光迹值</span>。<br/>
-                 是否继续？
+               <p className="text-slate-400 text-sm leading-relaxed">
+                 切换城市固定消耗<span className="text-amber-400 font-bold mx-1">3 点光迹值</span>
                </p>
+
+               <div className="my-5 grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+                 <div className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3">
+                   <p className="text-[9px] text-slate-500">当前</p>
+                   <p className="mt-1 text-lg font-black font-mono text-cyan-300">{userStats.lightValue.toFixed(1)}</p>
+                   <p className="text-[9px] font-bold" style={{ color: glowRank.color }}>{glowRank.name}</p>
+                 </div>
+                 <ChevronRight size={16} className="text-slate-600" />
+                 <div className="rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3">
+                   <p className="text-[9px] text-slate-500">消耗后</p>
+                   <p className="mt-1 text-lg font-black font-mono text-amber-300">{postSwitchLightValue.toFixed(1)}</p>
+                   <p className="text-[9px] font-bold" style={{ color: postSwitchRank.color }}>{postSwitchRank.name}</p>
+                 </div>
+               </div>
+
+               {willDropRank && (
+                 <div className="mb-5 rounded-xl border border-amber-400/25 bg-amber-400/10 px-3 py-2.5 text-[10px] font-bold text-amber-200">
+                   本次切换后段位将降至 {postSwitchRank.name}
+                 </div>
+               )}
                
                <div className="flex gap-3">
                  <button 
@@ -817,10 +984,12 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                  </button>
                  <button 
                    onClick={() => {
-                      if (userStats && userStats.lightValue >= 3) {
-                        if (setUserStats) {
-                          setUserStats((prev: any) => ({ ...prev, lightValue: prev.lightValue - 3 }));
-                        }
+                      if (userStats.lightValue >= 3) {
+                        setUserStats(prev => ({
+                          ...prev,
+                          lightValue: Math.max(0, prev.lightValue - 3),
+                          weeklyCitySwitches: prev.weeklyCitySwitches + 1
+                        }));
                         const available = CITIES.filter(c => c.status !== 'lit' && c.status !== 'upcoming');
                         const shuffled = [...available].sort(() => 0.5 - Math.random());
                         setSelectableCities(shuffled.slice(0, 3));
@@ -835,9 +1004,10 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                         setTimeout(() => setToastMessage(null), 3000);
                       }
                    }}
-                   className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-400 text-slate-900 rounded-xl transition-colors font-bold shadow-[0_0_20px_rgba(34,211,238,0.3)]"
+                   disabled={userStats.lightValue < 3}
+                   className="flex-1 py-3 bg-cyan-500 hover:bg-cyan-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none text-slate-900 rounded-xl transition-colors font-bold shadow-[0_0_20px_rgba(34,211,238,0.3)]"
                  >
-                   确定
+                   {userStats.lightValue >= 3 ? '确认切换' : '光迹值不足'}
                  </button>
                </div>
             </motion.div>
