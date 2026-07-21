@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, useMotionValue, animate, AnimatePresence } from 'motion/react';
-import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, MapPin, Route, Milestone, Activity, Plane, Compass, RefreshCw, ClipboardCheck, Gift, Sparkles, Flame, Waves, Landmark, Building2, Castle, RadioTower, Crown, Ship, Mountain, Palmtree } from 'lucide-react';
+import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, MapPin, Route, Milestone, Activity, Plane, Compass, RefreshCw, ClipboardCheck, Gift, Sparkles, Flame, Waves, Landmark, Building2, Castle, Cherry, TowerControl, Crown, Building, Sailboat, Mountain, Pyramid, Flower2, Film, Trees, Church, Clapperboard } from 'lucide-react';
 import { CITIES, CityData } from '../data/cities';
 import { cn } from '../lib/utils';
 import { getGlowRank } from '../lib/glow';
@@ -457,20 +457,19 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
               '1': Waves,
               '2': Landmark,
               '3': Building2,
-              '4': Castle,
               '5': Castle,
-              '6': RadioTower,
-              '7': Landmark,
+              '6': Cherry,
+              '7': TowerControl,
               '8': Crown,
-              '9': Building2,
-              '10': Ship,
+              '9': Building,
+              '10': Sailboat,
               '11': Mountain,
-              '12': Palmtree,
-              '13': Landmark,
-              '14': Landmark,
-              '15': Building2,
-              '16': Castle,
-              '17': Palmtree
+              '12': Pyramid,
+              '13': Flower2,
+              '14': Film,
+              '15': Trees,
+              '16': Church,
+              '17': Clapperboard
             };
             const CityIcon = cityIconMap[city.id] || Landmark;
             const statusConfig = {

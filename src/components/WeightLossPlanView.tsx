@@ -60,10 +60,31 @@ export default function WeightLossPlanView({
   const [rewardReveal, setRewardReveal] = useState<{ day: number; phase: 'collecting' | 'opening' } | null>(null);
   const [openingRewardDay, setOpeningRewardDay] = useState<number | null>(null);
   const [routeOverrides, setRouteOverrides] = useState<Record<number, PlanRoute>>({});
+  const [showCompletionPreview, setShowCompletionPreview] = useState(false);
+  const [previewOpenedRewardDays, setPreviewOpenedRewardDays] = useState<number[]>([]);
+  const [previewRewardHistory, setPreviewRewardHistory] = useState<WeightPlanRewardRecord[]>([]);
   const rewardTimersRef = useRef<number[]>([]);
   const planRoutes = useMemo(() => generatePlanRoutes(), []);
-  const completedSet = new Set(completedDays);
-  const nextDay = Math.min(completedDays.length + 1, PLAN_WINDOW_DAYS);
+  const previewCompletedDays = useMemo(() => Array.from({ length: COMPLETION_TARGET_DAYS }, (_, index) => index + 1), []);
+  const getPreviewRewardAmount = (day: number) => {
+    const previewAmounts: Record<number, string> = {
+      1: '￥0.18',
+      7: '￥0.88',
+      15: '￥1.88',
+      21: '￥5.88',
+      30: '￥8.8'
+    };
+    return previewAmounts[day] || '￥0.18';
+  };
+  const completedDaysView = showCompletionPreview ? previewCompletedDays : completedDays;
+  const rewardBoxesView = showCompletionPreview ? MILESTONE_DAYS : rewardBoxes;
+  const openedRewardDaysView = showCompletionPreview ? previewOpenedRewardDays : openedRewardDays;
+  const rewardHistoryView = showCompletionPreview ? previewRewardHistory : rewardHistory;
+  const isPlanVisible = started || showCompletionPreview;
+  const canShowCompletionPreview =
+    typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+  const completedSet = new Set(completedDaysView);
+  const nextDay = Math.min(completedDaysView.length + 1, PLAN_WINDOW_DAYS);
   const [displayDay, setDisplayDay] = useState(Math.max(1, completedDays.length));
   const activeDay = Math.min(displayDay, PLAN_WINDOW_DAYS);
   const todayRoute = routeOverrides[activeDay] || planRoutes[activeDay - 1];
@@ -72,12 +93,12 @@ export default function WeightLossPlanView({
   const completedDistance = planRoutes
     .filter(item => completedSet.has(item.day))
     .reduce((sum, item) => sum + Number(item.routeData.distance || 0), 0);
-  const earnedBoxes = rewardBoxes.length;
-  const openedBoxes = openedRewardDays.length;
-  const planComplete = completedDays.length >= COMPLETION_TARGET_DAYS;
-  const progressPercent = Math.min(100, Math.round((completedDays.length / COMPLETION_TARGET_DAYS) * 100));
-  const nextRewardDay = MILESTONE_DAYS.find(day => day > completedDays.length);
-  const daysToNextReward = nextRewardDay ? Math.max(0, nextRewardDay - completedDays.length) : 0;
+  const earnedBoxes = rewardBoxesView.length;
+  const openedBoxes = openedRewardDaysView.length;
+  const planComplete = completedDaysView.length >= COMPLETION_TARGET_DAYS;
+  const progressPercent = Math.min(100, Math.round((completedDaysView.length / COMPLETION_TARGET_DAYS) * 100));
+  const nextRewardDay = MILESTONE_DAYS.find(day => day > completedDaysView.length);
+  const daysToNextReward = nextRewardDay ? Math.max(0, nextRewardDay - completedDaysView.length) : 0;
   const clampDisplayDay = (day: number) => Math.min(PLAN_WINDOW_DAYS, Math.max(1, day));
   const handleRouteSwipe = (_event: MouseEvent | TouchEvent | PointerEvent, info: { offset: { x: number } }) => {
     if (Math.abs(info.offset.x) < 44) return;
@@ -108,6 +129,15 @@ export default function WeightLossPlanView({
     };
   }, []);
 
+  useEffect(() => {
+    if (showCompletionPreview) {
+      setDisplayDay(COMPLETION_TARGET_DAYS);
+      setPreviewOpenedRewardDays([]);
+      setPreviewRewardHistory([]);
+      setResult(null);
+    }
+  }, [showCompletionPreview]);
+
   const showToast = (message: string) => {
     setToast(message);
     window.setTimeout(() => setToast(null), 2200);
@@ -118,6 +148,30 @@ export default function WeightLossPlanView({
 
     setOpeningRewardDay(day);
     setRewardReveal({ day, phase: 'collecting' });
+
+    if (showCompletionPreview) {
+      const openTimer = window.setTimeout(() => {
+        setRewardReveal({ day, phase: 'opening' });
+
+        const resultTimer = window.setTimeout(() => {
+          const amount = getPreviewRewardAmount(day);
+          setRewardReveal(null);
+          setOpeningRewardDay(null);
+          setPreviewOpenedRewardDays(prev => (prev.includes(day) ? prev : [...prev, day]));
+          setPreviewRewardHistory(prev => {
+            if (prev.some(item => item.day === day)) return prev;
+            return [...prev, { day, amount, openedAt: '预览状态' }];
+          });
+          setResult({ day, amount });
+          showToast(`第${day}天红包已开启`);
+        }, 980);
+
+        rewardTimersRef.current.push(resultTimer);
+      }, 620);
+
+      rewardTimersRef.current.push(openTimer);
+      return;
+    }
 
     const openTimer = window.setTimeout(() => {
       const response = onOpenReward(day);
@@ -164,9 +218,23 @@ export default function WeightLossPlanView({
             <div className="text-center">
               <h1 className="text-xl font-black tracking-tight text-white">30天燃脂计划</h1>
             </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-300/15 bg-emerald-300/10 text-emerald-200">
-              <Flame size={19} />
-            </div>
+            {canShowCompletionPreview ? (
+              <button
+                type="button"
+                onClick={() => setShowCompletionPreview(prev => !prev)}
+                className={`h-10 rounded-full border px-3 text-xs font-black transition active:scale-95 ${
+                  showCompletionPreview
+                    ? 'border-amber-200/35 bg-amber-200/15 text-amber-100'
+                    : 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
+                }`}
+              >
+                预览30天
+              </button>
+            ) : (
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-300/15 bg-emerald-300/10 text-emerald-200">
+                <Flame size={19} />
+              </div>
+            )}
           </div>
         </header>
 
@@ -199,7 +267,7 @@ export default function WeightLossPlanView({
               <div className="mt-5 grid grid-cols-3 gap-2">
                 <div className="rounded-2xl border border-white/10 bg-black/24 p-3">
                   <p className="text-[10px] font-bold text-slate-500">完成天数</p>
-                  <p className="mt-1 font-mono text-xl font-black tabular-nums text-white">{completedDays.length}/{COMPLETION_TARGET_DAYS}</p>
+                  <p className="mt-1 font-mono text-xl font-black tabular-nums text-white">{completedDaysView.length}/{COMPLETION_TARGET_DAYS}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-black/24 p-3">
                   <p className="text-[10px] font-bold text-slate-500">累计公里</p>
@@ -211,7 +279,7 @@ export default function WeightLossPlanView({
                 </div>
               </div>
 
-              {!started && (
+              {!started && !showCompletionPreview && (
                 <button
                   onClick={onStartPlan}
                   className="mt-5 h-12 w-full rounded-full bg-white text-sm font-black text-slate-950 shadow-[0_12px_28px_rgba(255,255,255,0.12)] active:scale-[0.98]"
@@ -222,7 +290,7 @@ export default function WeightLossPlanView({
             </div>
           </section>
 
-          {started && (
+          {isPlanVisible && (
             <motion.section
               className="mt-4 rounded-2xl border border-emerald-300/15 bg-[#0d1412]/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]"
               drag="x"
@@ -326,15 +394,15 @@ export default function WeightLossPlanView({
               </div>
               <div className="rounded-2xl border border-emerald-200/20 bg-emerald-200/10 px-3 py-2 text-right">
                 <p className="text-[10px] font-bold text-emerald-100/70">完成</p>
-                <p className="font-mono text-sm font-black text-emerald-100">{completedDays.length}/{COMPLETION_TARGET_DAYS}</p>
+                <p className="font-mono text-sm font-black text-emerald-100">{completedDaysView.length}/{COMPLETION_TARGET_DAYS}</p>
               </div>
             </div>
 
             <div className="relative mt-4 grid grid-cols-5 gap-2">
               {MILESTONE_DAYS.map(day => {
-                const earned = rewardBoxes.includes(day);
-                const opened = openedRewardDays.includes(day);
-                const record = rewardHistory.find(item => item.day === day);
+                const earned = rewardBoxesView.includes(day);
+                const opened = openedRewardDaysView.includes(day);
+                const record = rewardHistoryView.find(item => item.day === day);
                 const isOpening = openingRewardDay === day;
                 const isNext = !earned && day === nextRewardDay;
                 return (
@@ -393,8 +461,8 @@ export default function WeightLossPlanView({
                 />
               </div>
               <div className="mt-3 flex items-center justify-between text-[10px] font-bold text-slate-500">
-                <span>已完成 {completedDays.length} 天</span>
-                <span>{planComplete ? '全部完成' : `还需 ${COMPLETION_TARGET_DAYS - completedDays.length} 天`}</span>
+                <span>已完成 {completedDaysView.length} 天</span>
+                <span>{planComplete ? '全部完成' : `还需 ${COMPLETION_TARGET_DAYS - completedDaysView.length} 天`}</span>
               </div>
             </div>
           </section>
