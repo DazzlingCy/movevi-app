@@ -68,7 +68,7 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay, onSelectM
           </div>
         </motion.div>
         {/* Banner 1: 城市拼图小队 */}
-        {/* Banner: 120-day weight loss plan */}
+        {/* Banner: check-in red packet plan */}
         <motion.div
           whileTap={{ scale: 0.98 }}
           initial={{ opacity: 0, y: 20 }}
@@ -79,7 +79,7 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay, onSelectM
         >
           <img
             src="https://images.unsplash.com/photo-1538805060514-97d9cc17730c?auto=format&fit=crop&q=80&w=600&h=400"
-            alt="30天燃脂计划"
+            alt="打卡领红包"
             className="absolute inset-0 w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-60"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/70 to-rose-950/20 mix-blend-multiply" />
@@ -87,7 +87,7 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay, onSelectM
 
           <div className="absolute top-3 right-3 bg-rose-400/20 backdrop-blur-md text-[9px] tracking-widest font-extrabold px-2.5 py-1 rounded-full text-rose-100 flex items-center gap-1 shadow-lg border border-rose-300/40">
             <Calendar size={10} />
-            120天期限
+            30天期限
           </div>
 
           <div className="absolute bottom-0 left-0 right-0 p-3.5">
@@ -95,11 +95,11 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay, onSelectM
               <Flame size={16} className="text-orange-300 drop-shadow-[0_0_8px_rgba(251,146,60,0.8)]" />
             </div>
             <h2 className="text-base font-bold mb-0.5 tracking-wide text-orange-50">
-              30天燃脂计划
+              打卡领红包
             </h2>
             <div className="flex items-center justify-between">
               <p className="text-orange-100/65 text-[11px] max-w-[72%] leading-relaxed line-clamp-2">
-                120天内完成30天燃脂路线，达成节点即可开启现金红包盲盒。
+                每天完成对应路线，领取 1 个固定金额红包。
               </p>
               <div className="w-7 h-7 rounded-full bg-orange-400/10 backdrop-blur flex items-center justify-center border border-orange-300/30 group-hover:bg-orange-400/25 transition-colors">
                 <ChevronRight size={14} className="text-orange-100" />

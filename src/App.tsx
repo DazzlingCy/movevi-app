@@ -17,7 +17,7 @@ import TeamRelayView, { type TeamRelayMember, type TeamRelayTask } from './compo
 import GlowCenterView, { type GlowExchangeType } from './components/GlowCenterView';
 import GlowWheelView from './components/GlowWheelView';
 import MedalLotteryView from './components/MedalLotteryView';
-import WeightLossPlanView, { type WeightPlanRewardRecord } from './components/WeightLossPlanView';
+import WeightLossPlanView, { getWeightPlanRewardAmount, type WeightPlanRewardRecord } from './components/WeightLossPlanView';
 import { getGlowRank, getGlowWheelDailyExchangeLimit } from './lib/glow';
 
 const ENABLE_GLOW_TASKS = false;
@@ -118,6 +118,7 @@ export default function App() {
     glowWheelChances: 0,
     dailyGlowWheelExchangeCount: 0,
     glowWheelDrawHistory: [] as Array<{ id: string; amount: number; createdAt: string }>,
+    medalLotteryDrawHistory: [] as Array<{ id: string; nickname: string; amount: string; createdAt: string }>,
     newbieCashRewardClaimedIds: [] as string[],
     newbieCashRewardHistory: [] as Array<{ id: string; title: string; amount: string; createdAt: string }>
   });
@@ -132,9 +133,6 @@ export default function App() {
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setShowSplash(false);
-      if (!(userStats.newbieCashRewardClaimedIds || []).includes('activate-treadmill')) {
-        setShowTreadmillActivationTip(true);
-      }
     }, 1800);
 
     return () => window.clearTimeout(timer);
@@ -405,7 +403,21 @@ export default function App() {
     const amount = prizePool[Math.floor(Math.random() * prizePool.length)];
     setUserStats(prev => ({
       ...prev,
-      medalMysteryTickets: Math.max(0, (prev.medalMysteryTickets || 0) - 1)
+      medalMysteryTickets: Math.max(0, (prev.medalMysteryTickets || 0) - 1),
+      medalLotteryDrawHistory: [
+        {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          nickname: '木小六',
+          amount,
+          createdAt: new Date().toLocaleString('zh-CN', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        },
+        ...(prev.medalLotteryDrawHistory || [])
+      ].slice(0, 12)
     }));
 
     return { success: true, message: `抽中 ${amount}`, amount };
@@ -413,23 +425,15 @@ export default function App() {
 
   const handleWeightPlanRewardOpen = (day: number) => {
     if (!weightPlanRewardBoxes.includes(day)) {
-      return { success: false, message: '完成节点后可开启红包盲盒' };
+      return { success: false, message: '完成当天打卡后可领取红包' };
     }
 
     const existingRecord = weightPlanRewardHistory.find(record => record.day === day);
     if (existingRecord) {
-      return { success: false, message: '该盲盒已开启', amount: existingRecord.amount };
+      return { success: false, message: '该红包已领取', amount: existingRecord.amount };
     }
 
-    const rewardPools: Record<number, string[]> = {
-      1: ['¥0.18', '¥0.38'],
-      7: ['¥0.88', '¥1.88'],
-      15: ['¥1.88', '¥5.88'],
-      21: ['¥1.88', '¥5.88'],
-      30: ['¥5.88', '¥8.88', '¥18.88']
-    };
-    const pool = rewardPools[day] || ['¥0.18'];
-    const amount = pool[Math.floor(Math.random() * pool.length)];
+    const amount = getWeightPlanRewardAmount(day);
     const record: WeightPlanRewardRecord = {
       day,
       amount,
@@ -631,25 +635,13 @@ export default function App() {
 
                     if (fullScreenPage.data.isWeightPlanRoute) {
                       const day = fullScreenPage.data.weightPlanDay;
-                      const milestoneDays = [1, 7, 15, 21, 30];
                       const isNewWeightPlanDay = !weightPlanCompletedDays.includes(day);
-                      const nextWeightPlanCompletedCount = isNewWeightPlanDay
-                        ? weightPlanCompletedDays.length + 1
-                        : weightPlanCompletedDays.length;
                       setWeightPlanCompletedDays(prevCompleted => {
                         if (prevCompleted.includes(day)) return prevCompleted;
                         return [...prevCompleted, day].sort((a, b) => a - b);
                       });
-                      if (milestoneDays.includes(day)) {
+                      if (isNewWeightPlanDay && day <= 30) {
                         setWeightPlanRewardBoxes(prevBoxes => prevBoxes.includes(day) ? prevBoxes : [...prevBoxes, day]);
-                      }
-                      if (nextWeightPlanCompletedCount >= 30) {
-                        issueNewbieCashReward({
-                          id: 'thirty-day-plan',
-                          title: '30天燃脂完成红包',
-                          amount: '8.80',
-                          description: '120天期限内完成30天燃脂计划'
-                        });
                       }
                       setFullScreenPage({ type: 'weightLossPlan' });
                       return;
@@ -747,9 +739,35 @@ export default function App() {
                  rewardBoxes={weightPlanRewardBoxes}
                  openedRewardDays={weightPlanOpenedRewardDays}
                  rewardHistory={weightPlanRewardHistory}
+                 newbieTasks={{
+                   treadmillActivated: !!userStats.dailyTreadmillStarted,
+                   activationClaimed: (userStats.newbieCashRewardClaimedIds || []).includes('activate-treadmill'),
+                   completedRoutes: userStats.completedRoutes || 0,
+                   firstRouteClaimed: (userStats.newbieCashRewardClaimedIds || []).includes('first-route')
+                 }}
                  onBack={() => setFullScreenPage(null)}
                  onStartPlan={() => setWeightPlanStarted(true)}
                  onOpenReward={handleWeightPlanRewardOpen}
+                 onClaimActivationTask={() => {
+                   setUserStats(prev => ({
+                     ...prev,
+                     dailyTreadmillStarted: true
+                   }));
+                   issueNewbieCashReward({
+                     id: 'activate-treadmill',
+                     title: '跑步机激活红包',
+                     amount: '1.80',
+                     description: '首次下载并连接跑步机激活成功'
+                   });
+                 }}
+                 onClaimFirstRouteTask={() => {
+                   issueNewbieCashReward({
+                     id: 'first-route',
+                     title: '首条路线完成红包',
+                     amount: '2.80',
+                     description: '完成第一条路线，解锁新手现金红包'
+                   });
+                 }}
                  onNavigateToRouteDetail={(cityId, routeIndex, image, day) => {
                    setFullScreenPage({
                      type: 'routeDetail',

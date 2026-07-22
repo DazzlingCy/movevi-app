@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, useMotionValue, animate, AnimatePresence } from 'motion/react';
-import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, MapPin, Route, Milestone, Activity, Plane, Compass, RefreshCw, ClipboardCheck, Gift, Sparkles, Flame, Waves, Landmark, Building2, Castle, Cherry, TowerControl, Crown, Building, Sailboat, Mountain, Pyramid, Flower2, Film, Trees, Church, Clapperboard } from 'lucide-react';
+import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, MapPin, Route, Milestone, Activity, Plane, Compass, RefreshCw, ClipboardCheck, Gift, Sparkles, Flame, Waves, Landmark, Building2, Castle, Cherry, TowerControl, Crown, Building, Sailboat, Mountain, Pyramid, Flower2, Film, Trees, Church, Clapperboard, Radio } from 'lucide-react';
 import { CITIES, CityData } from '../data/cities';
 import { cn } from '../lib/utils';
 import { getGlowRank } from '../lib/glow';
@@ -75,6 +75,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
   const [showTaskPanel, setShowTaskPanel] = useState(false);
   const [rewardBurst, setRewardBurst] = useState<{ id: number; reward: number; title: string } | null>(null);
+  const [broadcastIndex, setBroadcastIndex] = useState(0);
   const glowRankDetails = getGlowRank(userStats?.lifetimeLightValue ?? userStats?.lightValue ?? 0);
   const currentGlowRank = glowRankDetails.current;
   const avatarFrameStyles: Record<number, { ring: string; shadow: string; badge: string }> = {
@@ -111,12 +112,34 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   const litCount = CITIES.filter(c => c.status === 'lit').length;
   const inProgressCity = CITIES.find(c => c.status === 'in-progress');
   const nextFocusCity = inProgressCity || CITIES.find(c => c.status !== 'lit' && c.status !== 'upcoming') || CITIES.find(c => c.status !== 'upcoming');
-  const earthRestoreProgress = Math.round((litCount / Math.max(1, CITIES.filter(c => c.status !== 'upcoming').length)) * 100);
+  const availableCityCount = CITIES.filter(c => c.status !== 'upcoming').length;
   
   const numMap = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二'];
 
   let currentChapterText = "奔跑·点亮地球计划尚未开启";
   let progressWidth = '0%';
+
+  const medalLotteryHistory = userStats?.medalLotteryDrawHistory || [];
+  const broadcastMessages = [
+    ...medalLotteryHistory.slice(0, 3).map((record: any) => ({
+      type: 'prize' as const,
+      text: `${record.nickname || '木小六'} 在勋章抽奖中抽中 ${record.amount} 现金红包`
+    })),
+    { type: 'route' as const, text: '林同风完成 北京·故宫角楼掠影，获得城市勋章' },
+    { type: 'prize' as const, text: '晨跑星在勋章抽奖中抽中 1.66 元现金红包' },
+    { type: 'route' as const, text: '青柠完成 新加坡·滨海湾路线，点亮路线勋章' },
+    { type: 'prize' as const, text: '夜航员在勋章抽奖中抽中 2.66 元现金红包' },
+    { type: 'route' as const, text: '北岸完成 杭州·西湖断桥残雪，获得城市勋章' }
+  ];
+  const activeBroadcast = broadcastMessages[broadcastIndex % broadcastMessages.length];
+
+  useEffect(() => {
+    if (broadcastMessages.length <= 1) return;
+    const timer = window.setInterval(() => {
+      setBroadcastIndex(prev => (prev + 1) % broadcastMessages.length);
+    }, 2800);
+    return () => window.clearInterval(timer);
+  }, [broadcastMessages.length]);
   
   if (litCityIds.length === 0) {
     currentChapterText = "未知状态：点击进入并开启计划";
@@ -491,6 +514,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
               }
             };
             const config = statusConfig[city.status];
+            const isLitCity = city.status === 'lit';
 
             return (
               <motion.div
@@ -504,21 +528,25 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                 whileTap={{ scale: 0.9 }}
                 onClick={() => handleCityClick(city)}
               >
-                <div className={cn("h-5 w-5 rounded-full cursor-pointer ring-2 relative flex items-center justify-center border backdrop-blur-sm", config.dot)}>
+                <div className={cn(
+                  "rounded-full cursor-pointer ring-2 relative flex items-center justify-center border backdrop-blur-sm",
+                  isLitCity ? "h-7 w-7" : "h-5 w-5",
+                  config.dot
+                )}>
                   {city.status === 'lit' && (
                      <>
-                       <div className="absolute inset-0 rounded-full bg-[#2ecc71] opacity-24 blur-[6px] animate-pulse pointer-events-none" style={{ transform: 'scale(2.1)' }}></div>
-                       <span className="absolute inline-flex h-full w-full rounded-full border border-emerald-200/55 opacity-45 animate-ping pointer-events-none" style={{ animationDuration: '2.5s' }}></span>
+                       <div className="absolute inset-0 rounded-full bg-[#2ecc71] opacity-20 blur-[7px] animate-pulse pointer-events-none" style={{ transform: 'scale(1.8)' }}></div>
+                       <span className="absolute inline-flex h-full w-full rounded-full border border-emerald-200/45 opacity-35 animate-ping pointer-events-none" style={{ animationDuration: '2.5s' }}></span>
                      </>
                   )}
-                  <CityIcon className="relative z-10 drop-shadow-[0_1px_4px_rgba(0,0,0,0.45)]" size={11} strokeWidth={2.6} />
+                  <CityIcon className="relative z-10 drop-shadow-[0_1px_4px_rgba(0,0,0,0.45)]" size={isLitCity ? 15 : 11} strokeWidth={2.6} />
                   <div className={cn(
                     "absolute px-2 py-1 rounded-md text-[10px] font-medium whitespace-nowrap shadow-sm pointer-events-none transition-all duration-300", 
                     config.text,
-                    city.labelPosition === 'top' ? 'bottom-6' :
-                    city.labelPosition === 'bottom' ? 'top-6' :
-                    city.labelPosition === 'left' ? 'right-6' :
-                    city.labelPosition === 'right' ? 'left-6' : 'top-6'
+                    city.labelPosition === 'top' ? (isLitCity ? 'bottom-8' : 'bottom-6') :
+                    city.labelPosition === 'bottom' ? (isLitCity ? 'top-8' : 'top-6') :
+                    city.labelPosition === 'left' ? (isLitCity ? 'right-8' : 'right-6') :
+                    city.labelPosition === 'right' ? (isLitCity ? 'left-8' : 'left-6') : (isLitCity ? 'top-8' : 'top-6')
                   )}>
                     {city.name}
                     </div>
@@ -722,7 +750,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
           <span className="flex h-11 w-11 items-center justify-center rounded-full border border-orange-200/24 bg-orange-300/12 text-orange-200 shadow-[0_12px_34px_rgba(0,0,0,0.26)] backdrop-blur-md transition group-hover:border-orange-200/50 group-hover:bg-orange-300/18">
             <Flame size={18} />
           </span>
-          燃脂计划
+          打卡领红包
         </button>
       </div>
 
@@ -736,52 +764,56 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
         >
           <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_18%_0%,rgba(103,232,249,0.18),transparent_48%),radial-gradient(circle_at_84%_0%,rgba(148,163,184,0.14),transparent_46%)] pointer-events-none" />
           <div className="relative grid grid-cols-[0.9fr_1.1fr] gap-3">
-            <div className="border-r border-white/10 pr-3">
+            <div className="flex min-h-[126px] flex-col border-r border-white/10 pr-3">
               <div className="flex items-center gap-1.5">
                 <h3 className="text-xs font-black tracking-wide text-white">点亮地球计划</h3>
                 <span className="flex h-4 w-4 items-center justify-center rounded-full border border-white/12 text-[10px] text-slate-400">i</span>
               </div>
-              <p className="mt-3 font-mono text-[34px] font-black leading-none tracking-[-0.06em] text-cyan-100">{earthRestoreProgress}%</p>
-              <p className="mt-1 text-[10px] font-bold text-slate-400">地球记忆恢复进度</p>
-              <div className="mt-3 text-[10px] font-bold leading-5 text-slate-500">
-                <p>已点亮 <span className="font-mono text-slate-200">{litCount}</span> 座城市</p>
-                <p>共 <span className="font-mono text-slate-200">{CITIES.filter(c => c.status !== 'upcoming').length}</span> 座路线城市</p>
+              <p className="mt-4 flex items-end gap-1 leading-none text-cyan-100">
+                <span className="pb-1 text-base font-black tracking-[-0.03em]">点亮：</span>
+                <span className="font-mono text-[44px] font-black tracking-[-0.07em] tabular-nums">{litCount}</span>
+                <span className="pb-1 text-base font-black tracking-[-0.03em]">座城市</span>
+              </p>
+              <div className="mt-auto text-[11px] font-bold leading-5 text-slate-400">
+                <p>解锁：<span className="font-mono text-sm font-black text-slate-100">{availableCityCount}</span> 条路线</p>
               </div>
             </div>
 
-            <div className="min-w-0 pl-1">
-              <p className="text-[10px] font-bold text-slate-400">正在点亮的城市</p>
-              <div className="mt-2 flex items-center gap-3">
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-                  {nextFocusCity && (
-                    <img
-                      src={getCityPreviewImage(nextFocusCity)}
-                      alt={nextFocusCity.name}
-                      className="h-full w-full object-cover object-center"
-                      referrerPolicy="no-referrer"
-                      onError={(event) => {
-                        const fallback = cityPreviewFallbacks[nextFocusCity.englishName];
-                        if (fallback && event.currentTarget.src !== fallback) {
-                          event.currentTarget.src = fallback;
-                        }
-                      }}
-                    />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 to-transparent" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="truncate text-lg font-black text-white">{nextFocusCity?.name || '下一城'}</h4>
-                  <p className="mt-0.5 truncate text-[11px] font-bold text-slate-400">{inProgressCity ? '信号接收中...' : '等待开启探索'}</p>
-                  <div className="mt-2 flex items-center gap-0.5">
-                    {Array.from({ length: 18 }).map((_, index) => (
-                      <span
-                        key={index}
-                        className={cn(
-                          "h-3 w-0.5 rounded-full",
-                          index < Math.round((Number.parseFloat(progressWidth) || 0) / 100 * 18) ? "bg-cyan-200" : "bg-white/10"
-                        )}
+            <div className="flex min-h-[126px] min-w-0 flex-col gap-3 pl-1">
+              <div>
+                <p className="text-[10px] font-bold text-slate-400">正在点亮的城市</p>
+                <div className="mt-2 flex items-start gap-3">
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                    {nextFocusCity && (
+                      <img
+                        src={getCityPreviewImage(nextFocusCity)}
+                        alt={nextFocusCity.name}
+                        className="h-full w-full object-cover object-center"
+                        referrerPolicy="no-referrer"
+                        onError={(event) => {
+                          const fallback = cityPreviewFallbacks[nextFocusCity.englishName];
+                          if (fallback && event.currentTarget.src !== fallback) {
+                            event.currentTarget.src = fallback;
+                          }
+                        }}
                       />
-                    ))}
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 to-transparent" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="truncate text-lg font-black leading-tight text-white">{nextFocusCity?.name || '下一城'}</h4>
+                    <p className="mt-0.5 truncate text-[11px] font-bold text-slate-400">{inProgressCity ? '信号接收中...' : '等待开启探索'}</p>
+                    <div className="mt-1.5 flex items-center gap-0.5">
+                      {Array.from({ length: 18 }).map((_, index) => (
+                        <span
+                          key={index}
+                          className={cn(
+                            "h-3 w-0.5 rounded-full",
+                            index < Math.round((Number.parseFloat(progressWidth) || 0) / 100 * 18) ? "bg-cyan-200" : "bg-white/10"
+                          )}
+                        />
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -795,7 +827,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                     setShowStoryPanel(true);
                   }
                 }}
-                className="mt-3 flex h-10 w-full items-center justify-center rounded-full border border-cyan-100/18 bg-cyan-100/[0.08] text-xs font-black text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] active:scale-95"
+                className="mt-auto flex h-9 w-full items-center justify-center rounded-full border border-cyan-100/18 bg-cyan-100/[0.08] text-xs font-black text-cyan-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] active:scale-95"
               >
                 前往探索
               </button>
@@ -803,18 +835,33 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onNavigate && onNavigate('medalLottery', null);
-          }}
-          className="flex w-full items-center gap-3 rounded-[18px] border border-white/10 bg-[#14283c]/74 px-3.5 py-3 text-left shadow-[0_16px_44px_rgba(0,0,0,0.24)] backdrop-blur-xl pointer-events-auto transition-colors hover:border-amber-200/24 hover:bg-[#173048]/78 active:scale-[0.99]"
+        <div
+          className="flex w-full items-center gap-3 rounded-[18px] border border-amber-200/18 bg-[#14283c]/74 px-3.5 py-3 text-left shadow-[0_16px_44px_rgba(0,0,0,0.24)] backdrop-blur-xl pointer-events-auto"
         >
-          <Gift size={16} className="shrink-0 text-amber-200" />
-          <p className="min-w-0 flex-1 truncate text-[11px] font-bold text-slate-300">完成路线获取勋章，抽取现金红包</p>
-          <ChevronRight size={15} className="shrink-0 text-slate-500" />
-        </button>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-amber-200/18 bg-amber-200/10 text-amber-200 shadow-[0_0_18px_rgba(251,191,36,0.13)]">
+            <Radio size={15} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="mb-0.5 flex items-center gap-1.5">
+              <span className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-100/70">信号广播</span>
+              <span className="h-1 w-1 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.7)]" />
+            </div>
+            <div className="relative h-4 overflow-hidden">
+              <AnimatePresence mode="popLayout" initial={false}>
+                <motion.p
+                  key={`${activeBroadcast.type}-${broadcastIndex}`}
+                  initial={{ y: 12, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -12, opacity: 0 }}
+                  transition={{ duration: 0.26, ease: 'easeOut' }}
+                  className="absolute inset-x-0 top-0 truncate text-[11px] font-bold text-slate-200"
+                >
+                  {activeBroadcast.text}
+                </motion.p>
+              </AnimatePresence>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* City Popup Card Overlay */}

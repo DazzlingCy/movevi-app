@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Award, CheckCircle2, ChevronLeft, Flame, Gift, Lock, MapPin, Play, Route, Shuffle, Sparkles, Timer, Trophy } from 'lucide-react';
 import { CITIES, getRouteData } from '../data/cities';
@@ -15,14 +15,31 @@ interface WeightLossPlanViewProps {
   rewardBoxes: number[];
   openedRewardDays: number[];
   rewardHistory: WeightPlanRewardRecord[];
+  newbieTasks?: {
+    treadmillActivated: boolean;
+    activationClaimed: boolean;
+    completedRoutes: number;
+    firstRouteClaimed: boolean;
+  };
   onBack: () => void;
   onStartPlan: () => void;
   onOpenReward: (day: number) => { success: boolean; message: string; amount?: string };
+  onClaimActivationTask?: () => void;
+  onClaimFirstRouteTask?: () => void;
   onNavigateToRouteDetail: (cityId: string, routeIndex: number, image: string, day: number) => void;
 }
 
 const MILESTONE_DAYS = [1, 7, 15, 21, 30];
-const PLAN_WINDOW_DAYS = 120;
+export const WEIGHT_PLAN_REWARD_DAYS = Array.from({ length: 30 }, (_, index) => index + 1);
+const WEIGHT_PLAN_REWARD_AMOUNTS: Record<number, string> = {
+  1: '￥0.38',
+  7: '￥0.68',
+  15: '￥0.88',
+  21: '￥1.08',
+  30: '￥1.28'
+};
+export const getWeightPlanRewardAmount = (day: number) => WEIGHT_PLAN_REWARD_AMOUNTS[day] || '￥0.18';
+const PLAN_WINDOW_DAYS = 30;
 const COMPLETION_TARGET_DAYS = 30;
 
 const generatePlanRoutes = () => {
@@ -50,9 +67,12 @@ export default function WeightLossPlanView({
   rewardBoxes,
   openedRewardDays,
   rewardHistory,
+  newbieTasks,
   onBack,
   onStartPlan,
   onOpenReward,
+  onClaimActivationTask,
+  onClaimFirstRouteTask,
   onNavigateToRouteDetail
 }: WeightLossPlanViewProps) {
   const [toast, setToast] = useState<string | null>(null);
@@ -64,25 +84,15 @@ export default function WeightLossPlanView({
   const [previewOpenedRewardDays, setPreviewOpenedRewardDays] = useState<number[]>([]);
   const [previewRewardHistory, setPreviewRewardHistory] = useState<WeightPlanRewardRecord[]>([]);
   const rewardTimersRef = useRef<number[]>([]);
+  const rewardScrollerRef = useRef<HTMLDivElement>(null);
+  const rewardDragRef = useRef({ active: false, startX: 0, scrollLeft: 0, moved: 0 });
   const planRoutes = useMemo(() => generatePlanRoutes(), []);
   const previewCompletedDays = useMemo(() => Array.from({ length: COMPLETION_TARGET_DAYS }, (_, index) => index + 1), []);
-  const getPreviewRewardAmount = (day: number) => {
-    const previewAmounts: Record<number, string> = {
-      1: '￥0.18',
-      7: '￥0.88',
-      15: '￥1.88',
-      21: '￥5.88',
-      30: '￥8.8'
-    };
-    return previewAmounts[day] || '￥0.18';
-  };
   const completedDaysView = showCompletionPreview ? previewCompletedDays : completedDays;
-  const rewardBoxesView = showCompletionPreview ? MILESTONE_DAYS : rewardBoxes;
+  const rewardBoxesView = showCompletionPreview ? WEIGHT_PLAN_REWARD_DAYS : rewardBoxes;
   const openedRewardDaysView = showCompletionPreview ? previewOpenedRewardDays : openedRewardDays;
   const rewardHistoryView = showCompletionPreview ? previewRewardHistory : rewardHistory;
   const isPlanVisible = started || showCompletionPreview;
-  const canShowCompletionPreview =
-    typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
   const completedSet = new Set(completedDaysView);
   const nextDay = Math.min(completedDaysView.length + 1, PLAN_WINDOW_DAYS);
   const [displayDay, setDisplayDay] = useState(Math.max(1, completedDays.length));
@@ -90,18 +100,42 @@ export default function WeightLossPlanView({
   const todayRoute = routeOverrides[activeDay] || planRoutes[activeDay - 1];
   const todayCompleted = completedSet.has(activeDay);
   const isFutureDay = activeDay > nextDay;
-  const completedDistance = planRoutes
-    .filter(item => completedSet.has(item.day))
-    .reduce((sum, item) => sum + Number(item.routeData.distance || 0), 0);
-  const openedBoxes = openedRewardDaysView.length;
-  const totalRewardCount = MILESTONE_DAYS.length;
   const planComplete = completedDaysView.length >= COMPLETION_TARGET_DAYS;
-  const progressPercent = Math.min(100, Math.round((completedDaysView.length / COMPLETION_TARGET_DAYS) * 100));
-  const nextRewardDay = MILESTONE_DAYS.find(day => day > completedDaysView.length);
+  const nextRewardDay = WEIGHT_PLAN_REWARD_DAYS.find(day => day > completedDaysView.length);
+  const activationTaskClaimed = !!newbieTasks?.activationClaimed;
+  const activationTaskReady = !!newbieTasks?.treadmillActivated || activationTaskClaimed;
+  const firstRouteTaskClaimed = !!newbieTasks?.firstRouteClaimed;
+  const firstRouteTaskReady = (newbieTasks?.completedRoutes || 0) > 0 || firstRouteTaskClaimed;
   const clampDisplayDay = (day: number) => Math.min(PLAN_WINDOW_DAYS, Math.max(1, day));
   const handleRouteSwipe = (_event: MouseEvent | TouchEvent | PointerEvent, info: { offset: { x: number } }) => {
     if (Math.abs(info.offset.x) < 44) return;
     setDisplayDay(prev => clampDisplayDay(prev + (info.offset.x < 0 ? 1 : -1)));
+  };
+  const handleRewardPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const scroller = rewardScrollerRef.current;
+    if (!scroller) return;
+
+    rewardDragRef.current = {
+      active: true,
+      startX: event.clientX,
+      scrollLeft: scroller.scrollLeft,
+      moved: 0
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+  const handleRewardPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const scroller = rewardScrollerRef.current;
+    if (!scroller || !rewardDragRef.current.active) return;
+
+    const deltaX = event.clientX - rewardDragRef.current.startX;
+    rewardDragRef.current.moved = Math.max(rewardDragRef.current.moved, Math.abs(deltaX));
+    scroller.scrollLeft = rewardDragRef.current.scrollLeft - deltaX;
+  };
+  const handleRewardPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
+    rewardDragRef.current.active = false;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
   };
   const handleShuffleRoute = () => {
     if (!todayRoute || todayCompleted || isFutureDay) return;
@@ -120,6 +154,17 @@ export default function WeightLossPlanView({
 
     setRouteOverrides(prev => ({ ...prev, [activeDay]: nextRoute }));
     showToast(`已切换至${city.name}路线`);
+  };
+
+  const handleFirstRouteTaskAction = () => {
+    if (firstRouteTaskClaimed) return;
+    if (firstRouteTaskReady) {
+      onClaimFirstRouteTask?.();
+      return;
+    }
+    if (!todayRoute || isFutureDay || todayCompleted) return;
+    if (!started) onStartPlan();
+    onNavigateToRouteDetail(todayRoute.cityId, todayRoute.routeIndex, todayRoute.image, todayRoute.day);
   };
 
   useEffect(() => {
@@ -146,14 +191,14 @@ export default function WeightLossPlanView({
     if (openingRewardDay !== null) return;
 
     setOpeningRewardDay(day);
-    setRewardReveal({ day, phase: 'collecting' });
+    setRewardReveal({ day, phase: 'opening' });
 
     if (showCompletionPreview) {
       const openTimer = window.setTimeout(() => {
         setRewardReveal({ day, phase: 'opening' });
 
         const resultTimer = window.setTimeout(() => {
-          const amount = getPreviewRewardAmount(day);
+          const amount = getWeightPlanRewardAmount(day);
           setRewardReveal(null);
           setOpeningRewardDay(null);
           setPreviewOpenedRewardDays(prev => (prev.includes(day) ? prev : [...prev, day]));
@@ -163,10 +208,10 @@ export default function WeightLossPlanView({
           });
           setResult({ day, amount });
           showToast(`第${day}天红包已开启`);
-        }, 980);
+        }, 420);
 
         rewardTimersRef.current.push(resultTimer);
-      }, 620);
+      }, 120);
 
       rewardTimersRef.current.push(openTimer);
       return;
@@ -192,10 +237,10 @@ export default function WeightLossPlanView({
         setOpeningRewardDay(null);
         setResult({ day, amount: response.amount! });
         showToast(response.message);
-      }, 980);
+      }, 420);
 
       rewardTimersRef.current.push(resultTimer);
-    }, 620);
+    }, 120);
 
     rewardTimersRef.current.push(openTimer);
   };
@@ -215,41 +260,35 @@ export default function WeightLossPlanView({
               <ChevronLeft size={22} />
             </button>
             <div className="text-center">
-              <h1 className="text-xl font-black tracking-tight text-white">30天燃脂计划</h1>
+              <h1 className="text-xl font-black tracking-tight text-white">打卡领红包</h1>
             </div>
-            {canShowCompletionPreview ? (
-              <button
-                type="button"
-                onClick={() => setShowCompletionPreview(prev => !prev)}
-                className={`h-10 rounded-full border px-3 text-xs font-black transition active:scale-95 ${
-                  showCompletionPreview
-                    ? 'border-amber-200/35 bg-amber-200/15 text-amber-100'
-                    : 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
-                }`}
-              >
-                预览30天
-              </button>
-            ) : (
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border border-emerald-300/15 bg-emerald-300/10 text-emerald-200">
-                <Flame size={19} />
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => setShowCompletionPreview(prev => !prev)}
+              className={`h-10 rounded-full border px-3 text-xs font-black transition active:scale-95 ${
+                showCompletionPreview
+                  ? 'border-amber-200/35 bg-amber-200/15 text-amber-100'
+                  : 'border-emerald-300/20 bg-emerald-300/10 text-emerald-100'
+              }`}
+            >
+              预览30天
+            </button>
           </div>
         </header>
 
-        <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-8 hide-scrollbar">
-          <section className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[#0c1210]/85 p-4 shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-8 hide-scrollbar">
+          <section className="relative mt-4 shrink-0 overflow-hidden rounded-[26px] border border-white/10 bg-[#0c1210]/85 p-4 shadow-[0_20px_64px_rgba(0,0,0,0.38)]">
             <div className="absolute inset-x-0 top-0 h-48 bg-[radial-gradient(circle_at_25%_18%,rgba(52,211,153,0.26),transparent_30%),radial-gradient(circle_at_80%_0%,rgba(250,204,21,0.22),transparent_34%)]" />
             <div className="relative">
               <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200/20 bg-emerald-200/10 px-2.5 py-1 text-[10px] font-black text-emerald-100">
                 <Sparkles size={12} />
                 每日一条路线
               </div>
-              <h2 className="mt-3 text-[32px] font-black leading-[0.98] tracking-[-0.04em] text-white">
-                完成30天燃脂
+              <h2 className="mt-3 text-[28px] font-black leading-none tracking-[-0.04em] text-white">
+                完成30天打卡
               </h2>
-              <p className="mt-3 max-w-[280px] text-sm font-semibold leading-5 text-slate-400">
-                每天完成一条推荐路线，120天期限内累计完成30天，即可达成整期计划。
+              <p className="mt-2 max-w-[300px] text-sm font-semibold leading-5 text-slate-400">
+                每天完成对应的推荐路线，即可领取 1 个固定金额红包。
               </p>
 
               <div className="mt-4 grid grid-cols-2 gap-2">
@@ -259,39 +298,109 @@ export default function WeightLossPlanView({
                 </div>
                 <div className="rounded-2xl border border-amber-200/12 bg-amber-200/[0.055] p-3">
                   <p className="text-[10px] font-bold text-amber-100/55">结束日期</p>
-                  <p className="mt-1 font-mono text-sm font-black tabular-nums text-amber-100">2026.11.17</p>
+                  <p className="mt-1 font-mono text-sm font-black tabular-nums text-amber-100">2026.08.19</p>
                 </div>
               </div>
 
-              <div className="mt-5 grid grid-cols-3 gap-2">
-                <div className="rounded-2xl border border-white/10 bg-black/24 p-3">
-                  <p className="text-[10px] font-bold text-slate-500">完成天数</p>
-                  <p className="mt-1 font-mono text-xl font-black tabular-nums text-white">{completedDaysView.length}/{COMPLETION_TARGET_DAYS}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-black/24 p-3">
-                  <p className="text-[10px] font-bold text-slate-500">累计公里</p>
-                  <p className="mt-1 font-mono text-xl font-black tabular-nums text-emerald-200">{completedDistance.toFixed(1)}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-black/24 p-3">
-                  <p className="text-[10px] font-bold text-slate-500">奖励</p>
-                  <p className="mt-1 font-mono text-xl font-black tabular-nums text-amber-200">{openedBoxes}/{totalRewardCount}</p>
-                </div>
-              </div>
+              <button
+                type="button"
+                disabled={started || showCompletionPreview}
+                onClick={onStartPlan}
+                className={`mt-4 h-11 w-full rounded-full text-sm font-black shadow-[0_12px_28px_rgba(255,255,255,0.10)] active:scale-[0.98] ${
+                  started || showCompletionPreview
+                    ? 'border border-emerald-200/18 bg-emerald-300/10 text-emerald-200'
+                    : 'bg-white text-slate-950'
+                }`}
+              >
+                {started || showCompletionPreview ? '计划已开启' : '开启30天计划'}
+              </button>
+            </div>
+          </section>
 
-              {!started && !showCompletionPreview && (
-                <button
-                  onClick={onStartPlan}
-                  className="mt-5 h-12 w-full rounded-full bg-white text-sm font-black text-slate-950 shadow-[0_12px_28px_rgba(255,255,255,0.12)] active:scale-[0.98]"
-                >
-                  开启30天计划
-                </button>
-              )}
+          <section className="order-first shrink-0 rounded-[24px] border border-white/[0.09] bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-200/75">NEW USER BONUS</p>
+                <h2 className="mt-1 text-lg font-black tracking-tight text-white">新手红包任务</h2>
+              </div>
+              <Gift size={18} className="text-amber-200" />
+            </div>
+
+            <div className="mt-4 grid gap-2">
+              {[
+                {
+                  id: 'activate',
+                  icon: Flame,
+                  title: '首次激活领红包',
+                  desc: '首次连接并激活跑步机',
+                  amount: '￥1.80',
+                  ready: activationTaskReady,
+                  claimed: activationTaskClaimed,
+                  action: onClaimActivationTask,
+                  fallbackLabel: '去激活'
+                },
+                {
+                  id: 'first-route',
+                  icon: Route,
+                  title: '首次完成路线领红包',
+                  desc: '完成任意 1 条城市路线',
+                  amount: '￥2.80',
+                  ready: firstRouteTaskReady,
+                  claimed: firstRouteTaskClaimed,
+                  action: handleFirstRouteTaskAction,
+                  fallbackLabel: '去完成'
+                }
+              ].map(task => {
+                const TaskIcon = task.icon;
+                const ctaLabel = task.claimed ? '已领取' : task.ready ? '领取' : task.fallbackLabel;
+                return (
+                  <button
+                    key={task.id}
+                    type="button"
+                    disabled={task.claimed}
+                    onClick={() => !task.claimed && task.action?.()}
+                    className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+                      task.claimed
+                        ? 'border-emerald-200/12 bg-emerald-300/[0.055]'
+                        : task.ready
+                          ? 'border-amber-200/24 bg-amber-300/[0.08] shadow-[0_12px_30px_rgba(251,191,36,0.08)]'
+                          : 'border-white/10 bg-black/20'
+                    }`}
+                  >
+                    <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${
+                      task.claimed
+                        ? 'bg-emerald-300/12 text-emerald-200'
+                        : task.ready
+                          ? 'bg-amber-300/14 text-amber-200'
+                          : 'bg-white/[0.055] text-slate-400'
+                    }`}>
+                      {task.claimed ? <CheckCircle2 size={20} /> : <TaskIcon size={19} />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-black text-white">{task.title}</span>
+                      <span className="mt-0.5 block truncate text-[11px] font-bold text-slate-500">{task.desc}</span>
+                    </span>
+                    <span className="shrink-0 text-right">
+                      <span className="block font-mono text-sm font-black text-amber-200">{task.amount}</span>
+                      <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-black ${
+                        task.claimed
+                          ? 'bg-emerald-300/12 text-emerald-200'
+                          : task.ready
+                            ? 'bg-amber-300 text-slate-950'
+                            : 'bg-white/[0.06] text-slate-400'
+                      }`}>
+                        {ctaLabel}
+                      </span>
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
           {isPlanVisible && (
             <motion.section
-              className="mt-4 rounded-2xl border border-emerald-300/15 bg-[#0d1412]/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]"
+              className="mt-4 shrink-0 rounded-2xl border border-emerald-300/15 bg-[#0d1412]/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]"
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.12}
@@ -381,63 +490,74 @@ export default function WeightLossPlanView({
             </motion.section>
           )}
 
-          <section className="relative mt-4 overflow-hidden rounded-[26px] border border-orange-200/18 bg-gradient-to-br from-[#111816] via-[#19140d] to-[#21120d] p-4 text-slate-100 shadow-[0_20px_54px_rgba(0,0,0,0.34)]">
+          <section className="relative mt-4 min-h-[166px] shrink-0 overflow-hidden rounded-[26px] border border-orange-200/18 bg-gradient-to-br from-[#111816] via-[#19140d] to-[#21120d] p-4 pb-4 text-slate-100 shadow-[0_20px_54px_rgba(0,0,0,0.34)]">
             <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_16%_0%,rgba(52,211,153,0.13),transparent_48%),radial-gradient(circle_at_84%_0%,rgba(251,146,60,0.22),transparent_46%)]" />
             <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.055),transparent_42%)]" />
             <div className="relative flex items-center justify-between gap-3">
               <h2 className="text-lg font-black tracking-tight text-white">
-                完成30天领<span className="ml-1 font-mono text-xl text-amber-300 tabular-nums">8.8元</span>
+                完成30天共领<span className="ml-1 font-mono text-xl text-amber-300 tabular-nums">8.8元</span>
               </h2>
               <div className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-xs font-bold text-slate-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
                 已完成{completedDaysView.length}天
               </div>
             </div>
 
-            <div className="relative mt-5 grid grid-cols-5 gap-2">
-              {MILESTONE_DAYS.map((day, index) => {
+            <div
+              ref={rewardScrollerRef}
+              onPointerDown={handleRewardPointerDown}
+              onPointerMove={handleRewardPointerMove}
+              onPointerUp={handleRewardPointerEnd}
+              onPointerCancel={handleRewardPointerEnd}
+              onPointerLeave={handleRewardPointerEnd}
+              className="relative mt-4 -mx-2 flex min-h-[92px] cursor-grab select-none snap-x snap-mandatory items-start gap-4 overflow-x-auto overflow-y-hidden px-2 pb-2 hide-scrollbar touch-pan-x scroll-smooth active:cursor-grabbing"
+            >
+              {WEIGHT_PLAN_REWARD_DAYS.map((day, index) => {
                 const earned = rewardBoxesView.includes(day);
                 const opened = openedRewardDaysView.includes(day);
                 const record = rewardHistoryView.find(item => item.day === day);
                 const isOpening = openingRewardDay === day;
                 const isNext = !earned && day === nextRewardDay;
-                const amount = opened ? record?.amount : getPreviewRewardAmount(day);
+                const amount = opened ? record?.amount : getWeightPlanRewardAmount(day);
                 const label = `第${day}天`;
                 return (
                   <button
                     key={day}
                     type="button"
                     disabled={!earned || opened || openingRewardDay !== null}
-                    onClick={() => earned && !opened && handleOpenReward(day)}
-                    className={`group relative flex min-w-0 flex-col items-center text-center transition ${
+                    onClick={() => {
+                      if (rewardDragRef.current.moved > 8) return;
+                      if (earned && !opened) handleOpenReward(day);
+                    }}
+                    className={`group relative flex w-[62px] shrink-0 snap-start flex-col items-center pb-1 text-center transition ${
                       earned && !opened ? 'active:scale-95' : ''
                     }`}
                   >
-                    {index < MILESTONE_DAYS.length - 1 && (
-                      <span className={`pointer-events-none absolute left-[64%] top-8 h-px w-[72%] border-t ${
+                    {index < WEIGHT_PLAN_REWARD_DAYS.length - 1 && (
+                      <span className={`pointer-events-none absolute left-[66%] top-7 h-px w-[74%] border-t ${
                         earned ? 'border-dashed border-rose-300/50' : 'border-dashed border-white/12'
                       }`} />
                     )}
-                    <div className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl transition ${
+                    <div className={`relative z-10 flex h-12 w-12 items-center justify-center rounded-2xl transition ${
                       opened
-                        ? 'border border-white/12 bg-gradient-to-br from-white/[0.16] via-white/[0.08] to-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
+                        ? 'border border-emerald-200/25 bg-gradient-to-br from-white/[0.16] via-white/[0.08] to-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
                         : earned
-                          ? 'bg-gradient-to-br from-[#ff7a63] via-[#f43f5e] to-[#fb923c] shadow-[0_10px_26px_rgba(244,63,94,0.28),0_0_0_1px_rgba(255,255,255,0.10)] ring-2 ring-amber-200/20'
+                          ? 'bg-gradient-to-br from-[#ff6a5d] via-[#f43f5e] to-[#fb923c] shadow-[0_10px_24px_rgba(244,63,94,0.28),0_0_0_1px_rgba(255,255,255,0.10)] ring-1 ring-amber-200/20'
                           : isNext
-                            ? 'bg-gradient-to-br from-[#704034] via-[#7f3648] to-[#8b4d2f] shadow-[0_8px_20px_rgba(251,146,60,0.14)]'
-                            : 'bg-gradient-to-br from-white/[0.10] via-white/[0.055] to-white/[0.025] opacity-70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
+                            ? 'bg-gradient-to-br from-[#7c4039] via-[#8b3d52] to-[#a35a36] shadow-[0_8px_20px_rgba(251,146,60,0.14)]'
+                            : 'bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-white/[0.02] opacity-55 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
                     } ${isOpening ? 'animate-pulse ring-2 ring-orange-300/55' : ''}`}>
                       <div className={`absolute inset-x-1 top-2 h-5 rounded-t-xl ${opened ? 'bg-white/8' : 'bg-white/25'}`} />
-                      <div className={`absolute left-1/2 top-7 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border shadow-[0_2px_8px_rgba(249,115,22,0.35)] ${
+                      <div className={`absolute left-1/2 top-6 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border shadow-[0_2px_8px_rgba(249,115,22,0.35)] ${
                         opened
                           ? 'border-white/20 bg-white/14'
                           : 'border-orange-100/80 bg-gradient-to-br from-[#fff4b5] to-[#ffb44d]'
                       }`} />
                       {opened ? (
-                        <CheckCircle2 size={18} className="relative mt-4 text-emerald-200 drop-shadow" />
+                        <CheckCircle2 size={17} className="relative mt-4 text-emerald-200 drop-shadow" />
                       ) : earned ? (
-                        <Gift size={18} className={`relative mt-4 text-white drop-shadow ${isOpening ? 'animate-bounce' : ''}`} />
+                        <Gift size={17} className={`relative mt-4 text-white drop-shadow ${isOpening ? 'animate-bounce' : ''}`} />
                       ) : (
-                        <Lock size={15} className="relative mt-4 text-white/70" />
+                        <Lock size={14} className="relative mt-4 text-white/70" />
                       )}
                     </div>
                     <p className={`mt-2 font-mono text-sm font-black tabular-nums ${
@@ -445,7 +565,7 @@ export default function WeightLossPlanView({
                     }`}>
                       {amount}
                     </p>
-                    <p className={`mt-0.5 rounded-full px-2 py-0.5 text-xs font-black ${
+                    <p className={`mt-1 inline-flex min-h-6 items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-black ${
                       opened
                         ? 'bg-emerald-300/10 text-emerald-200'
                         : earned
@@ -454,41 +574,25 @@ export default function WeightLossPlanView({
                             ? 'text-amber-300'
                             : 'text-slate-500'
                     }`}>
-                      {opened ? '已领取' : earned ? '可领取' : label}
+                      {opened ? '已领取' : earned ? '领取' : label}
                     </p>
                   </button>
                 );
               })}
             </div>
 
-            <div className="relative mt-5 h-2 overflow-hidden rounded-full bg-white/[0.08]">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-rose-400 via-orange-300 to-amber-200"
-                initial={false}
-                animate={{ width: `${progressPercent}%` }}
-                transition={{ duration: 0.45, ease: 'easeOut' }}
-              />
-            </div>
-            <div className="relative mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
-              <span>{planComplete ? '计划已完成' : nextRewardDay ? `下一奖励第${nextRewardDay}天` : '全部奖励已解锁'}</span>
-              <span>{progressPercent}%</span>
-            </div>
           </section>
 
-          <section className="mt-4 rounded-2xl border border-white/[0.09] bg-white/[0.035] p-4">
-            <div className="flex gap-3">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-emerald-300/10 text-emerald-200">
-                <Route size={18} />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-white">活动规则</h3>
+          <section className="mt-4 shrink-0 rounded-2xl border border-white/[0.09] bg-white/[0.035] p-4">
+            <div>
+                <h3 className="text-sm font-black text-white">活动说明</h3>
                 <div className="mt-2 space-y-2 text-xs font-semibold leading-5 text-slate-400">
-                  <p>1. 120天期限内，每天按顺序完成 1 条推荐路线。</p>
-                  <p>2. 累计完成30天即完成计划。</p>
-                  <p>3. 完成第 1、7、15、21、30 天时获得固定红包奖励，领取后可查看现金奖励。</p>
-                  <p>4. 获得的红包可在【我的】-【我的钱包】中提现。</p>
+                  <p>1. 新用户首次激活跑步机可领取 1.8 元红包。</p>
+                  <p>2. 新用户首次完成 1 条路线可领取 2.8 元红包。</p>
+                  <p>3. 打卡活动总期限 30 天，每天按顺序完成 1 条对应路线。</p>
+                  <p>4. 每完成 1 天即可领取 1 个固定金额红包，第 1、7、15、21、30 天金额略高，30 天累计可领 8.8 元。</p>
+                  <p>5. 获得的红包可在【我的】-【我的钱包】中提现。</p>
                 </div>
-              </div>
             </div>
           </section>
         </main>
@@ -520,14 +624,14 @@ export default function WeightLossPlanView({
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.92, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-              className="relative w-full max-w-[300px] overflow-hidden rounded-[30px] border border-amber-200/25 bg-[#130d08] p-6 text-center shadow-[0_28px_90px_rgba(0,0,0,0.65)]"
+              className="relative w-full max-w-[280px] overflow-hidden rounded-[28px] border border-amber-200/20 bg-[#130d08] p-5 text-center shadow-[0_22px_70px_rgba(0,0,0,0.56)]"
             >
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_18%,rgba(251,191,36,0.34),transparent_34%),radial-gradient(circle_at_50%_100%,rgba(244,63,94,0.24),transparent_48%)]" />
               <div className="absolute inset-x-8 top-5 h-px bg-gradient-to-r from-transparent via-amber-200/70 to-transparent" />
-              {[0, 1, 2, 3, 4, 5].map(item => (
+              {[0, 1, 2].map(item => (
                 <motion.span
                   key={item}
-                  className="absolute h-1.5 w-1.5 rounded-full bg-amber-200 shadow-[0_0_16px_rgba(251,191,36,0.9)]"
+                  className="absolute h-1 w-1 rounded-full bg-amber-200 shadow-[0_0_10px_rgba(251,191,36,0.65)]"
                   initial={{
                     opacity: 0,
                     x: 138,
@@ -536,35 +640,35 @@ export default function WeightLossPlanView({
                   }}
                   animate={{
                     opacity: [0, 1, 0],
-                    x: 138 + Math.cos((item / 6) * Math.PI * 2) * 104,
-                    y: 128 + Math.sin((item / 6) * Math.PI * 2) * 82,
-                    scale: [0.4, 1, 0.7]
+                    x: 138 + Math.cos((item / 3) * Math.PI * 2) * 70,
+                    y: 122 + Math.sin((item / 3) * Math.PI * 2) * 54,
+                    scale: [0.4, 0.9, 0.6]
                   }}
                   transition={{
-                    duration: 1.1,
-                    repeat: Infinity,
+                    duration: 0.48,
+                    repeat: 0,
                     delay: item * 0.08,
                     ease: 'easeOut'
                   }}
                 />
               ))}
 
-              <div className="relative mx-auto mt-2 flex h-28 w-28 items-center justify-center">
+              <div className="relative mx-auto mt-1 flex h-24 w-24 items-center justify-center">
                 <motion.div
                   className="absolute inset-0 rounded-full bg-amber-200/20 blur-2xl"
                   animate={{ scale: rewardReveal.phase === 'opening' ? [1, 1.34, 1.08] : [0.9, 1.08, 0.9], opacity: [0.42, 0.88, 0.5] }}
                   transition={{ duration: rewardReveal.phase === 'opening' ? 0.7 : 1.4, repeat: rewardReveal.phase === 'opening' ? 0 : Infinity }}
                 />
                 <motion.div
-                  className="relative flex h-24 w-24 items-center justify-center rounded-[28px] border border-amber-100/35 bg-gradient-to-br from-[#ff4b2e] via-[#ff7a1a] to-[#ffd15d] text-white shadow-[0_20px_50px_rgba(248,113,22,0.36)]"
+                  className="relative flex h-20 w-20 items-center justify-center rounded-[24px] border border-amber-100/30 bg-gradient-to-br from-[#ff4b2e] via-[#ff7a1a] to-[#ffd15d] text-white shadow-[0_16px_38px_rgba(248,113,22,0.30)]"
                   animate={rewardReveal.phase === 'opening'
                     ? { rotateY: [0, 18, -16, 0], scale: [1, 1.08, 0.96, 1.12] }
                     : { y: [0, -8, 0], rotate: [-2, 2, -2] }}
-                  transition={{ duration: rewardReveal.phase === 'opening' ? 0.82 : 1.5, repeat: rewardReveal.phase === 'opening' ? 0 : Infinity }}
+                  transition={{ duration: rewardReveal.phase === 'opening' ? 0.42 : 0.7, repeat: rewardReveal.phase === 'opening' ? 0 : 1 }}
                 >
                   <div className="absolute left-0 right-0 top-0 h-9 rounded-t-[28px] bg-white/18" />
                   <div className="absolute inset-x-3 top-9 h-px bg-yellow-100/70" />
-                  <Gift size={42} className="relative drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]" />
+                  <Gift size={34} className="relative drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]" />
                 </motion.div>
               </div>
 
