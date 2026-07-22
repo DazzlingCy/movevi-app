@@ -93,12 +93,11 @@ export default function WeightLossPlanView({
   const completedDistance = planRoutes
     .filter(item => completedSet.has(item.day))
     .reduce((sum, item) => sum + Number(item.routeData.distance || 0), 0);
-  const earnedBoxes = rewardBoxesView.length;
   const openedBoxes = openedRewardDaysView.length;
+  const totalRewardCount = MILESTONE_DAYS.length;
   const planComplete = completedDaysView.length >= COMPLETION_TARGET_DAYS;
   const progressPercent = Math.min(100, Math.round((completedDaysView.length / COMPLETION_TARGET_DAYS) * 100));
   const nextRewardDay = MILESTONE_DAYS.find(day => day > completedDaysView.length);
-  const daysToNextReward = nextRewardDay ? Math.max(0, nextRewardDay - completedDaysView.length) : 0;
   const clampDisplayDay = (day: number) => Math.min(PLAN_WINDOW_DAYS, Math.max(1, day));
   const handleRouteSwipe = (_event: MouseEvent | TouchEvent | PointerEvent, info: { offset: { x: number } }) => {
     if (Math.abs(info.offset.x) < 44) return;
@@ -274,8 +273,8 @@ export default function WeightLossPlanView({
                   <p className="mt-1 font-mono text-xl font-black tabular-nums text-emerald-200">{completedDistance.toFixed(1)}</p>
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-black/24 p-3">
-                  <p className="text-[10px] font-bold text-slate-500">盲盒</p>
-                  <p className="mt-1 font-mono text-xl font-black tabular-nums text-amber-200">{openedBoxes}/{earnedBoxes}</p>
+                  <p className="text-[10px] font-bold text-slate-500">奖励</p>
+                  <p className="mt-1 font-mono text-xl font-black tabular-nums text-amber-200">{openedBoxes}/{totalRewardCount}</p>
                 </div>
               </div>
 
@@ -382,88 +381,97 @@ export default function WeightLossPlanView({
             </motion.section>
           )}
 
-          <section className="relative mt-4 overflow-hidden rounded-3xl border border-white/[0.09] bg-[#0d1118]/90 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_22px_60px_rgba(0,0,0,0.28)]">
-            <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_20%_0%,rgba(52,211,153,0.16),transparent_50%),radial-gradient(circle_at_82%_0%,rgba(251,191,36,0.12),transparent_48%)]" />
-            <div className="relative flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#8f9bff]">PROGRESS</p>
-                <h2 className="mt-1 text-lg font-black tracking-tight text-white">燃脂进度</h2>
-                <p className="mt-1 text-[11px] font-bold text-slate-500">
-                  {planComplete ? '计划已完成' : nextRewardDay ? `下一奖励：第${nextRewardDay}天，还差${daysToNextReward}天` : '全部奖励已解锁'}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-emerald-200/20 bg-emerald-200/10 px-3 py-2 text-right">
-                <p className="text-[10px] font-bold text-emerald-100/70">完成</p>
-                <p className="font-mono text-sm font-black text-emerald-100">{completedDaysView.length}/{COMPLETION_TARGET_DAYS}</p>
+          <section className="relative mt-4 overflow-hidden rounded-[26px] border border-orange-200/18 bg-gradient-to-br from-[#111816] via-[#19140d] to-[#21120d] p-4 text-slate-100 shadow-[0_20px_54px_rgba(0,0,0,0.34)]">
+            <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_16%_0%,rgba(52,211,153,0.13),transparent_48%),radial-gradient(circle_at_84%_0%,rgba(251,146,60,0.22),transparent_46%)]" />
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.055),transparent_42%)]" />
+            <div className="relative flex items-center justify-between gap-3">
+              <h2 className="text-lg font-black tracking-tight text-white">
+                完成30天领<span className="ml-1 font-mono text-xl text-amber-300 tabular-nums">8.8元</span>
+              </h2>
+              <div className="rounded-full border border-white/10 bg-white/[0.08] px-3 py-1 text-xs font-bold text-slate-300 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+                已完成{completedDaysView.length}天
               </div>
             </div>
 
-            <div className="relative mt-4 grid grid-cols-5 gap-2">
-              {MILESTONE_DAYS.map(day => {
+            <div className="relative mt-5 grid grid-cols-5 gap-2">
+              {MILESTONE_DAYS.map((day, index) => {
                 const earned = rewardBoxesView.includes(day);
                 const opened = openedRewardDaysView.includes(day);
                 const record = rewardHistoryView.find(item => item.day === day);
                 const isOpening = openingRewardDay === day;
                 const isNext = !earned && day === nextRewardDay;
+                const amount = opened ? record?.amount : getPreviewRewardAmount(day);
+                const label = `第${day}天`;
                 return (
                   <button
                     key={day}
                     type="button"
                     disabled={!earned || opened || openingRewardDay !== null}
                     onClick={() => earned && !opened && handleOpenReward(day)}
-                    className={`group relative min-h-[96px] overflow-hidden rounded-2xl border p-2 text-center transition ${
-                      opened
-                        ? 'border-amber-200/35 bg-gradient-to-b from-amber-200/18 to-amber-500/8'
-                        : earned
-                          ? 'border-emerald-200/55 bg-gradient-to-b from-emerald-200/20 to-cyan-300/8 shadow-[0_0_28px_rgba(52,211,153,0.12)] active:scale-95'
-                          : isNext
-                            ? 'border-amber-200/22 bg-amber-200/[0.055]'
-                            : 'border-white/[0.07] bg-white/[0.035] opacity-70'
-                    } ${isOpening ? 'animate-pulse ring-2 ring-amber-200/60' : ''}`}
+                    className={`group relative flex min-w-0 flex-col items-center text-center transition ${
+                      earned && !opened ? 'active:scale-95' : ''
+                    }`}
                   >
-                    {earned && !opened && (
-                      <span className="absolute inset-x-2 top-1 h-px bg-gradient-to-r from-transparent via-emerald-100/70 to-transparent" />
+                    {index < MILESTONE_DAYS.length - 1 && (
+                      <span className={`pointer-events-none absolute left-[64%] top-8 h-px w-[72%] border-t ${
+                        earned ? 'border-dashed border-rose-300/50' : 'border-dashed border-white/12'
+                      }`} />
                     )}
-                    <div className={`mx-auto flex h-9 w-9 items-center justify-center rounded-2xl ${
+                    <div className={`relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl transition ${
                       opened
-                        ? 'bg-amber-200/18 text-amber-100'
+                        ? 'border border-white/12 bg-gradient-to-br from-white/[0.16] via-white/[0.08] to-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
                         : earned
-                          ? 'bg-emerald-200 text-slate-950'
-                          : 'bg-black/24 text-amber-100/70'
-                    }`}>
-                      {opened ? <CheckCircle2 size={17} /> : earned ? <Gift size={18} className={isOpening ? 'animate-bounce' : ''} /> : <Lock size={15} />}
+                          ? 'bg-gradient-to-br from-[#ff7a63] via-[#f43f5e] to-[#fb923c] shadow-[0_10px_26px_rgba(244,63,94,0.28),0_0_0_1px_rgba(255,255,255,0.10)] ring-2 ring-amber-200/20'
+                          : isNext
+                            ? 'bg-gradient-to-br from-[#704034] via-[#7f3648] to-[#8b4d2f] shadow-[0_8px_20px_rgba(251,146,60,0.14)]'
+                            : 'bg-gradient-to-br from-white/[0.10] via-white/[0.055] to-white/[0.025] opacity-70 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
+                    } ${isOpening ? 'animate-pulse ring-2 ring-orange-300/55' : ''}`}>
+                      <div className={`absolute inset-x-1 top-2 h-5 rounded-t-xl ${opened ? 'bg-white/8' : 'bg-white/25'}`} />
+                      <div className={`absolute left-1/2 top-7 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border shadow-[0_2px_8px_rgba(249,115,22,0.35)] ${
+                        opened
+                          ? 'border-white/20 bg-white/14'
+                          : 'border-orange-100/80 bg-gradient-to-br from-[#fff4b5] to-[#ffb44d]'
+                      }`} />
+                      {opened ? (
+                        <CheckCircle2 size={18} className="relative mt-4 text-emerald-200 drop-shadow" />
+                      ) : earned ? (
+                        <Gift size={18} className={`relative mt-4 text-white drop-shadow ${isOpening ? 'animate-bounce' : ''}`} />
+                      ) : (
+                        <Lock size={15} className="relative mt-4 text-white/70" />
+                      )}
                     </div>
-                    <p className="mt-2 text-[10px] font-black text-slate-300">第{day}天</p>
-                    <p className={`mt-1 font-mono text-[11px] font-black ${
-                      opened ? 'text-amber-100' : earned ? 'text-emerald-100' : isNext ? 'text-amber-100/80' : 'text-slate-500'
+                    <p className={`mt-2 font-mono text-sm font-black tabular-nums ${
+                      opened ? 'text-slate-400' : earned ? 'text-rose-200' : isNext ? 'text-amber-200' : 'text-slate-500'
                     }`}>
-                      {opened ? record?.amount : earned ? '可开启' : isNext ? '下一站' : '未获得'}
+                      {amount}
+                    </p>
+                    <p className={`mt-0.5 rounded-full px-2 py-0.5 text-xs font-black ${
+                      opened
+                        ? 'bg-emerald-300/10 text-emerald-200'
+                        : earned
+                          ? 'bg-rose-400/18 text-rose-100 shadow-[0_0_16px_rgba(251,113,133,0.18)]'
+                          : isNext
+                            ? 'text-amber-300'
+                            : 'text-slate-500'
+                    }`}>
+                      {opened ? '已领取' : earned ? '可领取' : label}
                     </p>
                   </button>
                 );
               })}
             </div>
 
-            <div className="relative mt-5 rounded-[22px] border border-white/[0.07] bg-black/20 p-4">
-              <div className="flex items-center justify-between text-[11px] font-bold text-slate-500">
-                <span>DAY 1</span>
-                <span className="rounded-full border border-emerald-200/20 bg-emerald-200/10 px-2.5 py-1 font-mono text-emerald-200 shadow-[0_0_18px_rgba(52,211,153,0.12)]">
-                  {progressPercent}%
-                </span>
-                <span>目标30天</span>
-              </div>
-              <div className="relative mt-4 h-3 overflow-hidden rounded-full bg-white/[0.07]">
-                <motion.div
-                  className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-cyan-200 to-amber-200"
-                  initial={false}
-                  animate={{ width: `${progressPercent}%` }}
-                  transition={{ duration: 0.45, ease: 'easeOut' }}
-                />
-              </div>
-              <div className="mt-3 flex items-center justify-between text-[10px] font-bold text-slate-500">
-                <span>已完成 {completedDaysView.length} 天</span>
-                <span>{planComplete ? '全部完成' : `还需 ${COMPLETION_TARGET_DAYS - completedDaysView.length} 天`}</span>
-              </div>
+            <div className="relative mt-5 h-2 overflow-hidden rounded-full bg-white/[0.08]">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-rose-400 via-orange-300 to-amber-200"
+                initial={false}
+                animate={{ width: `${progressPercent}%` }}
+                transition={{ duration: 0.45, ease: 'easeOut' }}
+              />
+            </div>
+            <div className="relative mt-2 flex items-center justify-between text-[11px] font-bold text-slate-400">
+              <span>{planComplete ? '计划已完成' : nextRewardDay ? `下一奖励第${nextRewardDay}天` : '全部奖励已解锁'}</span>
+              <span>{progressPercent}%</span>
             </div>
           </section>
 
@@ -474,9 +482,12 @@ export default function WeightLossPlanView({
               </div>
               <div>
                 <h3 className="text-sm font-black text-white">活动规则</h3>
-                <p className="mt-1 text-xs font-semibold leading-5 text-slate-400">
-                  120天期限内，每天按顺序完成 1 条推荐路线；累计完成30天即完成计划。完成第 1、7、15、21、30 天时获得红包盲盒，打开后可查看现金奖励。
-                </p>
+                <div className="mt-2 space-y-2 text-xs font-semibold leading-5 text-slate-400">
+                  <p>1. 120天期限内，每天按顺序完成 1 条推荐路线。</p>
+                  <p>2. 累计完成30天即完成计划。</p>
+                  <p>3. 完成第 1、7、15、21、30 天时获得固定红包奖励，领取后可查看现金奖励。</p>
+                  <p>4. 获得的红包可在【我的】-【我的钱包】中提现。</p>
+                </div>
               </div>
             </div>
           </section>
@@ -561,10 +572,10 @@ export default function WeightLossPlanView({
                 DAY {rewardReveal.day} REWARD
               </p>
               <h3 className="relative mt-2 text-2xl font-black text-white">
-                {rewardReveal.phase === 'collecting' ? '红包盲盒已获得' : '正在打开盲盒'}
+                {rewardReveal.phase === 'collecting' ? '红包奖励已获得' : '正在领取奖励'}
               </h3>
               <p className="relative mt-2 text-xs font-bold leading-5 text-amber-100/70">
-                {rewardReveal.phase === 'collecting' ? '奖励正在靠近，准备揭晓现金红包。' : '好运加速中，马上公布本次奖励。'}
+                {rewardReveal.phase === 'collecting' ? '奖励正在发放，准备领取现金红包。' : '领取处理中，马上公布本次奖励。'}
               </p>
 
               <div className="relative mt-5 h-2 overflow-hidden rounded-full bg-white/10">
@@ -586,25 +597,88 @@ export default function WeightLossPlanView({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 z-50 flex items-center justify-center bg-black/75 p-6 backdrop-blur-md"
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black/78 p-6 backdrop-blur-md"
             onClick={() => setResult(null)}
           >
             <motion.div
-              initial={{ scale: 0.94, y: 18 }}
+              initial={{ scale: 0.9, y: 24 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.96, opacity: 0 }}
-              className="relative w-full max-w-xs overflow-hidden rounded-[28px] border border-white/10 bg-[#0d1118] p-5 text-center shadow-[0_28px_90px_rgba(0,0,0,0.58)]"
+              transition={{ type: 'spring', stiffness: 230, damping: 22 }}
+              className={`relative w-full max-w-[330px] overflow-hidden rounded-[32px] border p-7 text-center shadow-[0_30px_100px_rgba(0,0,0,0.66)] ${
+                result.day >= COMPLETION_TARGET_DAYS
+                  ? 'border-amber-200/18 bg-[#3a1212]'
+                  : 'border-emerald-200/16 bg-[#0b1117]'
+              }`}
               onClick={event => event.stopPropagation()}
             >
-              <div className="absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_50%_0%,rgba(250,204,21,0.24),transparent_70%)]" />
-              <div className="relative mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-200/20 bg-amber-300/10 text-amber-100">
-                <Trophy size={32} />
+              <div className={`absolute inset-0 ${
+                result.day >= COMPLETION_TARGET_DAYS
+                  ? 'bg-[radial-gradient(circle_at_50%_18%,rgba(251,146,60,0.40),transparent_36%),radial-gradient(circle_at_82%_88%,rgba(244,63,94,0.22),transparent_48%)]'
+                  : 'bg-[radial-gradient(circle_at_50%_0%,rgba(250,204,21,0.20),transparent_38%),radial-gradient(circle_at_50%_100%,rgba(52,211,153,0.20),transparent_54%)]'
+              }`} />
+              <button
+                type="button"
+                onClick={() => setResult(null)}
+                className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-white/[0.08] text-white/70 active:scale-95"
+              >
+                ×
+              </button>
+              {[0, 1, 2, 3].map(item => (
+                <motion.span
+                  key={item}
+                  className="absolute h-1.5 w-1.5 rounded-full bg-amber-200/70 shadow-[0_0_14px_rgba(251,191,36,0.75)]"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{
+                    opacity: [0, 1, 0.25],
+                    scale: [0.5, 1, 0.7],
+                    x: [0, (item % 2 === 0 ? 1 : -1) * (56 + item * 18)],
+                    y: [0, -42 - item * 12]
+                  }}
+                  transition={{ duration: 1.8, repeat: Infinity, delay: item * 0.18 }}
+                  style={{ left: `${42 + item * 12}%`, top: `${38 + item * 8}%` }}
+                />
+              ))}
+
+              <div className={`relative mx-auto flex h-24 w-24 items-center justify-center ${
+                result.day >= COMPLETION_TARGET_DAYS
+                  ? 'rounded-[30px] bg-gradient-to-br from-[#ff7b4b] via-[#ff742f] to-[#ffbe4d] text-white shadow-[0_22px_58px_rgba(248,113,22,0.34)]'
+                  : 'rounded-[26px] border border-amber-200/22 bg-amber-300/12 text-amber-100 shadow-[0_0_42px_rgba(250,204,21,0.16)]'
+              }`}>
+                {result.day >= COMPLETION_TARGET_DAYS ? (
+                  <>
+                    <div className="absolute inset-x-2 top-5 h-8 rounded-t-[24px] bg-white/18" />
+                    <div className="absolute inset-x-4 top-11 h-px bg-yellow-100/70" />
+                    <Gift size={42} className="relative drop-shadow-[0_4px_12px_rgba(0,0,0,0.35)]" />
+                  </>
+                ) : (
+                  <Trophy size={42} />
+                )}
               </div>
-              <p className="relative mt-4 text-[10px] font-black uppercase tracking-[0.24em] text-amber-100">第{result.day}天红包</p>
-              <p className="relative mt-2 text-5xl font-black tracking-[-0.06em] text-white">{result.amount}</p>
+              <p className={`relative mt-6 text-[10px] font-black uppercase tracking-[0.28em] ${
+                result.day >= COMPLETION_TARGET_DAYS ? 'text-amber-100/80' : 'text-amber-100'
+              }`}>
+                {result.day >= COMPLETION_TARGET_DAYS ? '现金红包到账' : `第${result.day}天红包`}
+              </p>
+              {result.day >= COMPLETION_TARGET_DAYS && (
+                <h3 className="relative mt-3 text-2xl font-black tracking-tight text-white">
+                  第{result.day}天红包
+                </h3>
+              )}
+              <p className={`relative mt-4 font-black tracking-[-0.08em] ${
+                result.day >= COMPLETION_TARGET_DAYS
+                  ? 'text-6xl text-[#fff4bd]'
+                  : 'text-6xl text-white'
+              }`}>
+                {result.amount}
+              </p>
               <button
                 onClick={() => setResult(null)}
-                className="relative mt-6 h-11 w-full rounded-full bg-emerald-300 text-sm font-black text-slate-950 shadow-[0_12px_28px_rgba(52,211,153,0.24)]"
+                className={`relative mt-8 h-14 w-full rounded-full text-base font-black shadow-[0_16px_34px_rgba(52,211,153,0.24)] active:scale-[0.98] ${
+                  result.day >= COMPLETION_TARGET_DAYS
+                    ? 'bg-gradient-to-r from-[#fff7bd] to-[#ffd79c] text-[#2b0e06]'
+                    : 'bg-emerald-300 text-slate-950'
+                }`}
               >
                 收下红包
               </button>
