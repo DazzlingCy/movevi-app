@@ -1,5 +1,6 @@
 import { Play, ChevronRight, MessageSquare } from 'lucide-react';
 import { getRouteData } from '../data/cities';
+import CityImage from './CityImage';
 
 interface RouteDetailViewProps {
   cityId: string;
@@ -16,7 +17,7 @@ export default function RouteDetailView({ cityId, routeIndex, image, onBack, onS
     <div className="w-full h-full bg-[#f4f6f8] text-slate-800 font-sans relative flex flex-col hide-scrollbar">
       {/* Background Image Header */}
       <div className="relative w-full h-[45%] shrink-0">
-        <img src={image} alt="Route cover" className="absolute inset-0 w-full h-full object-cover" />
+        <CityImage src={image} alt="Route cover" fallbackLabel={routeData.title} className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/30" />
         
         {/* Top bar */}

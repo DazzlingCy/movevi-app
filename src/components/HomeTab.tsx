@@ -1,71 +1,20 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { motion, useMotionValue, animate, AnimatePresence } from 'motion/react';
-import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, MapPin, Route, Milestone, Activity, Plane, Compass, RefreshCw, ClipboardCheck, Gift, Sparkles, Flame, Waves, Landmark, Building2, Castle, Cherry, TowerControl, Crown, Building, Sailboat, Mountain, Pyramid, Flower2, Film, Trees, Church, Clapperboard, Radio } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, Activity, Compass, RefreshCw, Gift, Sparkles, Flame, Radio } from 'lucide-react';
 import { CITIES, CityData } from '../data/cities';
 import { cn } from '../lib/utils';
 import { getGlowRank } from '../lib/glow';
-
-function LocalWorldMap() {
-  const landClass = "fill-slate-200/55 stroke-cyan-100/30";
-  const glowClass = "fill-cyan-200/12";
-
-  return (
-    <svg
-      viewBox="0 0 1200 800"
-      className="absolute inset-0 h-full w-full pointer-events-none"
-      aria-hidden="true"
-    >
-      <defs>
-        <filter id="world-map-glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="5" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      <g filter="url(#world-map-glow)">
-        <path className={glowClass} d="M95 170L160 112L255 105L330 145L365 218L325 300L245 338L160 315L92 250Z" />
-        <path className={glowClass} d="M355 350L430 385L455 490L425 640L360 705L320 618L305 500Z" />
-        <path className={glowClass} d="M500 190L610 150L705 185L735 265L650 315L545 285Z" />
-        <path className={glowClass} d="M610 315L700 335L742 455L705 612L610 600L560 485Z" />
-        <path className={glowClass} d="M675 185L850 125L1065 170L1120 280L1010 380L820 355L705 285Z" />
-        <path className={glowClass} d="M930 520L1045 545L1100 625L1030 680L920 640Z" />
-      </g>
-      <g strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round">
-        <path className={landClass} d="M88 178L143 120L230 95L307 118L358 166L382 230L345 282L290 315L215 330L145 306L86 255L60 205Z" />
-        <path className={landClass} d="M245 96L282 70L345 82L386 116L350 150L298 132Z" />
-        <path className={landClass} d="M366 332L430 365L470 435L452 548L410 655L350 710L318 620L300 520L323 420Z" />
-        <path className={landClass} d="M498 204L548 163L632 152L700 190L715 248L654 296L565 285L510 250Z" />
-        <path className={landClass} d="M610 306L690 328L742 410L735 520L694 624L625 604L575 520L550 430Z" />
-        <path className={landClass} d="M680 184L790 128L930 118L1062 160L1134 230L1110 320L1018 386L875 374L750 325L705 252Z" />
-        <path className={landClass} d="M780 330L830 358L812 410L750 390Z" />
-        <path className={landClass} d="M915 516L1025 538L1102 605L1074 665L980 684L910 638Z" />
-        <path className={landClass} d="M642 612L678 638L650 680L610 650Z" />
-        <path className={landClass} d="M530 165L548 132L585 142L570 178Z" />
-      </g>
-    </svg>
-  );
-}
+import WorldGlobe from './WorldGlobe';
+import CityImage from './CityImage';
 
 const ENABLE_GLOW_TASKS = false;
 
-const cityPreviewFallbacks: Record<string, string> = {
-  Singapore: 'https://images.unsplash.com/photo-1525625293386-3f8f99389edd?auto=format&fit=crop&q=80&w=240&h=240',
-  Hangzhou: 'https://images.unsplash.com/photo-1599572415662-119c861b1b68?auto=format&fit=crop&q=80&w=240&h=240',
-  Beijing: 'https://images.unsplash.com/photo-1508804185872-d7badad00f7d?auto=format&fit=crop&q=80&w=240&h=240',
-  Shanghai: 'https://images.unsplash.com/photo-1538428494232-9c0d8a3ab403?auto=format&fit=crop&q=80&w=240&h=240',
-  Tokyo: 'https://images.unsplash.com/photo-1503899036084-c55cdd92da26?auto=format&fit=crop&q=80&w=240&h=240'
-};
-
 const getCityPreviewImage = (city?: CityData | null) => {
   if (!city) return '';
-  return cityPreviewFallbacks[city.englishName] || city.image;
+  return city.image;
 };
 
 export default function HomeTab({ onNavigate, completedChapters = [], targetFlight, onFlightComplete, pendingSelectionFrom, onCitySelected, litCityIds = [], userStats, setUserStats, taskPanelOpenSignal = 0, onTreadmillActivated }: { onNavigate?: (type: string, data: any) => void; completedChapters?: number[]; targetFlight?: {fromCityId: string, toCityId: string} | null; onFlightComplete?: () => void; pendingSelectionFrom?: string | null; onCitySelected?: (cityId: string) => void; litCityIds?: string[]; userStats?: any; setUserStats?: any; taskPanelOpenSignal?: number; onTreadmillActivated?: () => void; }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
   const [showStoryPanel, setShowStoryPanel] = useState(false);
   const [showCitySelection, setShowCitySelection] = useState(false);
   const [selectableCities, setSelectableCities] = useState<CityData[]>([]);
@@ -282,92 +231,6 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
     showToast(`获得 ${reward} 点光迹值`);
   };
 
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  useEffect(() => {
-    if (targetFlight) {
-        const fromCity = CITIES.find(c => c.id === targetFlight.fromCityId);
-        const toCity = CITIES.find(c => c.id === targetFlight.toCityId);
-        if (fromCity && toCity) {
-            const mapWidth = 1200;
-            const mapHeight = 800;
-            const startOffsetX = (0.5 - fromCity.x / 100) * mapWidth;
-            const startOffsetY = (0.5 - fromCity.y / 100) * mapHeight;
-            const endOffsetX = (0.5 - toCity.x / 100) * mapWidth;
-            const endOffsetY = (0.5 - toCity.y / 100) * mapHeight;
-
-             x.set(startOffsetX);
-             y.set(startOffsetY);
-             setScale(1.2);
-
-             setTimeout(() => {
-               animate(x, endOffsetX, { type: 'spring', bounce: 0, duration: 3 });
-               animate(y, endOffsetY, { type: 'spring', bounce: 0, duration: 3 });
-             }, 500);
-
-            setTimeout(() => {
-                setSelectedCity(toCity);
-                if (onFlightComplete) {
-                    onFlightComplete();
-                }
-            }, 3600);
-        }
-        return;
-    }
-
-    // Focus on the in-progress city on initial load if no target flight
-    const inProgressCity = CITIES.find(c => c.status === 'in-progress') || CITIES[0];
-
-    const mapWidth = 1200;
-    const mapHeight = 800;
-    const offsetX = (0.5 - inProgressCity.x / 100) * mapWidth;
-    const offsetY = (0.5 - inProgressCity.y / 100) * mapHeight;
-    
-    x.set(offsetX);
-    y.set(offsetY);
-    setScale(1);
-  }, [x, y, targetFlight, onFlightComplete]);
-
-  const handleZoomIn = () => setScale(prev => Math.min(prev + 0.5, 3));
-  const handleZoomOut = () => setScale(prev => Math.max(prev - 0.5, 0.5));
-
-  const touchDistance = useRef<number | null>(null);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      touchDistance.current = dist;
-    }
-  };
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && touchDistance.current !== null) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const delta = dist - touchDistance.current;
-      setScale(prev => Math.min(Math.max(prev + delta * 0.01, 0.5), 3));
-      touchDistance.current = dist;
-    }
-  };
-
-  const handleTouchEnd = () => {
-    touchDistance.current = null;
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    if (e.deltaY < 0) {
-      setScale(prev => Math.min(prev + 0.1, 3));
-    } else {
-      setScale(prev => Math.max(prev - 0.1, 0.5));
-    }
-  };
-
   const handleStartExplore = () => {
     setShowStoryPanel(false);
     
@@ -414,21 +277,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
     }
     
     if (!pendingSelectionFrom) {
-      // Default map is 1200x800
-      const mapWidth = 1200;
-      const mapHeight = 800;
-      
-      // Find offset
-      const offsetX = (0.5 - city.x / 100) * mapWidth;
-      const offsetY = (0.5 - city.y / 100) * mapHeight;
-      
-      animate(x, offsetX, { type: 'spring', bounce: 0, duration: 0.8 });
-      animate(y, offsetY, { type: 'spring', bounce: 0, duration: 0.8 });
-      setScale(1);
-      
-      setTimeout(() => {
-        setSelectedCity(city);
-      }, 800);
+      setSelectedCity(city);
     }
   };
 
@@ -446,182 +295,12 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
         <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#081827] via-[#081827]/62 to-transparent" />
       </div>
 
-      {/* Pannable/Zoomable Map Area */}
-      <div 
-        className="w-full h-full relative cursor-grab active:cursor-grabbing z-10 touch-none"
-        ref={containerRef}
-        onWheel={handleWheel}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
-      >
-        <motion.div
-          drag
-          dragConstraints={containerRef}
-          dragElastic={0.2}
-          style={{ 
-            x, 
-            y,
-            backgroundImage: 'url("https://upload.wikimedia.org/wikipedia/commons/8/80/World_map_-_low_resolution.svg")',
-            backgroundSize: 'contain',
-            backgroundPosition: 'center',
-            backgroundRepeat: 'no-repeat',
-            opacity: 1,
-            filter: 'contrast(1.18) brightness(2.35)' // Make continents brighter
-          }}
-          animate={{ scale }}
-          transition={{ scale: { type: 'spring', bounce: 0.1, duration: 0.4 } }}
-          className="absolute top-1/2 left-1/2 w-[1200px] h-[800px] -translate-x-1/2 -translate-y-1/2 origin-center"
-        >
-          {/* Cities Nodes */}
-          {CITIES.map((city) => {
-            const cityIconMap: Record<string, React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }>> = {
-              '1': Waves,
-              '2': Landmark,
-              '3': Building2,
-              '5': Castle,
-              '6': Cherry,
-              '7': TowerControl,
-              '8': Crown,
-              '9': Building,
-              '10': Sailboat,
-              '11': Mountain,
-              '12': Pyramid,
-              '13': Flower2,
-              '14': Film,
-              '15': Trees,
-              '16': Church,
-              '17': Clapperboard
-            };
-            const CityIcon = cityIconMap[city.id] || Landmark;
-            const statusConfig = {
-              'unlit': {
-                dot: 'bg-slate-700/60 text-slate-400 ring-slate-800/30 border-slate-600/50 shadow-none',
-                text: 'text-slate-500/80 bg-black/40',
-              },
-              'in-progress': {
-                dot: 'bg-[#211804]/82 text-amber-200 ring-amber-400/24 border-yellow-200/48 shadow-[0_0_12px_rgba(251,191,36,0.48)]',
-                text: 'text-amber-100 bg-amber-950/80 border border-amber-500/30',
-              },
-              'lit': {
-                dot: 'bg-[#052319]/78 text-emerald-200 ring-[#2ecc71]/24 border-emerald-200/52 shadow-[0_0_12px_rgba(46,204,113,0.42)] z-10',
-                text: 'text-[#2ecc71] bg-black/80 border border-[#2ecc71]/40',
-              },
-              'upcoming': {
-                dot: 'bg-slate-700/22 text-slate-500/50 ring-slate-800/15 border-slate-500/20 shadow-none opacity-55',
-                text: 'text-slate-500/50 bg-black/25 border border-slate-600/12',
-              }
-            };
-            const config = statusConfig[city.status];
-            const isLitCity = city.status === 'lit';
-
-            return (
-              <motion.div
-                key={city.id}
-                className="absolute group flex flex-col items-center justify-center -translate-x-1/2 -translate-y-1/2"
-                style={{
-                  left: `${city.x}%`,
-                  top: `${city.y}%`,
-                }}
-                whileHover={{ scale: 1.2, zIndex: 50 }}
-                whileTap={{ scale: 0.9 }}
-                onClick={() => handleCityClick(city)}
-              >
-                <div className={cn(
-                  "rounded-full cursor-pointer ring-2 relative flex items-center justify-center border backdrop-blur-sm",
-                  isLitCity ? "h-7 w-7" : "h-5 w-5",
-                  config.dot
-                )}>
-                  {city.status === 'lit' && (
-                     <>
-                       <div className="absolute inset-0 rounded-full bg-[#2ecc71] opacity-20 blur-[7px] animate-pulse pointer-events-none" style={{ transform: 'scale(1.8)' }}></div>
-                       <span className="absolute inline-flex h-full w-full rounded-full border border-emerald-200/45 opacity-35 animate-ping pointer-events-none" style={{ animationDuration: '2.5s' }}></span>
-                     </>
-                  )}
-                  <CityIcon className="relative z-10 drop-shadow-[0_1px_4px_rgba(0,0,0,0.45)]" size={isLitCity ? 15 : 11} strokeWidth={2.6} />
-                  <div className={cn(
-                    "absolute px-2 py-1 rounded-md text-[10px] font-medium whitespace-nowrap shadow-sm pointer-events-none transition-all duration-300", 
-                    config.text,
-                    city.labelPosition === 'top' ? (isLitCity ? 'bottom-8' : 'bottom-6') :
-                    city.labelPosition === 'bottom' ? (isLitCity ? 'top-8' : 'top-6') :
-                    city.labelPosition === 'left' ? (isLitCity ? 'right-8' : 'right-6') :
-                    city.labelPosition === 'right' ? (isLitCity ? 'left-8' : 'left-6') : (isLitCity ? 'top-8' : 'top-6')
-                  )}>
-                    {city.name}
-                    </div>
-                </div>
-              </motion.div>
-            );
-          })}
-
-          {/* Flight Path Animation */}
-          {(() => {
-            if (!targetFlight) return null;
-            const fc = CITIES.find(c => c.id === targetFlight.fromCityId);
-            const tc = CITIES.find(c => c.id === targetFlight.toCityId);
-            if (!fc || !tc) return null;
-
-            const x1 = (fc.x / 100) * 1200;
-            const y1 = (fc.y / 100) * 800;
-            const x2 = (tc.x / 100) * 1200;
-            const y2 = (tc.y / 100) * 800;
-
-            const cx = (x1 + x2) / 2 + (y2 - y1) * 0.2;
-            const cy = (y1 + y2) / 2 - (x2 - x1) * 0.2;
-
-            const pathObj = `M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`;
-
-            return (
-              <div className="absolute inset-0 pointer-events-none z-30">
-                <svg className="absolute inset-0 w-full h-full overflow-visible">
-                  <motion.path 
-                     d={pathObj}
-                     fill="transparent"
-                     strokeDasharray="8 8"
-                     stroke="rgba(34,211,238, 0.6)"
-                     strokeWidth="3"
-                     strokeLinecap="round"
-                     initial={{ pathLength: 0 }}
-                     animate={{ pathLength: 1 }}
-                     transition={{ duration: 3, delay: 0.5, ease: "easeInOut" }}
-                   />
-                   <motion.path 
-                     d={pathObj}
-                     fill="transparent"
-                     stroke="rgba(251,191,36, 0.4)"
-                     strokeWidth="5"
-                     strokeLinecap="round"
-                     className="blur-[8px]"
-                     initial={{ pathLength: 0 }}
-                     animate={{ pathLength: 1 }}
-                     transition={{ duration: 3, delay: 0.5, ease: "easeInOut" }}
-                   />
-                </svg>
-                <div className="absolute top-0 left-0 w-full h-full"> 
-                   <motion.div
-                     className="absolute flex flex-col items-center justify-center text-white pointer-events-none"
-                     style={{ 
-                       top: 0, 
-                       left: 0,
-                       offsetPath: `path('${pathObj}')`,
-                       offsetRotate: "auto 45deg"
-                     }}
-                     initial={{ offsetDistance: "0%", opacity: 0 }}
-                     animate={{ offsetDistance: "100%", opacity: 1 }}
-                     transition={{ 
-                        opacity: { duration: 0.1, delay: 0.5 },
-                        offsetDistance: { duration: 3, delay: 0.5, ease: "easeInOut" } 
-                     }}
-                   >
-                     <Plane size={20} fill="white" className="text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]" style={{ transform: 'translate(-50%, -50%)' }} />
-                   </motion.div>
-                </div>
-              </div>
-            );
-          })()}
-        </motion.div>
-      </div>
+      <WorldGlobe
+        cities={CITIES}
+        targetFlight={targetFlight}
+        onCityClick={handleCityClick}
+        onFlightComplete={onFlightComplete}
+      />
 
       {/* HUD: Top Overlay */}
       <div className="absolute top-0 left-0 right-0 px-5 pt-5 z-20 flex items-start justify-between gap-3 pointer-events-none bg-gradient-to-b from-[#081827]/68 to-transparent">
@@ -785,17 +464,11 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                 <div className="mt-2 flex items-start gap-3">
                   <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
                     {nextFocusCity && (
-                      <img
+                      <CityImage
                         src={getCityPreviewImage(nextFocusCity)}
                         alt={nextFocusCity.name}
+                        fallbackLabel={nextFocusCity.name}
                         className="h-full w-full object-cover object-center"
-                        referrerPolicy="no-referrer"
-                        onError={(event) => {
-                          const fallback = cityPreviewFallbacks[nextFocusCity.englishName];
-                          if (fallback && event.currentTarget.src !== fallback) {
-                            event.currentTarget.src = fallback;
-                          }
-                        }}
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/45 to-transparent" />
@@ -890,7 +563,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
               }}
             >
               <div className="relative h-48 w-full">
-                <img src={selectedCity.image} alt={selectedCity.name} className="absolute inset-0 w-full h-full object-cover" />
+                <CityImage src={selectedCity.image} alt={selectedCity.name} fallbackLabel={selectedCity.name} className="absolute inset-0 w-full h-full object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent" />
                 <button 
                   onClick={(e) => {
@@ -1133,7 +806,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                   onClick={() => handleCitySelect(city)}
                 >
                   <div className="relative h-28">
-                    <img src={city.image} alt={city.name} className="absolute inset-0 w-full h-full object-cover opacity-60" referrerPolicy="no-referrer" />
+                    <CityImage src={city.image} alt={city.name} fallbackLabel={city.name} className="absolute inset-0 w-full h-full object-cover opacity-60" />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/60 to-transparent" />
                     <div className="absolute inset-x-0 bottom-0 p-4 flex flex-col justify-end">
                       <div className="flex items-center justify-between mb-2">

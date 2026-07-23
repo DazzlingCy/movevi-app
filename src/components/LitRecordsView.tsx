@@ -1,5 +1,6 @@
 import { ChevronRight, Globe2, MapPin, Zap } from 'lucide-react';
 import { CITIES, getRouteData } from '../data/cities';
+import CityImage from './CityImage';
 
 interface LitRecordsViewProps {
   onBack: () => void;
@@ -64,7 +65,7 @@ export default function LitRecordsView({ onBack }: LitRecordsViewProps) {
                       )}
                       <div className="flex gap-4 relative z-10">
                         <div className="w-20 h-20 bg-slate-800 rounded-xl overflow-hidden shrink-0 relative">
-                          <img src={city.image} alt={city.name} className="absolute inset-0 w-full h-full object-cover opacity-80" />
+                          <CityImage src={city.image} alt={city.name} fallbackLabel={city.name} className="absolute inset-0 w-full h-full object-cover opacity-80" />
                           {isLit && (
                             <div className="absolute inset-0 bg-[#2ecc71]/20 flex items-center justify-center backdrop-blur-[1px]">
                               <Globe2 size={16} className="text-[#2ecc71] drop-shadow-md" />

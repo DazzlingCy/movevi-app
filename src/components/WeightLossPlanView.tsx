@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { AnimatePresence, motion } from 'motion/react';
 import { Award, CheckCircle2, ChevronLeft, Flame, Gift, Lock, MapPin, Play, Route, Shuffle, Sparkles, Timer, Trophy } from 'lucide-react';
 import { CITIES, getRouteData } from '../data/cities';
+import CityImage from './CityImage';
 
 export interface WeightPlanRewardRecord {
   day: number;
@@ -436,7 +437,7 @@ export default function WeightLossPlanView({
               {todayRoute && (
                 <div className="mt-4 overflow-hidden rounded-2xl border border-white/[0.08] bg-black/25">
                   <div className="relative h-32">
-                    <img src={todayRoute.image} alt={todayRoute.cityName} className="h-full w-full object-cover opacity-75" />
+                    <CityImage src={todayRoute.image} alt={todayRoute.cityName} fallbackLabel={todayRoute.cityName} className="h-full w-full object-cover opacity-75" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
                     <div className="absolute bottom-3 left-3 right-3">
                       <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-100">

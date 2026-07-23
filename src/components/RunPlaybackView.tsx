@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Pause, Play, Square, MapPin, ChevronLeft, Zap, Award } from 'lucide-react';
 import { getRouteData, CITIES } from '../data/cities';
+import CityImage from './CityImage';
 
 const MEDALS = [
   { id: 'm1', name: '首航·星际启程', color: 'from-amber-400 via-amber-200 to-yellow-600', text: '🏯' },
@@ -141,7 +142,7 @@ export default function RunPlaybackView({ cityId, routeIndex, image, onExit, onC
           transition: { duration: 20, repeat: Infinity, ease: 'linear' }
         }}
       >
-        <img src={image} alt="Route scenery" className="w-full h-full object-cover opacity-80" />
+        <CityImage src={image} alt="Route scenery" fallbackLabel={cityName} className="w-full h-full object-cover opacity-80" />
       </motion.div>
 
       {/* Top Bar */}

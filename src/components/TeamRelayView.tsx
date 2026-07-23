@@ -19,6 +19,7 @@ import {
   X
 } from 'lucide-react';
 import { CITIES, getRouteData } from '../data/cities';
+import CityImage from './CityImage';
 
 export interface TeamRelayMember {
   id: string;
@@ -514,9 +515,10 @@ export default function TeamRelayView({
               </div>
 
               <div className="mt-5 rounded-2xl overflow-hidden h-32 relative">
-                <img
+                <CityImage
                   src={activeCity?.image || 'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=600&q=80'}
                   alt={activeCity?.name || 'team puzzle'}
+                  fallbackLabel={activeCity?.name || '拼图城市'}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-black/75 to-black/10" />
@@ -855,9 +857,10 @@ export default function TeamRelayView({
     <div className="w-full h-full bg-[#04070d] text-slate-100 font-sans relative flex flex-col overflow-hidden">
       <div className="flex-1 overflow-y-auto hide-scrollbar pb-36">
         <div className="relative min-h-[345px] overflow-hidden">
-          <img
+          <CityImage
             src={activeCity?.image || 'https://images.unsplash.com/photo-1511818966892-d7d671e672a2?auto=format&fit=crop&w=1200&q=80'}
             alt={activeCity?.name || 'city puzzle'}
+            fallbackLabel={activeCity?.name || '拼图城市'}
             className="absolute inset-0 w-full h-full object-cover opacity-58"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-[#07111b]/70 to-[#04070d]" />
@@ -1059,7 +1062,7 @@ export default function TeamRelayView({
               return (
                 <div key={task.id} className={`rounded-2xl border p-3 flex gap-3 ${isDone ? 'bg-emerald-950/20 border-emerald-500/20' : 'bg-black/20 border-white/5'}`}>
                   <div className="relative w-16 h-16 shrink-0 rounded-2xl overflow-hidden">
-                    <img src={task.image} alt={routeData.title} className="absolute inset-0 w-full h-full object-cover" />
+                    <CityImage src={task.image} alt={routeData.title} fallbackLabel={routeData.title} className="absolute inset-0 w-full h-full object-cover" />
                     <div className={`absolute inset-0 ${isDone ? 'bg-black/15' : 'bg-black/55 grayscale'}`} />
                     <span className="absolute left-1.5 top-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[8px] font-black text-white">拼图{index + 1}</span>
                   </div>

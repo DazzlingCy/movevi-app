@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, BarChart2, Globe2, Lock } from 'lucide-react';
 import { CityData } from '../data/cities';
+import CityImage from './CityImage';
 
 import { getRouteData } from '../data/cities';
 
@@ -45,7 +46,7 @@ export default function CityRoutesView({ city, onBack, onRouteClick, onExploreNe
     <div className="w-full h-full bg-[#f4f6f8] overflow-y-auto text-slate-800 font-sans hide-scrollbar relative pb-12">
       {/* Hero Header Area */}
       <div className="relative w-full h-[40vh] shrink-0">
-        <img src={city.image} alt={city.name} className="absolute inset-0 w-full h-full object-cover" />
+        <CityImage src={city.image} alt={city.name} fallbackLabel={city.name} className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/20" />
         
         {/* Header Icons */}
@@ -118,7 +119,7 @@ export default function CityRoutesView({ city, onBack, onRouteClick, onExploreNe
             >
               {/* Left Image Area */}
               <div className="w-[100px] h-[130px] bg-slate-100 rounded-xl overflow-hidden shrink-0 relative shadow-inner">
-                <img src={city.image} alt="Route" className="absolute inset-0 w-full h-full object-cover" />
+                <CityImage src={city.image} alt="Route" fallbackLabel={city.name} className="absolute inset-0 w-full h-full object-cover" />
                 {!isUnlocked && (
                   <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                     <div className="bg-gradient-to-b from-[#ffb48f] to-[#ff8c5a] p-2.5 rounded-full shadow-lg border-2 border-white/80">
@@ -249,7 +250,7 @@ export default function CityRoutesView({ city, onBack, onRouteClick, onExploreNe
                    {/* Card Front */}
                    <div className="absolute inset-0 [backface-visibility:hidden] [transform:rotateY(180deg)] rounded-2xl shadow-[0_0_50px_rgba(34,211,238,0.4)] overflow-hidden bg-slate-900 border-2 border-cyan-400/40 flex flex-col">
                        <div className="h-[55%] relative pointer-events-none">
-                         <img src={city.image} alt={city.name} className="absolute inset-0 w-full h-full object-cover" />
+                         <CityImage src={city.image} alt={city.name} fallbackLabel={city.name} className="absolute inset-0 w-full h-full object-cover" />
                          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
                          
                          <motion.div 
