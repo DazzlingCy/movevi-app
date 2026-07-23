@@ -295,11 +295,11 @@ export default function WeightLossPlanView({
               <div className="mt-4 grid grid-cols-2 gap-2">
                 <div className="rounded-2xl border border-emerald-200/12 bg-emerald-200/[0.055] p-3">
                   <p className="text-[10px] font-bold text-emerald-100/55">开始日期</p>
-                  <p className="mt-1 font-mono text-sm font-black tabular-nums text-emerald-100">2026.07.21</p>
+                  <p className="mt-1 font-mono text-sm font-black tabular-nums text-emerald-100">{started || showCompletionPreview ? '2026.07.21' : '--'}</p>
                 </div>
                 <div className="rounded-2xl border border-amber-200/12 bg-amber-200/[0.055] p-3">
                   <p className="text-[10px] font-bold text-amber-100/55">结束日期</p>
-                  <p className="mt-1 font-mono text-sm font-black tabular-nums text-amber-100">2026.08.19</p>
+                  <p className="mt-1 font-mono text-sm font-black tabular-nums text-amber-100">{started || showCompletionPreview ? '2026.08.19' : '--'}</p>
                 </div>
               </div>
 
@@ -313,7 +313,7 @@ export default function WeightLossPlanView({
                     : 'bg-white text-slate-950'
                 }`}
               >
-                {started || showCompletionPreview ? '计划已开启' : '开启30天计划'}
+                {started || showCompletionPreview ? '打卡已开启' : '开启30天打卡'}
               </button>
             </div>
           </section>
