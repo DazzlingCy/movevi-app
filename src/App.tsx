@@ -746,7 +746,11 @@ export default function App() {
                    firstRouteClaimed: (userStats.newbieCashRewardClaimedIds || []).includes('first-route')
                  }}
                  onBack={() => setFullScreenPage(null)}
-                 onStartPlan={() => setWeightPlanStarted(true)}
+                 onStartPlan={() => {
+                   setWeightPlanStarted(true);
+                   setWeightPlanCompletedDays(prev => prev.length > 0 ? prev : [1, 2, 3, 5]);
+                   setWeightPlanRewardBoxes(prev => prev.length > 0 ? prev : [1, 2, 3, 5]);
+                 }}
                  onOpenReward={handleWeightPlanRewardOpen}
                  onClaimActivationTask={() => {
                    setUserStats(prev => ({

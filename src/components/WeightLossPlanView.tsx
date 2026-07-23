@@ -95,12 +95,14 @@ export default function WeightLossPlanView({
   const rewardHistoryView = showCompletionPreview ? previewRewardHistory : rewardHistory;
   const isPlanVisible = started || showCompletionPreview;
   const completedSet = new Set(completedDaysView);
-  const nextDay = Math.min(completedDaysView.length + 1, PLAN_WINDOW_DAYS);
+  const latestReachedDay = completedDaysView.length > 0 ? Math.max(...completedDaysView) + 1 : 1;
+  const nextDay = Math.min(latestReachedDay, PLAN_WINDOW_DAYS);
   const [displayDay, setDisplayDay] = useState(Math.max(1, completedDays.length));
   const activeDay = Math.min(displayDay, PLAN_WINDOW_DAYS);
   const todayRoute = routeOverrides[activeDay] || planRoutes[activeDay - 1];
   const todayCompleted = completedSet.has(activeDay);
   const isFutureDay = activeDay > nextDay;
+  const isExpiredDay = isPlanVisible && !showCompletionPreview && !todayCompleted && activeDay < nextDay;
   const planComplete = completedDaysView.length >= COMPLETION_TARGET_DAYS;
   const nextRewardDay = WEIGHT_PLAN_REWARD_DAYS.find(day => day > completedDaysView.length);
   const activationTaskClaimed = !!newbieTasks?.activationClaimed;
@@ -115,6 +117,10 @@ export default function WeightLossPlanView({
   const handleRewardPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
     const scroller = rewardScrollerRef.current;
     if (!scroller) return;
+    if ((event.target as HTMLElement).closest('button')) {
+      rewardDragRef.current.moved = 0;
+      return;
+    }
 
     rewardDragRef.current = {
       active: true,
@@ -139,7 +145,7 @@ export default function WeightLossPlanView({
     }
   };
   const handleShuffleRoute = () => {
-    if (!todayRoute || todayCompleted || isFutureDay) return;
+    if (!todayRoute || todayCompleted || isFutureDay || isExpiredDay) return;
 
     const cities = CITIES.filter(city => city.status !== 'upcoming' && city.id !== todayRoute.cityId);
     const city = cities[Math.floor(Math.random() * cities.length)];
@@ -163,7 +169,7 @@ export default function WeightLossPlanView({
       onClaimFirstRouteTask?.();
       return;
     }
-    if (!todayRoute || isFutureDay || todayCompleted) return;
+    if (!todayRoute || isFutureDay || isExpiredDay || todayCompleted) return;
     if (!started) onStartPlan();
     onNavigateToRouteDetail(todayRoute.cityId, todayRoute.routeIndex, todayRoute.image, todayRoute.day);
   };
@@ -182,6 +188,11 @@ export default function WeightLossPlanView({
       setResult(null);
     }
   }, [showCompletionPreview]);
+
+  useEffect(() => {
+    if (!started || showCompletionPreview) return;
+    setDisplayDay(nextDay);
+  }, [nextDay, showCompletionPreview, started]);
 
   const showToast = (message: string) => {
     setToast(message);
@@ -468,6 +479,15 @@ export default function WeightLossPlanView({
                         已完成
                       </div>
                     </div>
+                  ) : isExpiredDay ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="mx-3 mb-3 flex h-11 w-[calc(100%-24px)] items-center justify-center gap-2 rounded-full border border-slate-500/15 bg-slate-700/10 text-sm font-black text-slate-500"
+                    >
+                      <Lock size={16} />
+                      已过期
+                    </button>
                   ) : isFutureDay ? (
                     <button
                       type="button"
@@ -518,15 +538,15 @@ export default function WeightLossPlanView({
                 const record = rewardHistoryView.find(item => item.day === day);
                 const isOpening = openingRewardDay === day;
                 const isNext = !earned && day === nextRewardDay;
+                const expired = isPlanVisible && !showCompletionPreview && !earned && day < nextDay;
                 const amount = opened ? record?.amount : getWeightPlanRewardAmount(day);
                 const label = `第${day}天`;
                 return (
                   <button
                     key={day}
                     type="button"
-                    disabled={!earned || opened || openingRewardDay !== null}
+                    disabled={!earned || opened || expired || openingRewardDay !== null}
                     onClick={() => {
-                      if (rewardDragRef.current.moved > 8) return;
                       if (earned && !opened) handleOpenReward(day);
                     }}
                     className={`group relative flex w-[62px] shrink-0 snap-start flex-col items-center pb-1 text-center transition ${
@@ -535,7 +555,7 @@ export default function WeightLossPlanView({
                   >
                     {index < WEIGHT_PLAN_REWARD_DAYS.length - 1 && (
                       <span className={`pointer-events-none absolute left-[66%] top-7 h-px w-[74%] border-t ${
-                        earned ? 'border-dashed border-rose-300/50' : 'border-dashed border-white/12'
+                        earned ? 'border-dashed border-rose-300/50' : expired ? 'border-dashed border-slate-600/25' : 'border-dashed border-white/12'
                       }`} />
                     )}
                     <div className={`relative z-10 flex h-12 w-12 items-center justify-center rounded-2xl transition ${
@@ -543,6 +563,8 @@ export default function WeightLossPlanView({
                         ? 'border border-emerald-200/25 bg-gradient-to-br from-white/[0.16] via-white/[0.08] to-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]'
                         : earned
                           ? 'bg-gradient-to-br from-[#ff6a5d] via-[#f43f5e] to-[#fb923c] shadow-[0_10px_24px_rgba(244,63,94,0.28),0_0_0_1px_rgba(255,255,255,0.10)] ring-1 ring-amber-200/20'
+                          : expired
+                            ? 'border border-slate-500/15 bg-gradient-to-br from-slate-700/22 via-slate-800/18 to-slate-950/30 opacity-45 grayscale'
                           : isNext
                             ? 'bg-gradient-to-br from-[#7c4039] via-[#8b3d52] to-[#a35a36] shadow-[0_8px_20px_rgba(251,146,60,0.14)]'
                             : 'bg-gradient-to-br from-white/[0.08] via-white/[0.04] to-white/[0.02] opacity-55 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]'
@@ -562,7 +584,7 @@ export default function WeightLossPlanView({
                       )}
                     </div>
                     <p className={`mt-2 font-mono text-sm font-black tabular-nums ${
-                      opened ? 'text-slate-400' : earned ? 'text-rose-200' : isNext ? 'text-amber-200' : 'text-slate-500'
+                      opened ? 'text-slate-400' : earned ? 'text-rose-200' : expired ? 'text-slate-600 line-through decoration-slate-500/60' : isNext ? 'text-amber-200' : 'text-slate-500'
                     }`}>
                       {amount}
                     </p>
@@ -571,11 +593,13 @@ export default function WeightLossPlanView({
                         ? 'bg-emerald-300/10 text-emerald-200'
                         : earned
                           ? 'bg-rose-400/18 text-rose-100 shadow-[0_0_16px_rgba(251,113,133,0.18)]'
+                          : expired
+                            ? 'bg-slate-700/18 text-slate-500'
                           : isNext
                             ? 'text-amber-300'
                             : 'text-slate-500'
                     }`}>
-                      {opened ? '已领取' : earned ? '领取' : label}
+                      {opened ? '已领取' : earned ? '领取' : expired ? '已过期' : label}
                     </p>
                   </button>
                 );
