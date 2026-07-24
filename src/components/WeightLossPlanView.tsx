@@ -319,12 +319,14 @@ export default function WeightLossPlanView({
                 disabled={started || showCompletionPreview}
                 onClick={onStartPlan}
                 className={`mt-4 h-11 w-full rounded-full text-sm font-black shadow-[0_12px_28px_rgba(255,255,255,0.10)] active:scale-[0.98] ${
-                  started || showCompletionPreview
+                  planComplete
+                    ? 'border border-amber-200/30 bg-amber-300/12 text-amber-200 shadow-[0_12px_30px_rgba(251,191,36,0.12),inset_0_1px_0_rgba(255,255,255,0.08)]'
+                    : started || showCompletionPreview
                     ? 'border border-emerald-200/18 bg-emerald-300/10 text-emerald-200'
                     : 'bg-white text-slate-950'
                 }`}
               >
-                {started || showCompletionPreview ? '打卡已开启' : '开启30天打卡'}
+                {planComplete ? '打卡已结束' : started || showCompletionPreview ? '打卡已开启' : '开启30天打卡'}
               </button>
             </div>
           </section>
