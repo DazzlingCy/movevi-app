@@ -40,8 +40,17 @@ const WEIGHT_PLAN_REWARD_AMOUNTS: Record<number, string> = {
   30: '￥1.28'
 };
 export const getWeightPlanRewardAmount = (day: number) => WEIGHT_PLAN_REWARD_AMOUNTS[day] || '￥0.18';
+const PLAN_START_DATE = new Date('2026-07-21T00:00:00+08:00');
 const PLAN_WINDOW_DAYS = 30;
 const COMPLETION_TARGET_DAYS = 30;
+
+const getWeightPlanDateLabel = (day: number) => {
+  const date = new Date(PLAN_START_DATE);
+  date.setDate(PLAN_START_DATE.getDate() + day - 1);
+  const month = `${date.getMonth() + 1}`.padStart(2, '0');
+  const dayOfMonth = `${date.getDate()}`.padStart(2, '0');
+  return `${month}/${dayOfMonth}`;
+};
 
 const generatePlanRoutes = () => {
   const cities = CITIES.filter(city => city.status !== 'upcoming');
@@ -542,7 +551,7 @@ export default function WeightLossPlanView({
                 const isNext = !earned && day === nextRewardDay;
                 const expired = isPlanVisible && !showCompletionPreview && !earned && day < nextDay;
                 const amount = opened ? record?.amount : getWeightPlanRewardAmount(day);
-                const label = `第${day}天`;
+                const label = getWeightPlanDateLabel(day);
                 return (
                   <button
                     key={day}
