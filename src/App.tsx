@@ -1,35 +1,44 @@
-import { useState, useEffect } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { Compass, Trophy, Map as MapIcon, User, Gift, Medal, Sparkles, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import HomeTab from './components/HomeTab';
-import EventsTab from './components/EventsTab';
 import { CITIES, getRouteData } from './data/cities';
-import CitiesTab from './components/CitiesTab';
-import ProfileTab from './components/ProfileTab';
-import CityRoutesView from './components/CityRoutesView';
-import RouteDetailView from './components/RouteDetailView';
-import RouteMemoryView from './components/RouteMemoryView';
-import RunPlaybackView from './components/RunPlaybackView';
-import IntroScreen from './components/IntroScreen';
-import RouteCollectionView, {
-  type CollectionViewState,
-  type RouteCollectionIntent
-} from './components/RouteCollectionView';
-import LeaderboardView from './components/LeaderboardView';
-import WeekendMedleyView from './components/WeekendMedleyView';
-import TeamRelayView, { type TeamRelayMember, type TeamRelayTask } from './components/TeamRelayView';
-import GlowCenterView from './components/GlowCenterView';
-import GlowWheelView from './components/GlowWheelView';
-import MedalLotteryView from './components/MedalLotteryView';
-import WeightLossPlanView, { getWeightPlanRewardAmount, type WeightPlanRewardRecord } from './components/WeightLossPlanView';
+import type { CollectionViewState, RouteCollectionIntent } from './components/RouteCollectionView';
+import type { TeamRelayMember, TeamRelayTask } from './components/TeamRelayView';
 import {
   getGlowRank,
   getGlowWheelDailyExchangeLimit,
   type GlowValueRecord
 } from './lib/glow';
-import AuthView, { type AuthUser } from './components/AuthView';
-import SettingsView from './components/SettingsView';
-import AccountFeatureView, { type AccountFeatureKind } from './components/AccountFeatureView';
+import type { AuthUser } from './components/AuthView';
+import type { AccountFeatureKind } from './components/AccountFeatureView';
+import { getWeightPlanRewardAmount, type WeightPlanRewardRecord } from './lib/weightPlan';
+
+const EventsTab = lazy(() => import('./components/EventsTab'));
+const CitiesTab = lazy(() => import('./components/CitiesTab'));
+const ProfileTab = lazy(() => import('./components/ProfileTab'));
+const CityRoutesView = lazy(() => import('./components/CityRoutesView'));
+const RouteDetailView = lazy(() => import('./components/RouteDetailView'));
+const RouteMemoryView = lazy(() => import('./components/RouteMemoryView'));
+const RunPlaybackView = lazy(() => import('./components/RunPlaybackView'));
+const IntroScreen = lazy(() => import('./components/IntroScreen'));
+const RouteCollectionView = lazy(() => import('./components/RouteCollectionView'));
+const LeaderboardView = lazy(() => import('./components/LeaderboardView'));
+const WeekendMedleyView = lazy(() => import('./components/WeekendMedleyView'));
+const TeamRelayView = lazy(() => import('./components/TeamRelayView'));
+const GlowCenterView = lazy(() => import('./components/GlowCenterView'));
+const GlowWheelView = lazy(() => import('./components/GlowWheelView'));
+const MedalLotteryView = lazy(() => import('./components/MedalLotteryView'));
+const WeightLossPlanView = lazy(() => import('./components/WeightLossPlanView'));
+const AuthView = lazy(() => import('./components/AuthView'));
+const SettingsView = lazy(() => import('./components/SettingsView'));
+const AccountFeatureView = lazy(() => import('./components/AccountFeatureView'));
+
+const ViewLoadingFallback = () => (
+  <div className="flex h-full w-full items-center justify-center bg-[#05070A]" role="status" aria-label="页面加载中">
+    <div className="h-7 w-7 animate-spin rounded-full border-2 border-cyan-200/20 border-t-cyan-200" />
+  </div>
+);
 
 const ENABLE_GLOW_TASKS = false;
 const DEFAULT_LIT_CITY_IDS = ['2', '1'];
@@ -201,11 +210,11 @@ export default function App() {
   ];
 
   useEffect(() => {
-    const timer = window.setTimeout(() => {
+    const frame = window.requestAnimationFrame(() => {
       setShowSplash(false);
-    }, 1800);
+    });
 
-    return () => window.clearTimeout(timer);
+    return () => window.cancelAnimationFrame(frame);
   }, []);
 
   const issueNewbieCashReward = (reward: NewbieCashReward) => {
@@ -449,11 +458,13 @@ export default function App() {
       </AnimatePresence>
       <AnimatePresence>
         {showIntro && (
-          <IntroScreen 
-            onComplete={() => {
-              setShowIntro(false);
-            }} 
-          />
+          <Suspense fallback={null}>
+            <IntroScreen
+              onComplete={() => {
+                setShowIntro(false);
+              }}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
       <main className="flex-1 relative overflow-hidden bg-[#05070A]">
@@ -466,7 +477,9 @@ export default function App() {
             transition={{ duration: 0.2 }}
             className="w-full h-full"
           >
-            {renderContent()}
+            <Suspense fallback={<ViewLoadingFallback />}>
+              {renderContent()}
+            </Suspense>
           </motion.div>
         </AnimatePresence>
       </main>
@@ -515,6 +528,7 @@ export default function App() {
             exit={{ opacity: 0, y: 50 }}
             className="absolute inset-0 z-[100] bg-[#05070A]"
           >
+            <Suspense fallback={<ViewLoadingFallback />}>
             {fullScreenPage.type === 'cityRoutes' && (
                <CityRoutesView 
                  city={fullScreenPage.data} 
@@ -951,6 +965,7 @@ export default function App() {
                  }}
                />
             )}
+            </Suspense>
           </motion.div>
         )}
       </AnimatePresence>
