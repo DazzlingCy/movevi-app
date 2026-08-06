@@ -44,6 +44,7 @@ const COUNTRIES_TOPOLOGY_URL = `${viteBaseUrl}globe/countries-110m.json`;
 const CAMERA_ALTITUDE = 1.78;
 const REDUCED_CAMERA_ALTITUDE = 1.95;
 const HOME_CAMERA_ALTITUDE = 4.2;
+const GLOBE_BOOTSTRAP_RETRY_MS = 120;
 
 type CountryPolygon = {
   type: string;
@@ -286,6 +287,7 @@ export default function WorldGlobe({ cities, focusCityId, targetFlight, onCityCl
   const onFlightCompleteRef = useRef(onFlightComplete);
   const controlHandlersRef = useRef<{ start?: () => void; end?: () => void }>({});
   const readyRef = useRef(false);
+  const configuringRef = useRef(false);
   const { ref: containerRef, size } = useContainerSize();
   const reducedMotion = useReducedMotion();
   const [isReady, setIsReady] = useState(false);
@@ -394,49 +396,84 @@ export default function WorldGlobe({ cities, focusCityId, targetFlight, onCityCl
 
   const configureGlobe = useCallback(() => {
     const globe = globeRef.current;
-    if (!globe || readyRef.current) return;
-    readyRef.current = true;
+    if (!globe || readyRef.current || configuringRef.current) return false;
 
-    const renderer = globe.renderer();
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-    renderer.setClearColor(0x000000, 0);
+    configuringRef.current = true;
+    try {
+      const renderer = globe.renderer();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+      renderer.setClearColor(0x000000, 0);
 
-    const controls = globe.controls();
-    controls.enablePan = false;
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.rotateSpeed = 0.52;
-    controls.zoomSpeed = 0.72;
-    controls.minDistance = 190;
-    controls.maxDistance = 520;
-    const handleControlStart = () => {
-      setAutoRotate(false);
+      const controls = globe.controls();
+      controls.enablePan = false;
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.rotateSpeed = 0.52;
+      controls.zoomSpeed = 0.72;
+      controls.minDistance = 190;
+      controls.maxDistance = 520;
+
+      const previousHandlers = controlHandlersRef.current;
+      if (previousHandlers.start) controls.removeEventListener('start', previousHandlers.start);
+      if (previousHandlers.end) controls.removeEventListener('end', previousHandlers.end);
+
+      const handleControlStart = () => {
+        setAutoRotate(false);
+        clearIdleTimer();
+      };
+      const handleControlEnd = () => scheduleAutoRotate();
+      controlHandlersRef.current = { start: handleControlStart, end: handleControlEnd };
+      controls.addEventListener('start', handleControlStart);
+      controls.addEventListener('end', handleControlEnd);
+
+      const ambient = new THREE.AmbientLight(0x7dd3fc, 1.35);
+      const key = new THREE.DirectionalLight(0xdff7ff, 1.7);
+      key.position.set(-1.6, 1.2, 2.4);
+      const rim = new THREE.DirectionalLight(0x2dd4bf, 0.85);
+      rim.position.set(2.2, -0.8, -1.1);
+      globe.lights([ambient, key, rim]);
+
+      const city = cities.find(item => item.id === focusCityId)
+        || cities.find(item => item.status === 'in-progress')
+        || cities.find(item => item.status === 'lit')
+        || cities[0];
+      if (city) {
+        focusCity(city, 850, HOME_CAMERA_ALTITUDE);
+        homeFocusCityIdRef.current = city.id;
+      }
       clearIdleTimer();
-    };
-    const handleControlEnd = () => scheduleAutoRotate();
-    controlHandlersRef.current = { start: handleControlStart, end: handleControlEnd };
-    controls.addEventListener('start', handleControlStart);
-    controls.addEventListener('end', handleControlEnd);
-
-    const ambient = new THREE.AmbientLight(0x7dd3fc, 1.35);
-    const key = new THREE.DirectionalLight(0xdff7ff, 1.7);
-    key.position.set(-1.6, 1.2, 2.4);
-    const rim = new THREE.DirectionalLight(0x2dd4bf, 0.85);
-    rim.position.set(2.2, -0.8, -1.1);
-    globe.lights([ambient, key, rim]);
-
-    const city = cities.find(item => item.id === focusCityId)
-      || cities.find(item => item.status === 'in-progress')
-      || cities.find(item => item.status === 'lit')
-      || cities[0];
-    if (city) {
-      focusCity(city, 850, HOME_CAMERA_ALTITUDE);
-      homeFocusCityIdRef.current = city.id;
+      setAutoRotate(false);
+      scheduleAutoRotate();
+      readyRef.current = true;
+      setIsReady(true);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      configuringRef.current = false;
     }
-    clearIdleTimer();
-    setAutoRotate(false);
-    setIsReady(true);
-  }, [cities, clearIdleTimer, focusCity, focusCityId, setAutoRotate]);
+  }, [cities, clearIdleTimer, focusCity, focusCityId, scheduleAutoRotate, setAutoRotate]);
+
+  useEffect(() => {
+    if (!webglAvailable || isReady || size.width <= 1 || size.height <= 1) return;
+
+    let cancelled = false;
+    let retryTimer: number | null = null;
+
+    const attemptBootstrap = () => {
+      if (cancelled || readyRef.current) return;
+      if (!configureGlobe()) {
+        retryTimer = window.setTimeout(attemptBootstrap, GLOBE_BOOTSTRAP_RETRY_MS);
+      }
+    };
+
+    const animationFrame = window.requestAnimationFrame(attemptBootstrap);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(animationFrame);
+      if (retryTimer) window.clearTimeout(retryTimer);
+    };
+  }, [configureGlobe, isReady, size.height, size.width, webglAvailable]);
 
   useEffect(() => {
     if (!isReady || !readyRef.current || targetFlight || !focusCityId) return;
@@ -449,7 +486,8 @@ export default function WorldGlobe({ cities, focusCityId, targetFlight, onCityCl
     setAutoRotate(false);
     focusCity(city, 720, HOME_CAMERA_ALTITUDE);
     homeFocusCityIdRef.current = city.id;
-  }, [clearIdleTimer, focusCity, focusCityId, isReady, setAutoRotate, targetFlight]);
+    scheduleAutoRotate();
+  }, [clearIdleTimer, focusCity, focusCityId, isReady, scheduleAutoRotate, setAutoRotate, targetFlight]);
 
   useEffect(() => {
     const globe = globeRef.current;
