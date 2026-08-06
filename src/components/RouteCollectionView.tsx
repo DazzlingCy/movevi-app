@@ -65,6 +65,7 @@ interface RouteCollectionViewProps {
   newlyCollectedRouteKey: string | null;
   onViewStateChange: (nextState: CollectionViewState) => void;
   onBack: () => void;
+  onOpenCityRoutes: (cityId: string) => void;
   onOpenRoute: (
     cityId: string,
     routeIndex: number,
@@ -129,6 +130,7 @@ export default function RouteCollectionView({
   newlyCollectedRouteKey,
   onViewStateChange,
   onBack,
+  onOpenCityRoutes,
   onOpenRoute,
   onCollectionCelebrationComplete
 }: RouteCollectionViewProps) {
@@ -244,7 +246,7 @@ export default function RouteCollectionView({
         >
           <ChevronLeft size={21} />
         </button>
-        <h1 className="flex-1 text-center text-lg font-black tracking-wide text-white">路线图鉴</h1>
+        <h1 className="flex-1 text-center text-lg font-black tracking-wide text-white">城市图鉴</h1>
         <button
           type="button"
           onClick={() => onViewStateChange({ ...viewState, viewMode: 'timeline', filter: 'all', continent: 'all', expandedCityId: null })}
@@ -361,7 +363,11 @@ export default function RouteCollectionView({
           onClose={() => setPreviewCityId(null)}
           onOpenRoutes={() => {
             setPreviewCityId(null);
-            onViewStateChange({ ...viewState, expandedCityId: previewPassport.city.id });
+            if (previewPassport.status === 'lit') {
+              onViewStateChange({ ...viewState, expandedCityId: previewPassport.city.id });
+            } else {
+              onOpenCityRoutes(previewPassport.city.id);
+            }
           }}
         />
       )}
@@ -595,17 +601,12 @@ function CityCardPreviewDialog({
             className={`absolute inset-0 h-full w-full object-cover ${unlocked ? 'opacity-90 saturate-125 contrast-105' : 'grayscale opacity-22'}`}
           />
           <div className={`absolute inset-0 ${unlocked ? 'bg-[linear-gradient(0deg,rgba(18,17,13,0.96),rgba(18,17,13,0.02)_72%),linear-gradient(120deg,rgba(3,7,18,0.1),rgba(69,48,8,0.42))]' : 'bg-[linear-gradient(0deg,rgba(3,7,18,0.98),rgba(3,7,18,0.25)_72%),linear-gradient(120deg,rgba(3,7,18,0.45),rgba(3,7,18,0.82))]'}`} />
-          {!unlocked && (
-            <div className="absolute left-1/2 top-[42%] flex -translate-x-1/2 -rotate-6 items-center gap-2 rounded-full border border-slate-500/35 bg-slate-950/70 px-4 py-2 text-[10px] font-black tracking-[0.16em] text-slate-400 backdrop-blur-md" aria-hidden="true">
-              <LockKeyhole size={14} />
-              尚未解锁
-            </div>
-          )}
-
           <div className="relative flex h-full flex-col justify-between p-6">
             <div>
               <p className="text-[9px] font-black tracking-[0.24em] text-cyan-100/70">MOVEVI CITY CARD</p>
-              <p className="mt-1 font-mono text-[9px] tracking-[0.12em] text-white/40">NO. {passport.city.id.padStart(3, '0')}</p>
+              {unlocked && (
+                <p className="mt-1 font-mono text-[9px] tracking-[0.12em] text-white/40">NO. {passport.city.id.padStart(3, '0')}</p>
+              )}
             </div>
 
             <div>
@@ -632,8 +633,9 @@ function CityCardPreviewDialog({
           type="button"
           onClick={onOpenRoutes}
           className="mt-3 flex min-h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-cyan-300 px-5 text-xs font-black text-slate-950 transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100"
+          aria-label={unlocked ? `查看${passport.city.name}路线勋章` : `查看${passport.city.name}城市路线`}
         >
-          查看城市路线
+          {unlocked ? '查看勋章' : '查看城市路线'}
           <ChevronRight size={16} />
         </button>
       </motion.section>
