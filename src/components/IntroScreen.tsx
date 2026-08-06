@@ -60,7 +60,7 @@ export default function IntroScreen({ onComplete }: IntroScreenProps) {
             className="absolute inset-0"
           >
             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#05070A]/80 to-[#05070A] z-10" />
-            <img src={step.image} alt={step.title} className="w-full h-full object-cover" />
+            <img src={step.image} alt={step.title} className="w-full h-full object-cover" loading="lazy" decoding="async" />
           </motion.div>
         </AnimatePresence>
         

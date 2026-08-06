@@ -2,13 +2,8 @@ import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointer
 import { AnimatePresence, motion } from 'motion/react';
 import { Award, CheckCircle2, ChevronLeft, Flame, Gift, Lock, MapPin, Play, Route, Shuffle, Sparkles, Timer, Trophy } from 'lucide-react';
 import { CITIES, getRouteData } from '../data/cities';
+import { getWeightPlanRewardAmount, type WeightPlanRewardRecord } from '../lib/weightPlan';
 import CityImage from './CityImage';
-
-export interface WeightPlanRewardRecord {
-  day: number;
-  amount: string;
-  openedAt: string;
-}
 
 interface WeightLossPlanViewProps {
   started: boolean;
@@ -32,14 +27,6 @@ interface WeightLossPlanViewProps {
 
 const MILESTONE_DAYS = [1, 7, 15, 21, 30];
 export const WEIGHT_PLAN_REWARD_DAYS = Array.from({ length: 30 }, (_, index) => index + 1);
-const WEIGHT_PLAN_REWARD_AMOUNTS: Record<number, string> = {
-  1: '￥0.38',
-  7: '￥0.68',
-  15: '￥0.88',
-  21: '￥1.08',
-  30: '￥1.28'
-};
-export const getWeightPlanRewardAmount = (day: number) => WEIGHT_PLAN_REWARD_AMOUNTS[day] || '￥0.18';
 const PLAN_START_DATE = new Date('2026-07-21T00:00:00+08:00');
 const PLAN_WINDOW_DAYS = 30;
 const COMPLETION_TARGET_DAYS = 30;

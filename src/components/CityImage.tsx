@@ -41,6 +41,8 @@ export default function CityImage({ src, alt, className, fallbackLabel, referrer
         src={src}
         alt={alt}
         className={className}
+        loading="lazy"
+        decoding="async"
         referrerPolicy={referrerPolicy}
         onError={() => setFailed(true)}
       />

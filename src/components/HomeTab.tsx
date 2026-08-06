@@ -4,8 +4,9 @@ import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, Activity, Compass, Ref
 import { CITIES, CityData } from '../data/cities';
 import { cn } from '../lib/utils';
 import { getGlowRank } from '../lib/glow';
-import WorldGlobe from './WorldGlobe';
 import CityImage from './CityImage';
+
+const WorldGlobe = React.lazy(() => import('./WorldGlobe'));
 
 const ENABLE_GLOW_TASKS = false;
 
@@ -23,6 +24,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [showSwitchConfirm, setShowSwitchConfirm] = useState(false);
   const [showTaskPanel, setShowTaskPanel] = useState(false);
+  const [globeReady, setGlobeReady] = useState(false);
   const [rewardBurst, setRewardBurst] = useState<{ id: number; reward: number; title: string } | null>(null);
   const [broadcastIndex, setBroadcastIndex] = useState(0);
   const glowRankDetails = getGlowRank(userStats?.lifetimeLightValue ?? userStats?.lightValue ?? 0);
@@ -36,6 +38,11 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
     6: { ring: 'from-rose-100 via-amber-200 to-yellow-500', shadow: 'shadow-[0_0_22px_rgba(251,113,133,0.5)]', badge: 'text-rose-100' }
   };
   const avatarFrame = avatarFrameStyles[currentGlowRank.level] || avatarFrameStyles[1];
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setGlobeReady(true), 250);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (userStats?.dailyTreadmillStarted) {
@@ -295,12 +302,24 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
         <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#081827] via-[#081827]/62 to-transparent" />
       </div>
 
-      <WorldGlobe
-        cities={CITIES}
-        targetFlight={targetFlight}
-        onCityClick={handleCityClick}
-        onFlightComplete={onFlightComplete}
-      />
+      {globeReady ? (
+        <React.Suspense
+          fallback={(
+            <div className="absolute inset-0 flex items-center justify-center" role="status" aria-label="地球加载中">
+              <div className="h-20 w-20 animate-pulse rounded-full border border-cyan-200/20 bg-cyan-200/5 shadow-[0_0_60px_rgba(34,211,238,0.12)]" />
+            </div>
+          )}
+        >
+          <WorldGlobe
+            cities={CITIES}
+            targetFlight={targetFlight}
+            onCityClick={handleCityClick}
+            onFlightComplete={onFlightComplete}
+          />
+        </React.Suspense>
+      ) : (
+        <div className="absolute inset-0" aria-hidden="true" />
+      )}
 
       {/* HUD: Top Overlay */}
       <div className="absolute top-0 left-0 right-0 px-5 pt-5 z-20 flex items-start justify-between gap-3 pointer-events-none bg-gradient-to-b from-[#081827]/68 to-transparent">

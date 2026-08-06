@@ -21,6 +21,8 @@ import { motion, useReducedMotion } from 'motion/react';
 import { CITIES, CONTINENTS_ORDER, getRouteData, type CityData } from '../data/cities';
 import CityImage from './CityImage';
 
+const viteBaseUrl = ((import.meta as ImportMeta & { env?: { BASE_URL?: string } }).env?.BASE_URL || '/');
+
 export type CollectionFilter = 'all' | 'collected' | 'uncollected';
 export type CollectionViewMode = 'cards' | 'timeline';
 export type RouteCollectionIntent = 'review' | 'collect';
@@ -268,7 +270,12 @@ export default function RouteCollectionView({
                 <p className="mt-1 text-[11px] font-bold text-slate-500">完成城市路线，收集景点勋章，解锁专属城市卡片。</p>
               </div>
               <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 border-cyan-200/40 bg-black shadow-[0_0_25px_rgba(34,211,238,0.18)]">
-                <img src="/globe/earth-passport.jpg" alt="地球" className="h-full w-full scale-110 object-cover" />
+                <img
+                  src={`${viteBaseUrl}globe/earth-passport.jpg`}
+                  alt="地球"
+                  className="h-full w-full scale-110 object-cover"
+                  decoding="async"
+                />
               </div>
             </div>
 
