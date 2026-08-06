@@ -3,28 +3,67 @@ import { Compass, Trophy, Map as MapIcon, User, Gift, Medal, Sparkles, X } from 
 import { motion, AnimatePresence } from 'motion/react';
 import HomeTab from './components/HomeTab';
 import EventsTab from './components/EventsTab';
-import { CITIES } from './data/cities';
+import { CITIES, getRouteData } from './data/cities';
 import CitiesTab from './components/CitiesTab';
 import ProfileTab from './components/ProfileTab';
 import CityRoutesView from './components/CityRoutesView';
 import RouteDetailView from './components/RouteDetailView';
+import RouteMemoryView from './components/RouteMemoryView';
 import RunPlaybackView from './components/RunPlaybackView';
 import IntroScreen from './components/IntroScreen';
-import LitRecordsView from './components/LitRecordsView';
+import RouteCollectionView, {
+  type CollectionViewState,
+  type RouteCollectionIntent
+} from './components/RouteCollectionView';
 import LeaderboardView from './components/LeaderboardView';
 import WeekendMedleyView from './components/WeekendMedleyView';
 import TeamRelayView, { type TeamRelayMember, type TeamRelayTask } from './components/TeamRelayView';
-import GlowCenterView, { type GlowExchangeType } from './components/GlowCenterView';
+import GlowCenterView from './components/GlowCenterView';
 import GlowWheelView from './components/GlowWheelView';
 import MedalLotteryView from './components/MedalLotteryView';
 import WeightLossPlanView, { getWeightPlanRewardAmount, type WeightPlanRewardRecord } from './components/WeightLossPlanView';
-import { getGlowRank, getGlowWheelDailyExchangeLimit } from './lib/glow';
+import {
+  getGlowRank,
+  getGlowWheelDailyExchangeLimit,
+  type GlowValueRecord
+} from './lib/glow';
+import AuthView, { type AuthUser } from './components/AuthView';
+import SettingsView from './components/SettingsView';
+import AccountFeatureView, { type AccountFeatureKind } from './components/AccountFeatureView';
 
 const ENABLE_GLOW_TASKS = false;
 const DEFAULT_LIT_CITY_IDS = ['2', '1'];
+const DEFAULT_ROUTE_HISTORY = [
+  { cityId: '15', routeId: 1, daysAgo: 0, hour: 12, minute: 14 },
+  { cityId: '2', routeId: 3, daysAgo: 1, hour: 14, minute: 14 },
+  { cityId: '2', routeId: 2, daysAgo: 1, hour: 9, minute: 36 },
+  { cityId: '2', routeId: 1, daysAgo: 2, hour: 14, minute: 14 },
+  { cityId: '1', routeId: 3, daysAgo: 3, hour: 14, minute: 14 },
+  { cityId: '1', routeId: 2, daysAgo: 4, hour: 14, minute: 14 },
+  { cityId: '1', routeId: 1, daysAgo: 5, hour: 14, minute: 14 }
+] as const;
 const DEFAULT_IN_PROGRESS_CITY_ID = '15';
 const DEFAULT_IN_PROGRESS_COMPLETED_ROUTE_INDICES = [1];
 const DEFAULT_MAIN_CITY_SEQUENCE = [...DEFAULT_LIT_CITY_IDS, DEFAULT_IN_PROGRESS_CITY_ID];
+
+const createDefaultGlowValueRecords = (): GlowValueRecord[] => {
+  const at = (daysAgo: number, hour: number, minute: number) => {
+    const date = new Date();
+    date.setDate(date.getDate() - daysAgo);
+    date.setHours(hour, minute, 0, 0);
+    return date.getTime();
+  };
+
+  return [
+    { id: 'demo-1', type: 'earn', title: '完成新加坡深度探索路线', description: '3 公里 + 路线完成', amount: 4, createdAt: at(0, 12, 14) },
+    { id: 'demo-2', type: 'spend', title: '切换探索城市', description: '重新选择下一座城市', amount: 3, createdAt: at(0, 10, 5) },
+    { id: 'demo-3', type: 'earn', title: '完成北京深度探索路线', description: '5 公里 + 路线完成', amount: 6, createdAt: at(1, 14, 14) },
+    { id: 'demo-4', type: 'earn', title: '点亮北京全部路线', description: '城市全路线完成奖励', amount: 10, createdAt: at(1, 14, 13) },
+    { id: 'demo-5', type: 'earn', title: '完成奥森无限绿意', description: '10 公里 + 路线完成', amount: 11, createdAt: at(1, 9, 36) },
+    { id: 'demo-6', type: 'spend', title: '切换探索城市', description: '重新选择下一座城市', amount: 3, createdAt: at(2, 16, 20) },
+    { id: 'demo-7', type: 'earn', title: '完成故宫角楼掠影', description: '4 公里 + 路线完成', amount: 5, createdAt: at(2, 14, 14) }
+  ];
+};
 
 type NewbieCashReward = {
   id: 'activate-treadmill' | 'first-route' | 'thirty-day-plan';
@@ -43,7 +82,19 @@ export default function App() {
   const [showRouteMedalGuide, setShowRouteMedalGuide] = useState(false);
   const [newbieCashReward, setNewbieCashReward] = useState<NewbieCashReward | null>(null);
   const [taskPanelOpenSignal, setTaskPanelOpenSignal] = useState(0);
-  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'runPlayback' | 'litRecords' | 'leaderboard' | 'weekendMedley' | 'teamRelay' | 'glowCenter' | 'glowWheel' | 'medalLottery' | 'weightLossPlan', data?: any} | null>(null);
+  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'routeMemory' | 'runPlayback' | 'routeCollection' | 'leaderboard' | 'weekendMedley' | 'teamRelay' | 'glowCenter' | 'glowWheel' | 'medalLottery' | 'weightLossPlan' | 'auth' | 'settings' | 'accountFeature', data?: any} | null>(null);
+  const [collectionViewState, setCollectionViewState] = useState<CollectionViewState>({
+    viewMode: 'cards',
+    filter: 'all',
+    continent: 'all',
+    expandedCityId: null
+  });
+  const [newlyCollectedRouteKey, setNewlyCollectedRouteKey] = useState<string | null>(null);
+  const [authUser, setAuthUser] = useState<AuthUser | null>({
+    name: '沐小六',
+    phone: '13800003026',
+    memberId: 'MV-3026'
+  });
 
   // Weekend City Memory Medley Activity states
   const [medleySelectedRouteIds, setMedleySelectedRouteIds] = useState<string[]>([]);
@@ -72,11 +123,13 @@ export default function App() {
   const [weightPlanOpenedRewardDays, setWeightPlanOpenedRewardDays] = useState<number[]>([]);
   const [weightPlanRewardHistory, setWeightPlanRewardHistory] = useState<WeightPlanRewardRecord[]>([]);
   const [litCityIds, setLitCityIds] = useState<string[]>(() => {
+    const historyAnchor = Date.now();
     CITIES.forEach(c => {
       if (c.status !== 'upcoming') c.status = 'unlit';
       c.completed = 0;
       c.completedRouteIndices = [];
       c.completedRouteTimestamps = {};
+      c.completedRouteStats = {};
       c.justLit = false;
     });
     CITIES.forEach(c => {
@@ -90,6 +143,26 @@ export default function App() {
         c.completedRouteIndices = DEFAULT_IN_PROGRESS_COMPLETED_ROUTE_INDICES;
       }
     });
+    DEFAULT_ROUTE_HISTORY.forEach(({ cityId, routeId, daysAgo, hour, minute }) => {
+      const city = CITIES.find(item => item.id === cityId);
+      if (!city) return;
+      const collectedAt = new Date(historyAnchor);
+      collectedAt.setDate(collectedAt.getDate() - daysAgo);
+      collectedAt.setHours(hour, minute, 0, 0);
+      city.completedRouteTimestamps = city.completedRouteTimestamps || {};
+      city.completedRouteTimestamps[routeId] = collectedAt.getTime();
+      const routeData = getRouteData(cityId, routeId);
+      const distance = Number(routeData.distance) || 0;
+      const [durationMinutes = 0, durationSeconds = 0] = routeData.duration.split(':').map(Number);
+      city.completedRouteStats = city.completedRouteStats || {};
+      city.completedRouteStats[routeId] = {
+        completedAt: collectedAt.getTime(),
+        distance,
+        durationSeconds: durationMinutes * 60 + durationSeconds,
+        calories: Number(routeData.calories) || Math.round(distance * 65),
+        lightValueEarned: Math.floor(distance) + 1 + (routeId === city.routes ? 10 : 0)
+      };
+    });
     return DEFAULT_MAIN_CITY_SEQUENCE;
   });
 
@@ -102,7 +175,8 @@ export default function App() {
     totalDistance: 62.0,
     totalTimeHours: 12.0,
     lightValue: 120,
-    lifetimeLightValue: 120,
+    lifetimeLightValue: 130,
+    glowValueRecords: createDefaultGlowValueRecords(),
     dailyCheckedIn: false,
     dailyDistance: 0,
     dailyTreadmillStarted: false,
@@ -111,10 +185,6 @@ export default function App() {
     claimedDailyTaskIds: [] as string[],
     claimedWeeklyTaskIds: [] as string[],
     medalMysteryTickets: 0,
-    weeklyGlowExchangeIds: [] as string[],
-    unlockedGlowPerkIds: [] as string[],
-    claimedGlowRankRewardLevels: [] as number[],
-    glowRankRewardHistory: [] as Array<{ level: number; amount: string; claimedAt: string }>,
     glowWheelChances: 0,
     dailyGlowWheelExchangeCount: 0,
     glowWheelDrawHistory: [] as Array<{ id: string; amount: number; createdAt: string }>,
@@ -188,7 +258,12 @@ export default function App() {
               description: '首次下载并连接跑步机激活成功'
             });
           }}
-          onNavigate={(type, data) => setFullScreenPage({ type: type as any, data })} 
+          onNavigate={(type, data) => {
+            if (type === 'routeCollection') {
+              setCollectionViewState(prev => ({ ...prev, expandedCityId: null }));
+            }
+            setFullScreenPage({ type: type as any, data });
+          }}
           completedChapters={completedChapters} 
           targetFlight={targetFlight} 
           pendingSelectionFrom={pendingSelectionFrom}
@@ -235,137 +310,40 @@ export default function App() {
       case 'cities':
         return <CitiesTab onCityClick={(city) => setFullScreenPage({ type: 'cityRoutes', data: city })} />;
       case 'profile':
-        return <ProfileTab userStats={userStats} />;
+        return (
+          <ProfileTab
+            userStats={userStats}
+            authUser={authUser}
+            onOpenAuth={() => setFullScreenPage({ type: 'auth' })}
+            onOpenSettings={() => setFullScreenPage({ type: 'settings' })}
+            onOpenFeature={(feature: AccountFeatureKind) => setFullScreenPage({ type: 'accountFeature', data: feature })}
+            onOpenRouteCollection={() => {
+              setCollectionViewState(prev => ({ ...prev, expandedCityId: null }));
+              setFullScreenPage({ type: 'routeCollection' });
+            }}
+          />
+        );
       default:
         return <HomeTab userStats={userStats} setUserStats={setUserStats} />;
     }
   };
 
-  const handleGlowExchange = (type: GlowExchangeType) => {
-    const exchangeMeta = {
-      activityTicket: { title: '串烧补给券', cost: 10, requiredRankLevel: 3, weeklyLimit: 1, oneTime: false },
-      rerollCity: { title: '下一城重选券', cost: 3, requiredRankLevel: 0, weeklyLimit: 0, oneTime: false },
-      medalMysteryTicket: { title: '勋章盲盒抽奖券', cost: 10, requiredRankLevel: 3, weeklyLimit: 1, oneTime: false },
-      silverTrail: { title: '银光路线主题', cost: 8, requiredRankLevel: 2, weeklyLimit: 0, oneTime: true },
-      diamondFrame: { title: '钻石头像框', cost: 20, requiredRankLevel: 4, weeklyLimit: 0, oneTime: true },
-      starlightBadge: { title: '星耀徽记', cost: 30, requiredRankLevel: 5, weeklyLimit: 0, oneTime: true },
-      kingNameplate: { title: '王者铭牌', cost: 50, requiredRankLevel: 6, weeklyLimit: 0, oneTime: true }
-    }[type];
-    const currentGlowRank = getGlowRank(userStats.lifetimeLightValue ?? userStats.lightValue ?? 0).current;
-    const weeklyGlowExchangeIds = userStats.weeklyGlowExchangeIds || [];
-
-    if (exchangeMeta.requiredRankLevel && currentGlowRank.level < exchangeMeta.requiredRankLevel) {
-      return { success: false, message: '黄金段位以上可兑换' };
-    }
-
-    if (exchangeMeta.weeklyLimit && weeklyGlowExchangeIds.includes(type)) {
-      return { success: false, message: '本周已兑换' };
-    }
-
-    if (exchangeMeta.oneTime && (userStats.unlockedGlowPerkIds || []).includes(type)) {
-      return { success: false, message: '该权益已拥有' };
-    }
-
-    if ((userStats.lightValue || 0) < exchangeMeta.cost) {
-      return { success: false, message: '光迹值不足' };
-    }
-
-    setUserStats(prev => ({
-      ...prev,
-      lightValue: Math.max(0, (prev.lightValue || 0) - exchangeMeta.cost),
-      medalMysteryTickets: type === 'medalMysteryTicket'
-        ? (prev.medalMysteryTickets || 0) + 1
-        : (prev.medalMysteryTickets || 0),
-      weeklyGlowExchangeIds: exchangeMeta.weeklyLimit
-        ? [...(prev.weeklyGlowExchangeIds || []), type]
-        : (prev.weeklyGlowExchangeIds || []),
-      unlockedGlowPerkIds: exchangeMeta.oneTime
-        ? [...(prev.unlockedGlowPerkIds || []), type]
-        : (prev.unlockedGlowPerkIds || [])
-    }));
-
-    if (type === 'activityTicket') {
-      setMedleyLotteryChances(prev => prev + 1);
-      return { success: true, message: '周末串烧抽奖机会 +1' };
-    }
-
-    if (type === 'medalMysteryTicket') {
-      return { success: true, message: '已获得勋章盲盒抽奖券' };
-    }
-
-    if (exchangeMeta.oneTime) {
-      return { success: true, message: `已解锁${exchangeMeta.title}` };
-    }
-
-    const currentCityId = CITIES.find(city => city.status === 'in-progress')?.id || litCityIds[litCityIds.length - 1] || '1';
-    setActiveTab('home');
-    setFullScreenPage(null);
-    setPendingSelectionFrom(currentCityId);
-    return { success: true, message: '已开启下一城重选' };
-  };
-
-  const handleClaimGlowRankReward = (level: number) => {
-    const currentGlowRank = getGlowRank(userStats.lifetimeLightValue ?? userStats.lightValue ?? 0).current;
-    if (level > currentGlowRank.level) {
-      return { success: false, message: '尚未达到该段位' };
-    }
-
-    if ((userStats.claimedGlowRankRewardLevels || []).includes(level)) {
-      return { success: false, message: '该段位红包已领取' };
-    }
-
-    const rewardAmounts: Record<number, string> = {
-      1: '0.18',
-      2: '0.38',
-      3: '0.88',
-      4: '1.88',
-      5: '5.88',
-      6: '8.88'
-    };
-    const amount = rewardAmounts[level] || '0.18';
-
-    setUserStats(prev => ({
-      ...prev,
-      claimedGlowRankRewardLevels: [...(prev.claimedGlowRankRewardLevels || []), level],
-      glowRankRewardHistory: [
-        {
-          level,
-          amount,
-          claimedAt: new Date().toLocaleString('zh-CN', {
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-          })
-        },
-        ...(prev.glowRankRewardHistory || [])
-      ]
-    }));
-
-    return { success: true, message: `获得段位红包 ¥${amount}`, amount };
-  };
-
-  const handleGlowWheelExchange = (cost: number) => {
+  const handleGlowWheelTicketClaim = () => {
     const currentGlowRank = getGlowRank(userStats.lifetimeLightValue ?? userStats.lightValue ?? 0).current;
     const dailyExchangeLimit = getGlowWheelDailyExchangeLimit(currentGlowRank.level);
     const exchangedToday = userStats.dailyGlowWheelExchangeCount || 0;
 
     if (exchangedToday >= dailyExchangeLimit) {
-      return { success: false, message: `今日兑换已达上限（${dailyExchangeLimit} 张）` };
-    }
-
-    if ((userStats.lightValue || 0) < cost) {
-      return { success: false, message: '光迹值不足' };
+      return { success: false, message: `今日领取已达上限（${dailyExchangeLimit} 张）` };
     }
 
     setUserStats(prev => ({
       ...prev,
-      lightValue: Math.max(0, (prev.lightValue || 0) - cost),
       glowWheelChances: (prev.glowWheelChances || 0) + 1,
       dailyGlowWheelExchangeCount: (prev.dailyGlowWheelExchangeCount || 0) + 1
     }));
 
-    return { success: true, message: '已兑换 1 张抽奖券' };
+    return { success: true, message: '已领取 1 张抽奖券' };
   };
 
   const handleGlowWheelDraw = (amount: number) => {
@@ -407,7 +385,7 @@ export default function App() {
       medalLotteryDrawHistory: [
         {
           id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-          nickname: '木小六',
+          nickname: '沐小六',
           amount,
           createdAt: new Date().toLocaleString('zh-CN', {
             month: '2-digit',
@@ -555,8 +533,10 @@ export default function App() {
             {fullScreenPage.type === 'routeDetail' && (
                <RouteDetailView 
                  {...fullScreenPage.data}
-                 onBack={() => {
-                   if (fullScreenPage.data.isTeamRelayRoute) {
+                  onBack={() => {
+                    if (fullScreenPage.data.sourcePage === 'routeCollection') {
+                      setFullScreenPage({ type: 'routeCollection' });
+                    } else if (fullScreenPage.data.isTeamRelayRoute) {
                      setFullScreenPage({ type: 'teamRelay' });
                    } else if (fullScreenPage.data.isWeightPlanRoute) {
                      setFullScreenPage({ type: 'weightLossPlan' });
@@ -575,12 +555,51 @@ export default function App() {
                  }}
                />
             )}
+            {fullScreenPage.type === 'routeMemory' && (
+              <RouteMemoryView
+                {...fullScreenPage.data}
+                onBack={() => setFullScreenPage({ type: 'routeCollection' })}
+              />
+            )}
             {fullScreenPage.type === 'runPlayback' && (
                <RunPlaybackView 
                  {...fullScreenPage.data}
-                 onExit={() => setFullScreenPage({ type: 'routeDetail', data: fullScreenPage.data })}
+                  onExit={() => setFullScreenPage({ type: 'routeDetail', data: fullScreenPage.data })}
                   onComplete={(stats) => {
-                    const earnedLightValue = stats.calories || Math.floor(stats.distance * 65);
+                    const completionCityData = fullScreenPage.data.previousCityData
+                      ? CITIES.find(city => city.id === fullScreenPage.data.previousCityData.id) || fullScreenPage.data.previousCityData
+                      : null;
+                    const completedRouteIndex = fullScreenPage.data.routeIndex;
+                    const existingCompletedRoutes = completionCityData?.completedRouteIndices || [];
+                    const willCompleteCity = Boolean(
+                      completionCityData
+                      && !existingCompletedRoutes.includes(completedRouteIndex)
+                      && existingCompletedRoutes.length + 1 >= completionCityData.routes
+                      && completionCityData.status !== 'lit'
+                    );
+                    const distanceLightValue = Math.floor(stats.distance);
+                    const routeCompletionLightValue = 1;
+                    const cityCompletionBonus = willCompleteCity ? 10 : 0;
+                    const earnedLightValue = distanceLightValue + routeCompletionLightValue + cityCompletionBonus;
+                    const completedRouteTitle = fullScreenPage.data.routeData?.title || fullScreenPage.data.title || '城市路线';
+                    const earnedRecords: GlowValueRecord[] = [
+                      {
+                        id: `route-glow-${Date.now()}`,
+                        type: 'earn' as const,
+                        title: `完成${completedRouteTitle}`,
+                        description: distanceLightValue > 0 ? `${distanceLightValue} 公里 + 路线完成` : '路线完成奖励',
+                        amount: distanceLightValue + routeCompletionLightValue,
+                        createdAt: Date.now()
+                      },
+                      ...(cityCompletionBonus > 0 && completionCityData ? [{
+                        id: `city-glow-${Date.now()}`,
+                        type: 'earn' as const,
+                        title: `点亮${completionCityData.name}全部路线`,
+                        description: '城市全路线完成奖励',
+                        amount: cityCompletionBonus,
+                        createdAt: Date.now()
+                      }] : [])
+                    ];
                     setShowRouteMedalGuide(true);
                     // Update user stats
                     const shouldShowDailyRouteTaskGuide = ENABLE_GLOW_TASKS && (userStats.dailyCompletedRoutes || 0) === 0;
@@ -591,7 +610,11 @@ export default function App() {
                       lightValue: (prev.lightValue || 0) + earnedLightValue,
                       lifetimeLightValue: (prev.lifetimeLightValue ?? prev.lightValue ?? 0) + earnedLightValue,
                       dailyDistance: (prev.dailyDistance || 0) + stats.distance,
-                      dailyCompletedRoutes: (prev.dailyCompletedRoutes || 0) + 1
+                      dailyCompletedRoutes: (prev.dailyCompletedRoutes || 0) + 1,
+                      glowValueRecords: [
+                        ...earnedRecords,
+                        ...(prev.glowValueRecords || [])
+                      ]
                     }));
                     if (shouldShowDailyRouteTaskGuide) {
                       setShowDailyRouteTaskGuide(true);
@@ -650,13 +673,25 @@ export default function App() {
                     const { previousCityData, routeIndex } = fullScreenPage.data;
                    const realCityData = CITIES.find(c => c.id === previousCityData.id) || previousCityData;
                    const currentCompleted = realCityData.completedRouteIndices || [];
+                   const isNewlyCompletedRoute = !currentCompleted.includes(routeIndex);
                    
-                   if (!currentCompleted.includes(routeIndex)) {
+                   if (isNewlyCompletedRoute) {
                      realCityData.completedRouteIndices = [...currentCompleted, routeIndex];
                      if (!realCityData.completedRouteTimestamps) {
                        realCityData.completedRouteTimestamps = {};
                      }
-                     realCityData.completedRouteTimestamps[routeIndex] = Date.now();
+                     const completedAt = Date.now();
+                     realCityData.completedRouteTimestamps[routeIndex] = completedAt;
+                     if (!realCityData.completedRouteStats) {
+                       realCityData.completedRouteStats = {};
+                     }
+                     realCityData.completedRouteStats[routeIndex] = {
+                       completedAt,
+                       distance: stats.distance,
+                       durationSeconds: stats.duration,
+                       calories: stats.calories,
+                       lightValueEarned: earnedLightValue
+                     };
                      realCityData.completed = Math.min(realCityData.completedRouteIndices.length, realCityData.routes);
                      
                      // If this is a newly completed route, increment completedRoutes counter
@@ -694,30 +729,93 @@ export default function App() {
                      return newChapters;
                    });
 
+                   if (fullScreenPage.data.sourcePage === 'routeCollection') {
+                     setCollectionViewState(prev => ({
+                       ...prev,
+                       expandedCityId: prev.viewMode === 'timeline' ? null : realCityData.id
+                     }));
+                     if (isNewlyCompletedRoute) {
+                       setNewlyCollectedRouteKey(`${realCityData.id}-${routeIndex}`);
+                     }
+                     setFullScreenPage({ type: 'routeCollection' });
+                     return;
+                   }
+
                    // Navigate back to cityRoutes with the updated data
                    setFullScreenPage({ type: 'cityRoutes', data: realCityData });
                  }}
                />
             )}
-            {fullScreenPage.type === 'litRecords' && (
-              <LitRecordsView onBack={() => setFullScreenPage(null)} />
+            {fullScreenPage.type === 'routeCollection' && (
+              <RouteCollectionView
+                viewState={collectionViewState}
+                newlyCollectedRouteKey={newlyCollectedRouteKey}
+                onViewStateChange={setCollectionViewState}
+                onBack={() => setFullScreenPage(null)}
+                onOpenRoute={(cityId, routeIndex, image, intent: RouteCollectionIntent) => {
+                  const previousCityData = CITIES.find(city => city.id === cityId);
+                  setCollectionViewState(prev => ({
+                    ...prev,
+                    expandedCityId: prev.viewMode === 'timeline' ? null : cityId
+                  }));
+                  if (intent === 'review') {
+                    setFullScreenPage({
+                      type: 'routeMemory',
+                      data: { cityId, routeIndex, image }
+                    });
+                  } else {
+                    setFullScreenPage({
+                      type: 'routeDetail',
+                      data: { cityId, routeIndex, image, previousCityData, sourcePage: 'routeCollection', collectionIntent: intent }
+                    });
+                  }
+                }}
+                onCollectionCelebrationComplete={() => setNewlyCollectedRouteKey(null)}
+              />
             )}
             {fullScreenPage.type === 'leaderboard' && (
               <LeaderboardView onBack={() => setFullScreenPage(null)} />
+            )}
+            {fullScreenPage.type === 'auth' && (
+              <AuthView
+                onBack={() => setFullScreenPage(null)}
+                onSuccess={(user) => {
+                  setAuthUser(user);
+                  setFullScreenPage(null);
+                  setActiveTab('profile');
+                }}
+              />
+            )}
+            {fullScreenPage.type === 'settings' && (
+              <SettingsView
+                user={authUser}
+                onBack={() => setFullScreenPage(null)}
+                onLogout={() => {
+                  setAuthUser(null);
+                  setFullScreenPage({ type: 'auth' });
+                }}
+              />
+            )}
+            {fullScreenPage.type === 'accountFeature' && (
+              <AccountFeatureView
+                kind={fullScreenPage.data as AccountFeatureKind}
+                userStats={userStats}
+                authUser={authUser}
+                onBack={() => setFullScreenPage(null)}
+                onOpenAuth={() => setFullScreenPage({ type: 'auth' })}
+              />
             )}
             {fullScreenPage.type === 'glowCenter' && (
               <GlowCenterView
                 userStats={userStats}
                 onBack={() => setFullScreenPage(null)}
-                onExchange={handleGlowExchange}
-                onClaimRankReward={handleClaimGlowRankReward}
               />
             )}
             {fullScreenPage.type === 'glowWheel' && (
                <GlowWheelView
                  userStats={userStats}
                  onBack={() => setFullScreenPage({ type: 'glowCenter' })}
-                 onExchangeChance={handleGlowWheelExchange}
+                 onClaimChance={handleGlowWheelTicketClaim}
                  onDraw={handleGlowWheelDraw}
                />
             )}
@@ -1022,7 +1120,7 @@ export default function App() {
                 <Sparkles size={16} className="absolute -right-1 -top-1 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.85)]" />
               </motion.div>
 
-              <p className="relative mt-4 text-[10px] font-black tracking-[0.28em] text-amber-200">MEDAL READY</p>
+              <p className="relative mt-4 text-[10px] font-black tracking-[0.28em] text-amber-200">勋章已就绪</p>
               <h3 className="relative mt-2 text-xl font-black text-white">路线勋章已获取</h3>
               <p className="relative mt-2 text-sm font-bold leading-6 text-slate-300">
                 完成路线已获得专属勋章，可前往勋章盲盒抽奖，抽取现金红包。
@@ -1079,7 +1177,7 @@ export default function App() {
                 <Gift size={28} />
                 <Sparkles size={15} className="absolute -right-1 -top-1 text-amber-200" />
               </div>
-              <p className="relative mt-4 text-[10px] font-black tracking-[0.26em] text-cyan-200">TASK READY</p>
+              <p className="relative mt-4 text-[10px] font-black tracking-[0.26em] text-cyan-200">任务已就绪</p>
               <h3 className="relative mt-2 text-xl font-black text-white">今日路线任务已完成</h3>
               <p className="relative mt-2 text-xs font-bold leading-6 text-slate-400">
                 去任务中心领取光迹值，也可以从任务中心进入光迹值现金抽奖。

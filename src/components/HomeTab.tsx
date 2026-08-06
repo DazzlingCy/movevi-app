@@ -72,7 +72,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   const broadcastMessages = [
     ...medalLotteryHistory.slice(0, 3).map((record: any) => ({
       type: 'prize' as const,
-      text: `${record.nickname || '木小六'} 在勋章抽奖中抽中 ${record.amount} 现金红包`
+      text: `${record.nickname || '沐小六'} 在勋章抽奖中抽中 ${record.amount} 现金红包`
     })),
     { type: 'route' as const, text: '林同风完成 北京·故宫角楼掠影，获得城市勋章' },
     { type: 'prize' as const, text: '晨跑星在勋章抽奖中抽中 1.66 元现金红包' },
@@ -314,13 +314,13 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
             <div className="h-full w-full rounded-full bg-slate-950 p-[2px]">
               <img
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100"
-                alt="User Avatar"
+                alt="用户头像"
                 className="h-full w-full rounded-full object-cover"
               />
             </div>
           </div>
           <div>
-            <div className="text-sm font-black tracking-wide text-slate-50">木小六</div>
+            <div className="text-sm font-black tracking-wide text-slate-50">沐小六</div>
             <div className="mt-0.5 flex items-center gap-1.5 text-[10px] font-bold text-slate-300">
               <span>{currentGlowRank.name}</span>
               <span className="text-slate-500">LV.{currentGlowRank.level}</span>
@@ -406,12 +406,13 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       <div className="absolute right-5 top-[42%] z-20 flex -translate-y-1/2 flex-col items-center gap-3 pointer-events-auto">
         <button
           className="group flex flex-col items-center gap-1.5 text-[10px] font-black text-slate-200"
-          onClick={() => onNavigate && onNavigate('litRecords', null)}
+          onClick={() => onNavigate && onNavigate('routeCollection', null)}
+          aria-label="打开路线图鉴"
         >
           <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/14 bg-slate-950/34 text-cyan-200 shadow-[0_12px_34px_rgba(0,0,0,0.26)] backdrop-blur-md transition group-hover:border-cyan-200/50 group-hover:bg-cyan-300/12">
             <Zap size={18} />
           </span>
-          点亮记录
+          路线图鉴
         </button>
         <button
           className="group flex flex-col items-center gap-1.5 text-[10px] font-black text-slate-200"
@@ -651,7 +652,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
               <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 blur-3xl rounded-full pointer-events-none" />
               <div>
                 <h2 className="text-2xl font-bold text-slate-100 mb-1">奔跑·点亮地球计划</h2>
-                <p className="text-xs text-cyan-400 opacity-80 tracking-widest font-mono">MOVEVI World Light Project</p>
+                <p className="text-xs text-cyan-400 opacity-80 tracking-widest font-mono">MOVEVI 世界点亮计划</p>
               </div>
               <button 
                 onClick={() => setShowStoryPanel(false)}
@@ -955,7 +956,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
               <div className="relative">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] font-black tracking-[0.24em] text-indigo-200">GLOW TASKS</p>
+                  <p className="text-[10px] font-black tracking-[0.24em] text-indigo-200">光迹任务</p>
                   <h2 className="mt-1 text-xl font-black tracking-tight text-white">光迹任务</h2>
                 </div>
                 <button
@@ -1119,7 +1120,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
             >
                <h3 className="text-xl font-bold text-white mb-3">切换城市</h3>
                <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                 切换城市将消耗<span className="text-amber-400 font-bold mx-1">30点光迹值</span>。<br/>
+                 切换城市将消耗<span className="text-amber-400 font-bold mx-1">3 点光迹值</span>。<br/>
                  是否继续？
                </p>
                
@@ -1132,9 +1133,23 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                  </button>
                  <button 
                    onClick={() => {
-                      if (userStats && userStats.lightValue >= 30) {
+                      if (userStats && userStats.lightValue >= 3) {
                         if (setUserStats) {
-                          setUserStats((prev: any) => ({ ...prev, lightValue: prev.lightValue - 30 }));
+                          setUserStats((prev: any) => ({
+                            ...prev,
+                            lightValue: prev.lightValue - 3,
+                            glowValueRecords: [
+                              {
+                                id: `city-switch-${Date.now()}`,
+                                type: 'spend',
+                                title: '切换探索城市',
+                                description: '重新选择下一座城市',
+                                amount: 3,
+                                createdAt: Date.now()
+                              },
+                              ...(prev.glowValueRecords || [])
+                            ]
+                          }));
                         }
                         const available = CITIES.filter(c => c.status !== 'lit' && c.status !== 'upcoming');
                         const shuffled = [...available].sort(() => 0.5 - Math.random());
@@ -1142,11 +1157,11 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                         setShowSwitchConfirm(false);
                         setShowStoryPanel(false); // Close story panel as well right away
                         setShowCitySelection(true);
-                        setToastMessage('已消耗30点光迹值重新选择城市');
+                        setToastMessage('已消耗 3 点光迹值重新选择城市');
                         setTimeout(() => setToastMessage(null), 3000);
                       } else {
                         setShowSwitchConfirm(false);
-                        setToastMessage('光迹值不足 (需要30点)');
+                        setToastMessage('光迹值不足（需要 3 点）');
                         setTimeout(() => setToastMessage(null), 3000);
                       }
                    }}

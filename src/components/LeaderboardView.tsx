@@ -152,7 +152,7 @@ export default function LeaderboardView({ onBack }: LeaderboardViewProps) {
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs font-bold tracking-[0.28em] text-cyan-300/80">RULES</div>
+                  <div className="text-xs font-bold tracking-[0.28em] text-cyan-300/80">活动规则</div>
                   <h2 className="mt-1 text-xl font-black text-white">规则说明</h2>
                 </div>
                 <button

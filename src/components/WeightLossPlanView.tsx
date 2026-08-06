@@ -343,7 +343,7 @@ export default function WeightLossPlanView({
           <section className="order-first shrink-0 rounded-[24px] border border-white/[0.09] bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.24em] text-amber-200/75">NEW USER BONUS</p>
+                <p className="text-[10px] font-black tracking-[0.24em] text-amber-200/75">新人奖励</p>
                 <h2 className="mt-1 text-lg font-black tracking-tight text-white">新手红包任务</h2>
               </div>
               <Gift size={18} className="text-amber-200" />

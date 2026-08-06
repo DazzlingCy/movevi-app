@@ -11,6 +11,7 @@ movevi-strategy-pdf/
 movevi-strategy-ppt/
 movevi-strategy-video/
 outputs/
+.apk-inspect/
 .DS_Store
 *.log
 .env*
