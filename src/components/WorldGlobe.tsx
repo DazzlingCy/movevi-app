@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 
 interface WorldGlobeProps {
   cities: CityData[];
+  focusCityId?: string;
   targetFlight?: { fromCityId: string; toCityId: string } | null;
   onCityClick: (city: CityData) => void;
   onFlightComplete?: () => void;
@@ -42,6 +43,7 @@ const GLOBE_TEXTURE_URL = `${viteBaseUrl}globe/earth-dark.svg`;
 const COUNTRIES_TOPOLOGY_URL = `${viteBaseUrl}globe/countries-110m.json`;
 const CAMERA_ALTITUDE = 1.78;
 const REDUCED_CAMERA_ALTITUDE = 1.95;
+const HOME_CAMERA_ALTITUDE = 4.2;
 
 type CountryPolygon = {
   type: string;
@@ -272,12 +274,13 @@ function FlatMapFallback({ cities, onCityClick }: { cities: CityData[]; onCityCl
   );
 }
 
-export default function WorldGlobe({ cities, targetFlight, onCityClick, onFlightComplete }: WorldGlobeProps) {
+export default function WorldGlobe({ cities, focusCityId, targetFlight, onCityClick, onFlightComplete }: WorldGlobeProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const idleTimerRef = useRef<number | null>(null);
   const flightTimersRef = useRef<number[]>([]);
   const flightAnimationRef = useRef<number | null>(null);
   const activeFlightKeyRef = useRef<string | null>(null);
+  const homeFocusCityIdRef = useRef<string | null>(null);
   const citiesRef = useRef(cities);
   const onCityClickRef = useRef(onCityClick);
   const onFlightCompleteRef = useRef(onFlightComplete);
@@ -376,14 +379,14 @@ export default function WorldGlobe({ cities, targetFlight, onCityClick, onFlight
     idleTimerRef.current = window.setTimeout(() => setAutoRotate(true), 4000);
   }, [clearIdleTimer, reducedMotion, setAutoRotate]);
 
-  const focusCity = useCallback((city: CityData, transitionMs = 900) => {
+  const focusCity = useCallback((city: CityData, transitionMs = 900, altitude = CAMERA_ALTITUDE) => {
     const globe = globeRef.current;
     if (!globe) return;
     globe.pointOfView(
       {
         lat: city.lat,
         lng: city.lng,
-        altitude: reducedMotion ? REDUCED_CAMERA_ALTITUDE : CAMERA_ALTITUDE
+        altitude: reducedMotion ? Math.max(altitude, REDUCED_CAMERA_ALTITUDE) : altitude
       },
       reducedMotion ? Math.min(transitionMs, 120) : transitionMs
     );
@@ -422,11 +425,31 @@ export default function WorldGlobe({ cities, targetFlight, onCityClick, onFlight
     rim.position.set(2.2, -0.8, -1.1);
     globe.lights([ambient, key, rim]);
 
-    const city = cities.find(item => item.status === 'in-progress') || cities.find(item => item.status === 'lit') || cities[0];
-    if (city) focusCity(city, 850);
-    scheduleAutoRotate();
+    const city = cities.find(item => item.id === focusCityId)
+      || cities.find(item => item.status === 'in-progress')
+      || cities.find(item => item.status === 'lit')
+      || cities[0];
+    if (city) {
+      focusCity(city, 850, HOME_CAMERA_ALTITUDE);
+      homeFocusCityIdRef.current = city.id;
+    }
+    clearIdleTimer();
+    setAutoRotate(false);
     setIsReady(true);
-  }, [cities, clearIdleTimer, focusCity, scheduleAutoRotate, setAutoRotate]);
+  }, [cities, clearIdleTimer, focusCity, focusCityId, setAutoRotate]);
+
+  useEffect(() => {
+    if (!isReady || !readyRef.current || targetFlight || !focusCityId) return;
+    if (homeFocusCityIdRef.current === focusCityId) return;
+
+    const city = citiesRef.current.find(item => item.id === focusCityId);
+    if (!city) return;
+
+    clearIdleTimer();
+    setAutoRotate(false);
+    focusCity(city, 720, HOME_CAMERA_ALTITUDE);
+    homeFocusCityIdRef.current = city.id;
+  }, [clearIdleTimer, focusCity, focusCityId, isReady, setAutoRotate, targetFlight]);
 
   useEffect(() => {
     const globe = globeRef.current;

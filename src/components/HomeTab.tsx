@@ -313,6 +313,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
           <div className="absolute inset-0 -translate-y-6">
             <WorldGlobe
               cities={CITIES}
+              focusCityId={nextFocusCity?.id}
               targetFlight={targetFlight}
               onCityClick={handleCityClick}
               onFlightComplete={onFlightComplete}
