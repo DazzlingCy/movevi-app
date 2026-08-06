@@ -343,14 +343,10 @@ export default function GlowCenterView({ userStats, onBack }: GlowCenterViewProp
                 <ol className="mt-3 space-y-3">
                   <li className="flex items-start gap-3 text-sm font-medium leading-5 text-slate-300">
                     <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-200/10 font-mono text-[10px] font-black text-cyan-100">1</span>
-                    <span>每完成 <strong className="font-black text-white">1 公里</strong>，获得 <strong className="font-black text-cyan-100">1 点光迹值</strong></span>
-                  </li>
-                  <li className="flex items-start gap-3 text-sm font-medium leading-5 text-slate-300">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-200/10 font-mono text-[10px] font-black text-cyan-100">2</span>
                     <span>每完成 <strong className="font-black text-white">1 条路线</strong>，获得 <strong className="font-black text-cyan-100">1 点光迹值</strong></span>
                   </li>
                   <li className="flex items-start gap-3 text-sm font-medium leading-5 text-slate-300">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-200/10 font-mono text-[10px] font-black text-cyan-100">3</span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-200/10 font-mono text-[10px] font-black text-cyan-100">2</span>
                     <span>完成一座城市的全部路线，额外获得 <strong className="font-black text-cyan-100">10 点光迹值</strong></span>
                   </li>
                 </ol>
