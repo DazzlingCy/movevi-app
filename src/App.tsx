@@ -64,13 +64,13 @@ const createDefaultGlowValueRecords = (): GlowValueRecord[] => {
   };
 
   return [
-    { id: 'demo-1', type: 'earn', title: '完成新加坡深度探索路线', description: '3 公里 + 路线完成', amount: 4, createdAt: at(0, 12, 14) },
+    { id: 'demo-1', type: 'earn', title: '完成新加坡深度探索路线', description: '路线完成奖励', amount: 1, createdAt: at(0, 12, 14) },
     { id: 'demo-2', type: 'spend', title: '切换探索城市', description: '重新选择下一座城市', amount: 3, createdAt: at(0, 10, 5) },
-    { id: 'demo-3', type: 'earn', title: '完成北京深度探索路线', description: '5 公里 + 路线完成', amount: 6, createdAt: at(1, 14, 14) },
+    { id: 'demo-3', type: 'earn', title: '完成北京深度探索路线', description: '路线完成奖励', amount: 1, createdAt: at(1, 14, 14) },
     { id: 'demo-4', type: 'earn', title: '点亮北京全部路线', description: '城市全路线完成奖励', amount: 10, createdAt: at(1, 14, 13) },
-    { id: 'demo-5', type: 'earn', title: '完成奥森无限绿意', description: '10 公里 + 路线完成', amount: 11, createdAt: at(1, 9, 36) },
+    { id: 'demo-5', type: 'earn', title: '完成奥森无限绿意', description: '路线完成奖励', amount: 1, createdAt: at(1, 9, 36) },
     { id: 'demo-6', type: 'spend', title: '切换探索城市', description: '重新选择下一座城市', amount: 3, createdAt: at(2, 16, 20) },
-    { id: 'demo-7', type: 'earn', title: '完成故宫角楼掠影', description: '4 公里 + 路线完成', amount: 5, createdAt: at(2, 14, 14) }
+    { id: 'demo-7', type: 'earn', title: '完成故宫角楼掠影', description: '路线完成奖励', amount: 1, createdAt: at(2, 14, 14) }
   ];
 };
 
@@ -169,7 +169,7 @@ export default function App() {
         distance,
         durationSeconds: durationMinutes * 60 + durationSeconds,
         calories: Number(routeData.calories) || Math.round(distance * 65),
-        lightValueEarned: Math.floor(distance) + 1 + (routeId === city.routes ? 10 : 0)
+        lightValueEarned: 1 + (routeId === city.routes ? 10 : 0)
       };
     });
     return DEFAULT_MAIN_CITY_SEQUENCE;
@@ -591,18 +591,17 @@ export default function App() {
                       && existingCompletedRoutes.length + 1 >= completionCityData.routes
                       && completionCityData.status !== 'lit'
                     );
-                    const distanceLightValue = Math.floor(stats.distance);
                     const routeCompletionLightValue = 1;
                     const cityCompletionBonus = willCompleteCity ? 10 : 0;
-                    const earnedLightValue = distanceLightValue + routeCompletionLightValue + cityCompletionBonus;
+                    const earnedLightValue = routeCompletionLightValue + cityCompletionBonus;
                     const completedRouteTitle = fullScreenPage.data.routeData?.title || fullScreenPage.data.title || '城市路线';
                     const earnedRecords: GlowValueRecord[] = [
                       {
                         id: `route-glow-${Date.now()}`,
                         type: 'earn' as const,
                         title: `完成${completedRouteTitle}`,
-                        description: distanceLightValue > 0 ? `${distanceLightValue} 公里 + 路线完成` : '路线完成奖励',
-                        amount: distanceLightValue + routeCompletionLightValue,
+                        description: '路线完成奖励',
+                        amount: routeCompletionLightValue,
                         createdAt: Date.now()
                       },
                       ...(cityCompletionBonus > 0 && completionCityData ? [{

@@ -77,7 +77,7 @@ export default function RouteMemoryView({ cityId, routeIndex, image, onBack }: R
   const distance = completion?.distance ?? (Number(routeData.distance) || 0);
   const durationSeconds = completion?.durationSeconds ?? parseDuration(routeData.duration);
   const calories = completion?.calories ?? (Number(routeData.calories) || Math.round(distance * 65));
-  const lightValueEarned = completion?.lightValueEarned ?? Math.floor(distance) + 1;
+  const lightValueEarned = completion?.lightValueEarned ?? 1;
   const landmarks = getLandmarks(routeData.spots, city?.name || '城市');
   const completedDate = new Date(completedAt);
   const dateLabel = completedDate.toLocaleDateString('zh-CN', {
