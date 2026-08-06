@@ -310,12 +310,14 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
             </div>
           )}
         >
-          <WorldGlobe
-            cities={CITIES}
-            targetFlight={targetFlight}
-            onCityClick={handleCityClick}
-            onFlightComplete={onFlightComplete}
-          />
+          <div className="absolute inset-0 -translate-y-6">
+            <WorldGlobe
+              cities={CITIES}
+              targetFlight={targetFlight}
+              onCityClick={handleCityClick}
+              onFlightComplete={onFlightComplete}
+            />
+          </div>
         </React.Suspense>
       ) : (
         <div className="absolute inset-0" aria-hidden="true" />
@@ -426,12 +428,12 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
         <button
           className="group flex flex-col items-center gap-1.5 text-[10px] font-black text-slate-200"
           onClick={() => onNavigate && onNavigate('routeCollection', null)}
-          aria-label="打开路线图鉴"
+          aria-label="打开城市图鉴"
         >
           <span className="flex h-11 w-11 items-center justify-center rounded-full border border-white/14 bg-slate-950/34 text-cyan-200 shadow-[0_12px_34px_rgba(0,0,0,0.26)] backdrop-blur-md transition group-hover:border-cyan-200/50 group-hover:bg-cyan-300/12">
             <Zap size={18} />
           </span>
-          路线图鉴
+          城市图鉴
         </button>
         <button
           className="group flex flex-col items-center gap-1.5 text-[10px] font-black text-slate-200"
@@ -454,7 +456,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       </div>
 
       {/* Bottom Area */}
-      <div className="absolute bottom-6 left-4 right-4 z-20 pointer-events-none flex flex-col gap-3">
+      <div className="absolute bottom-2 left-4 right-4 z-20 pointer-events-none flex flex-col gap-3">
 
         {/* Bottom Mission Card (Teaser) */}
         <div

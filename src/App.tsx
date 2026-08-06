@@ -532,7 +532,13 @@ export default function App() {
             {fullScreenPage.type === 'cityRoutes' && (
                <CityRoutesView 
                  city={fullScreenPage.data} 
-                 onBack={() => setFullScreenPage(null)} 
+                 onBack={() => {
+                   if (fullScreenPage.data.sourcePage === 'routeCollection') {
+                     setFullScreenPage({ type: 'routeCollection' });
+                   } else {
+                     setFullScreenPage(null);
+                   }
+                 }}
                  onRouteClick={(routeIndex) => setFullScreenPage({ 
                    type: 'routeDetail', 
                    data: { cityId: fullScreenPage.data.id, routeIndex, image: fullScreenPage.data.image, previousCityData: fullScreenPage.data } 
@@ -765,6 +771,14 @@ export default function App() {
                 newlyCollectedRouteKey={newlyCollectedRouteKey}
                 onViewStateChange={setCollectionViewState}
                 onBack={() => setFullScreenPage(null)}
+                onOpenCityRoutes={(cityId) => {
+                  const city = CITIES.find(item => item.id === cityId);
+                  if (!city) return;
+                  setFullScreenPage({
+                    type: 'cityRoutes',
+                    data: { ...city, sourcePage: 'routeCollection' }
+                  });
+                }}
                 onOpenRoute={(cityId, routeIndex, image, intent: RouteCollectionIntent) => {
                   const previousCityData = CITIES.find(city => city.id === cityId);
                   setCollectionViewState(prev => ({
