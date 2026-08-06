@@ -147,7 +147,7 @@ export default function RunPlaybackView({ cityId, routeIndex, image, onExit, onC
 
       {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 pt-safet px-4 py-6 z-10 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent">
-        <button onClick={onExit} className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center">
+        <button onClick={onExit} className="w-10 h-10 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center" aria-label="返回路线详情">
           <ChevronLeft size={24} />
         </button>
         <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full text-sm font-medium">
@@ -190,6 +190,7 @@ export default function RunPlaybackView({ cityId, routeIndex, image, onExit, onC
           <button 
             className="w-16 h-16 rounded-full bg-slate-800/80 backdrop-blur-md flex items-center justify-center border border-white/20 text-white shadow-lg active:scale-95 transition-transform"
             onClick={handleStop}
+            aria-label="结束本次路线"
           >
             <Square size={20} className="fill-current text-rose-500" />
           </button>
@@ -197,11 +198,12 @@ export default function RunPlaybackView({ cityId, routeIndex, image, onExit, onC
           <button 
             className="w-24 h-24 rounded-full bg-[#2ecc71] shadow-[0_0_30px_rgba(46,204,113,0.5)] flex items-center justify-center text-white active:scale-95 transition-transform"
             onClick={() => setIsPlaying(!isPlaying)}
+            aria-label={isPlaying ? '暂停' : '继续'}
           >
             {isPlaying ? <Pause size={36} className="fill-current" /> : <Play size={36} className="fill-current ml-2" />}
           </button>
 
-          <button className="w-16 h-16 rounded-full bg-slate-800/80 backdrop-blur-md flex items-center justify-center border border-white/20 text-white shadow-lg active:scale-95 transition-transform">
+          <button className="w-16 h-16 rounded-full bg-slate-800/80 backdrop-blur-md flex items-center justify-center border border-white/20 text-white shadow-lg active:scale-95 transition-transform" aria-label="查看路线位置">
             <MapPin size={24} />
           </button>
         </div>
@@ -224,7 +226,7 @@ export default function RunPlaybackView({ cityId, routeIndex, image, onExit, onC
               >
                 <div className="flex items-center justify-center gap-2 mb-1.5">
                   <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
-                  <span className="text-xs uppercase tracking-[0.25em] font-mono text-cyan-400 font-bold">ROUTE AWAKENED</span>
+                  <span className="text-xs tracking-[0.25em] font-mono text-cyan-400 font-bold">路线已唤醒</span>
                 </div>
                 <h2 className="text-2xl font-black text-white tracking-[0.15em] drop-shadow-[0_0_15px_rgba(34,211,238,0.5)] flex items-center justify-center gap-2">
                   <Zap size={22} className="text-cyan-400 fill-cyan-400/20" />
@@ -250,7 +252,7 @@ export default function RunPlaybackView({ cityId, routeIndex, image, onExit, onC
                        
                        <div className="flex flex-col text-left">
                          <span className="text-sm font-bold text-[#103027] tracking-wide select-text">隔壁老大鱼</span>
-                         <span className="text-[9px] text-[#2c6e5a] tracking-wider uppercase font-mono font-bold">ALPHA RUNNER</span>
+                         <span className="text-[9px] text-[#2c6e5a] tracking-wider font-mono font-bold">先锋跑者</span>
                        </div>
                      </div>
 

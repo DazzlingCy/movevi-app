@@ -78,7 +78,7 @@ interface TeamRelayViewProps {
 }
 
 const DEFAULT_MEMBERS: TeamRelayMember[] = [
-  { id: 'self', name: '木小六', role: '拼图发起人', avatar: 'M', color: 'from-cyan-300 to-emerald-300', isSelf: true },
+  { id: 'self', name: '沐小六', role: '拼图发起人', avatar: 'M', color: 'from-cyan-300 to-emerald-300', isSelf: true },
   { id: 'teammate-lin', name: '林间风', role: '城市采集员', avatar: 'L', color: 'from-amber-200 to-orange-400' },
   { id: 'teammate-chen', name: '晨星', role: '路线修复师', avatar: 'C', color: 'from-fuchsia-300 to-rose-400' },
   { id: 'teammate-ye', name: '夜航员', role: '终点守望者', avatar: 'Y', color: 'from-indigo-300 to-sky-400' }
@@ -506,7 +506,7 @@ export default function TeamRelayView({
             <div className="w-[280px] bg-[#f6f1e6] text-[#17201b] rounded-[28px] p-5 shadow-2xl border border-[#f5d06e]/50">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[9px] font-black tracking-[0.35em] text-[#7d7050]">MOVEVI PUZZLE</p>
+                  <p className="text-[9px] font-black tracking-[0.35em] text-[#7d7050]">MOVEVI 拼图</p>
                   <h3 className="text-xl font-black mt-1 leading-tight">{activeCity?.name || '随机城市'}拼图小队</h3>
                 </div>
                 <div className="w-10 h-10 rounded-full bg-[#17201b] text-[#f5d06e] flex items-center justify-center">
@@ -878,7 +878,7 @@ export default function TeamRelayView({
             </div>
 
             <div className="pt-12 text-left">
-              <p className="text-[10px] font-black tracking-[0.28em] text-cyan-300">TEAM PUZZLE EVENT</p>
+              <p className="text-[10px] font-black tracking-[0.28em] text-cyan-300">团队拼图活动</p>
               <h1 className="mt-2 text-[28px] leading-tight font-black text-white tracking-wide">城市拼图小队</h1>
               <p className="mt-3 text-[12px] leading-relaxed text-slate-300 font-semibold max-w-[340px]">
                 进入组队大厅创建或加入 {TEAM_SIZE} 人小队。满员后提示组队成功并自动生成随机城市地图，团队每完成一条路线，就点亮一块地图区域。

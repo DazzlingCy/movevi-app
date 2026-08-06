@@ -1,6 +1,14 @@
 export type CityStatus = 'unlit' | 'in-progress' | 'lit' | 'upcoming';
 export type LabelPosition = 'top' | 'bottom' | 'left' | 'right';
 
+export interface RouteCompletionStats {
+  completedAt: number;
+  distance: number;
+  durationSeconds: number;
+  calories: number;
+  lightValueEarned: number;
+}
+
 export interface CityData {
   id: string;
   name: string;
@@ -17,6 +25,7 @@ export interface CityData {
   status: CityStatus;
   completedRouteIndices?: number[];
   completedRouteTimestamps?: Record<number, number>;
+  completedRouteStats?: Record<number, RouteCompletionStats>;
   justLit?: boolean;
   labelPosition?: LabelPosition;
   description?: string;

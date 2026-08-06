@@ -660,7 +660,7 @@ export default function WeekendMedleyView({
         ctx.stroke();
 
         // 4. Explorer Information Text
-        // Draw decorative Profile Avatar Circle on Canvas representing 木小六
+        // Draw decorative Profile Avatar Circle on Canvas representing 沐小六
         ctx.strokeStyle = '#D9A74E';
         ctx.lineWidth = 2;
         ctx.beginPath();
@@ -679,7 +679,7 @@ export default function WeekendMedleyView({
 
         ctx.font = 'bold 28px sans-serif';
         ctx.fillStyle = '#FFFFFF';
-        ctx.fillText('木小六', 300, 220);
+        ctx.fillText('沐小六', 300, 220);
 
         // 5. Drawing stats grids (Distance / completed nodes)
         ctx.fillStyle = '#0F172A';
@@ -845,7 +845,7 @@ export default function WeekendMedleyView({
 
       const newUserRecord: GlobalDrawRecord = {
         id: `user-${Date.now()}`,
-        nickname: '木小六 (我)',
+        nickname: '沐小六 (我)',
         amount: rolledValue,
         time: '刚刚',
         isCurrentUser: true
@@ -928,7 +928,7 @@ export default function WeekendMedleyView({
 
                   {/* Miniature Poster Simulation rendering identical output as canvas */}
                   <div className="text-center py-1">
-                    <span className="text-[7.5px] text-amber-500/80 tracking-widest font-mono block font-black">WEEKEND MEMORY</span>
+                    <span className="text-[7.5px] text-amber-500/80 tracking-widest font-mono block font-black">周末记忆</span>
                     <h3 className="text-sm font-black bg-gradient-to-r from-amber-200 via-amber-300 to-[#ffe285] bg-clip-text text-transparent mt-1 tracking-wider filter drop-shadow-[0_2px_4px_rgba(245,208,110,0.15)]">城市记忆串烧・结业荣耀</h3>
                     <div className="w-12 h-[1px] bg-gradient-to-r from-transparent via-amber-500/30 to-transparent mx-auto mt-2" />
                   </div>
@@ -944,7 +944,7 @@ export default function WeekendMedleyView({
                       />
                       <span className="absolute -bottom-1 -right-1 px-1 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-[6px] font-black text-slate-950 scale-90 border border-slate-950 leading-none">LV2</span>
                     </div>
-                    <span className="text-xs font-black text-slate-100">{`木小六`}</span>
+                    <span className="text-xs font-black text-slate-100">{`沐小六`}</span>
                   </div>
 
                   {/* Highlights statistics row */}
@@ -1717,7 +1717,7 @@ export default function WeekendMedleyView({
                 </div>
 
                 <h3 className="text-lg font-black text-yellow-200 tracking-widest mt-4">恭喜翻中现金大吉！</h3>
-                <p className="text-[10px] text-yellow-100/50 mt-1 uppercase font-mono tracking-widest font-bold">CASH REWARD SECURED</p>
+                <p className="text-[10px] text-yellow-100/50 mt-1 font-mono tracking-widest font-bold">现金奖励已锁定</p>
 
                 <div className="my-6">
                   <span className="text-slate-100 font-sans text-xs font-bold leading-none pr-1">¥</span>
@@ -2167,11 +2167,11 @@ export default function WeekendMedleyView({
               </div>
 
               <h3 className="text-base font-black text-white px-2 tracking-wide">🏆 周末城市记忆串烧已完成！</h3>
-              <p className="text-[10px] text-yellow-400/80 font-black mt-1 font-mono tracking-widest uppercase">COMBO RUN COMPLETED SUCCESS</p>
+              <p className="text-[10px] text-yellow-400/80 font-black mt-1 font-mono tracking-widest">串烧跑挑战完成</p>
 
               <div className="my-5 space-y-1.5 text-left bg-black/40 border border-white/5 p-4 rounded-2xl">
                 <p className="text-xs text-slate-200 leading-relaxed font-bold">
-                  恭喜探索家 <strong className="text-yellow-400">木小六</strong>！
+                  恭喜探索家 <strong className="text-yellow-400">沐小六</strong>！
                 </p>
                 <p className="text-[11px] text-slate-300 leading-relaxed font-semibold">
                   您已成功完成本次周末城市记忆串烧。

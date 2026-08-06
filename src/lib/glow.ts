@@ -5,6 +5,23 @@ export interface GlowRank {
   color: string;
 }
 
+export type GlowValueRecordType = 'earn' | 'spend';
+
+export interface GlowValueRecord {
+  id: string;
+  type: GlowValueRecordType;
+  title: string;
+  description: string;
+  amount: number;
+  createdAt: number;
+}
+
+export interface GlowCenterStats {
+  lightValue?: number;
+  lifetimeLightValue?: number;
+  glowValueRecords?: GlowValueRecord[];
+}
+
 export const GLOW_RANKS: GlowRank[] = [
   { level: 1, name: '青铜', threshold: 0, color: 'from-orange-300 to-amber-700' },
   { level: 2, name: '白银', threshold: 80, color: 'from-slate-100 to-slate-400' },
@@ -40,4 +57,4 @@ export const getGlowWheelDailyExchangeLimit = (rankLevel = 1) => {
   return 1;
 };
 
-export const GLOW_WHEEL_EXCHANGE_RULE_TEXT = '每日兑换上限：青铜/白银 1 张，黄金/钻石 2 张，星耀/王者 3 张。';
+export const GLOW_WHEEL_EXCHANGE_RULE_TEXT = '每日领取上限：青铜/白银 1 张，黄金/钻石 2 张，星耀/王者 3 张。';

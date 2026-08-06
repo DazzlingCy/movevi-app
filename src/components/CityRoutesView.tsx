@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, BarChart2, Globe2, Lock } from 'lucide-react';
+import { ChevronLeft, BarChart2, Globe2, Lock, Award, Sparkles } from 'lucide-react';
 import { CityData } from '../data/cities';
 import CityImage from './CityImage';
 
@@ -181,7 +181,7 @@ export default function CityRoutesView({ city, onBack, onRouteClick, onExploreNe
              >
                 <div className="w-full text-center mb-6">
                   <h2 className="text-2xl font-bold text-white mb-2 tracking-widest">{isCardFlipped ? "获得城市卡片" : "城市已点亮！"}</h2>
-                  <p className="text-cyan-400 text-sm">{isCardFlipped ? "CITY CARD ACQUIRED" : "点击卡片翻开你的奖励"}</p>
+                  <p className="text-cyan-400 text-sm">{isCardFlipped ? `${city.routes} 枚景点勋章已汇入 · 光迹徽章已点亮` : "点击卡片翻开你的奖励"}</p>
                 </div>
 
                 <motion.div 
@@ -232,7 +232,7 @@ export default function CityRoutesView({ city, onBack, onRouteClick, onExploreNe
                        <div className="absolute inset-0 bg-gradient-to-tr from-cyan-500/20 to-transparent animate-pulse" />
                        <Globe2 size={40} className="text-slate-400 relative z-10" />
                      </div>
-                     <p className="text-slate-400 text-xs font-mono mb-2 tracking-[0.2em] relative z-10 font-medium pointer-events-none">TAP TO REVEAL</p>
+                     <p className="text-slate-400 text-xs font-mono mb-2 tracking-[0.2em] relative z-10 font-medium pointer-events-none">点击揭晓</p>
                      <motion.div 
                         animate={{ y: [0, -6, 0] }} 
                         transition={{ repeat: Infinity, duration: 1.5, ease: "easeInOut" }}
@@ -260,11 +260,20 @@ export default function CityRoutesView({ city, onBack, onRouteClick, onExploreNe
                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12"
                          />
                        </div>
-                       <div className="flex-1 p-6 flex flex-col items-center justify-center text-center -mt-6 relative z-10 pointer-events-none">
-                          <h3 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-cyan-200 mb-2 drop-shadow-[0_2px_10px_rgba(34,211,238,0.5)]">{city.name}</h3>
-                          <div className="text-xs text-cyan-400/80 font-mono tracking-[0.2em] uppercase mb-4">{city.englishName}</div>
-                          <div className="px-4 py-1.5 bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-[11px] rounded-full uppercase tracking-widest font-semibold shadow-[0_0_15px_rgba(34,211,238,0.2)]">
-                            {city.routes} Routes Completed
+                       <div className="flex-1 px-5 pb-5 pt-4 flex flex-col items-center justify-center text-center -mt-6 relative z-10 pointer-events-none">
+                          <h3 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-b from-white to-cyan-200 mb-1 drop-shadow-[0_2px_10px_rgba(34,211,238,0.5)]">{city.name}</h3>
+                          <div className="text-[10px] text-cyan-400/80 font-mono tracking-[0.2em] uppercase mb-3">{city.englishName}</div>
+                          <div className="flex items-center justify-center gap-2 mb-3" aria-label={`${city.routes} 枚景点成就勋章`}>
+                            {Array.from({ length: city.routes }, (_, index) => (
+                              <div key={index} className="relative flex h-9 w-9 items-center justify-center rounded-full border-2 border-amber-200/55 bg-slate-900/85 text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.16)]">
+                                <span className="absolute inset-1 rounded-full border border-amber-100/20" />
+                                <Award size={15} className="relative" />
+                              </div>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-1.5 px-4 py-1.5 bg-cyan-950/60 border border-cyan-500/40 text-cyan-200 text-[10px] rounded-full tracking-wider font-semibold shadow-[0_0_15px_rgba(34,211,238,0.2)]">
+                            <Sparkles size={12} />
+                            光迹徽章 · 全城点亮
                           </div>
                        </div>
                        

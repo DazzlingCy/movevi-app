@@ -6,11 +6,12 @@ interface RouteDetailViewProps {
   cityId: string;
   routeIndex: number;
   image: string;
+  collectionIntent?: 'review' | 'collect';
   onBack: () => void;
   onStart: () => void;
 }
 
-export default function RouteDetailView({ cityId, routeIndex, image, onBack, onStart }: RouteDetailViewProps) {
+export default function RouteDetailView({ cityId, routeIndex, image, collectionIntent, onBack, onStart }: RouteDetailViewProps) {
   const routeData = getRouteData(cityId, routeIndex);
 
   return (
@@ -25,6 +26,7 @@ export default function RouteDetailView({ cityId, routeIndex, image, onBack, onS
           <button 
             onClick={onBack} 
             className="w-10 h-10 flex items-center justify-center bg-black/20 backdrop-blur-md rounded-full"
+            aria-label="返回"
           >
             <ChevronRight className="rotate-180" size={24} />
           </button>
@@ -144,7 +146,7 @@ export default function RouteDetailView({ cityId, routeIndex, image, onBack, onS
          
          <button onClick={onStart} className="bg-[#2ecc71] hover:bg-[#27ae60] text-white w-48 py-3.5 rounded-full flex items-center justify-center text-lg font-bold shadow-lg shadow-[#2ecc71]/30 transition-transform active:scale-95">
             <Play className="fill-white mr-2" size={20} />
-            开始
+            {collectionIntent === 'collect' ? '开始收集' : collectionIntent === 'review' ? '再跑一次' : '开始'}
          </button>
       </div>
 
