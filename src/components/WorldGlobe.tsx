@@ -7,6 +7,8 @@ import { cn } from '../lib/utils';
 
 interface WorldGlobeProps {
   cities: CityData[];
+  appearance?: 'default' | 'aurora';
+  focusCityId?: string;
   targetFlight?: { fromCityId: string; toCityId: string } | null;
   onCityClick: (city: CityData) => void;
   onFlightComplete?: () => void;
@@ -42,6 +44,8 @@ const GLOBE_TEXTURE_URL = `${viteBaseUrl}globe/earth-dark.svg`;
 const COUNTRIES_TOPOLOGY_URL = `${viteBaseUrl}globe/countries-110m.json`;
 const CAMERA_ALTITUDE = 1.78;
 const REDUCED_CAMERA_ALTITUDE = 1.95;
+const HOME_CAMERA_ALTITUDE = 4.2;
+const GLOBE_BOOTSTRAP_RETRY_MS = 120;
 
 type CountryPolygon = {
   type: string;
@@ -229,11 +233,11 @@ function getCityIconSvg(city: CityData) {
   return icons[city.englishName] || '<circle cx="12" cy="12" r="7"/><path d="M12 5v14"/><path d="M5 12h14"/>';
 }
 
-function FlatMapFallback({ cities, onCityClick }: { cities: CityData[]; onCityClick: (city: CityData) => void }) {
+function FlatMapFallback({ cities, appearance, onCityClick }: { cities: CityData[]; appearance: 'default' | 'aurora'; onCityClick: (city: CityData) => void }) {
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-[28px] bg-[#071827]">
+    <div className={`relative h-full w-full overflow-hidden rounded-[28px] ${appearance === 'aurora' ? 'bg-[#071a2a]' : 'bg-[#071827]'}`}>
       <svg viewBox="0 0 1200 800" className="absolute inset-0 h-full w-full opacity-80" aria-hidden="true">
-        <g fill="#02070c" stroke="#0b5b73" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round">
+        <g fill={appearance === 'aurora' ? '#31596e' : '#02070c'} stroke={appearance === 'aurora' ? '#8be9f6' : '#0b5b73'} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round">
           <path d="M88 178L143 120L230 95L307 118L358 166L382 230L345 282L290 315L215 330L145 306L86 255L60 205Z" />
           <path d="M245 96L282 70L345 82L386 116L350 150L298 132Z" />
           <path d="M366 332L430 365L470 435L452 548L410 655L350 710L318 620L300 520L323 420Z" />
@@ -272,17 +276,19 @@ function FlatMapFallback({ cities, onCityClick }: { cities: CityData[]; onCityCl
   );
 }
 
-export default function WorldGlobe({ cities, targetFlight, onCityClick, onFlightComplete }: WorldGlobeProps) {
+export default function WorldGlobe({ cities, appearance = 'default', focusCityId, targetFlight, onCityClick, onFlightComplete }: WorldGlobeProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const idleTimerRef = useRef<number | null>(null);
   const flightTimersRef = useRef<number[]>([]);
   const flightAnimationRef = useRef<number | null>(null);
   const activeFlightKeyRef = useRef<string | null>(null);
+  const homeFocusCityIdRef = useRef<string | null>(null);
   const citiesRef = useRef(cities);
   const onCityClickRef = useRef(onCityClick);
   const onFlightCompleteRef = useRef(onFlightComplete);
   const controlHandlersRef = useRef<{ start?: () => void; end?: () => void }>({});
   const readyRef = useRef(false);
+  const configuringRef = useRef(false);
   const { ref: containerRef, size } = useContainerSize();
   const reducedMotion = useReducedMotion();
   const [isReady, setIsReady] = useState(false);
@@ -333,6 +339,40 @@ export default function WorldGlobe({ cities, targetFlight, onCityClick, onFlight
     };
   }), []);
 
+  const auroraOceanMaterial = useMemo(() => new THREE.MeshPhongMaterial({
+    color: new THREE.Color('#0b2b3f'),
+    emissive: new THREE.Color('#071f31'),
+    emissiveIntensity: 0.94,
+    specular: new THREE.Color('#163b49'),
+    shininess: 9
+  }), []);
+
+  useEffect(() => () => auroraOceanMaterial.dispose(), [auroraOceanMaterial]);
+
+  const applyGlobeLighting = useCallback(() => {
+    const globe = globeRef.current;
+    if (!globe) return;
+
+    if (appearance === 'aurora') {
+      const ambient = new THREE.AmbientLight(0x9be8f4, 1.68);
+      const cyanKey = new THREE.DirectionalLight(0xd9fbff, 0.82);
+      cyanKey.position.set(-1.8, 1.4, 2.5);
+      const blueRim = new THREE.DirectionalLight(0x38bdf8, 0.54);
+      blueRim.position.set(2.4, 0.2, -1.5);
+      const oceanFill = new THREE.DirectionalLight(0x0ea5e9, 0.38);
+      oceanFill.position.set(0.4, -1.8, 1.2);
+      globe.lights([ambient, cyanKey, blueRim, oceanFill]);
+      return;
+    }
+
+    const ambient = new THREE.AmbientLight(0x7dd3fc, 1.35);
+    const key = new THREE.DirectionalLight(0xdff7ff, 1.7);
+    key.position.set(-1.6, 1.2, 2.4);
+    const rim = new THREE.DirectionalLight(0x2dd4bf, 0.85);
+    rim.position.set(2.2, -0.8, -1.1);
+    globe.lights([ambient, key, rim]);
+  }, [appearance]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -376,14 +416,14 @@ export default function WorldGlobe({ cities, targetFlight, onCityClick, onFlight
     idleTimerRef.current = window.setTimeout(() => setAutoRotate(true), 4000);
   }, [clearIdleTimer, reducedMotion, setAutoRotate]);
 
-  const focusCity = useCallback((city: CityData, transitionMs = 900) => {
+  const focusCity = useCallback((city: CityData, transitionMs = 900, altitude = CAMERA_ALTITUDE) => {
     const globe = globeRef.current;
     if (!globe) return;
     globe.pointOfView(
       {
         lat: city.lat,
         lng: city.lng,
-        altitude: reducedMotion ? REDUCED_CAMERA_ALTITUDE : CAMERA_ALTITUDE
+        altitude: reducedMotion ? Math.max(altitude, REDUCED_CAMERA_ALTITUDE) : altitude
       },
       reducedMotion ? Math.min(transitionMs, 120) : transitionMs
     );
@@ -391,42 +431,98 @@ export default function WorldGlobe({ cities, targetFlight, onCityClick, onFlight
 
   const configureGlobe = useCallback(() => {
     const globe = globeRef.current;
-    if (!globe || readyRef.current) return;
-    readyRef.current = true;
+    if (!globe || readyRef.current || configuringRef.current) return false;
 
-    const renderer = globe.renderer();
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
-    renderer.setClearColor(0x000000, 0);
+    configuringRef.current = true;
+    try {
+      const renderer = globe.renderer();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+      renderer.setClearColor(0x000000, 0);
 
-    const controls = globe.controls();
-    controls.enablePan = false;
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.rotateSpeed = 0.52;
-    controls.zoomSpeed = 0.72;
-    controls.minDistance = 190;
-    controls.maxDistance = 520;
-    const handleControlStart = () => {
-      setAutoRotate(false);
+      const controls = globe.controls();
+      controls.enablePan = false;
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.08;
+      controls.rotateSpeed = 0.52;
+      controls.zoomSpeed = 0.72;
+      controls.minDistance = 190;
+      controls.maxDistance = 520;
+
+      const previousHandlers = controlHandlersRef.current;
+      if (previousHandlers.start) controls.removeEventListener('start', previousHandlers.start);
+      if (previousHandlers.end) controls.removeEventListener('end', previousHandlers.end);
+
+      const handleControlStart = () => {
+        setAutoRotate(false);
+        clearIdleTimer();
+      };
+      const handleControlEnd = () => scheduleAutoRotate();
+      controlHandlersRef.current = { start: handleControlStart, end: handleControlEnd };
+      controls.addEventListener('start', handleControlStart);
+      controls.addEventListener('end', handleControlEnd);
+
+      applyGlobeLighting();
+
+      const city = cities.find(item => item.id === focusCityId)
+        || cities.find(item => item.status === 'in-progress')
+        || cities.find(item => item.status === 'lit')
+        || cities[0];
+      if (city) {
+        focusCity(city, 850, HOME_CAMERA_ALTITUDE);
+        homeFocusCityIdRef.current = city.id;
+      }
       clearIdleTimer();
+      setAutoRotate(false);
+      scheduleAutoRotate();
+      readyRef.current = true;
+      setIsReady(true);
+      return true;
+    } catch {
+      return false;
+    } finally {
+      configuringRef.current = false;
+    }
+  }, [applyGlobeLighting, cities, clearIdleTimer, focusCity, focusCityId, scheduleAutoRotate, setAutoRotate]);
+
+  useEffect(() => {
+    if (!isReady) return;
+    applyGlobeLighting();
+  }, [applyGlobeLighting, isReady]);
+
+  useEffect(() => {
+    if (!webglAvailable || isReady || size.width <= 1 || size.height <= 1) return;
+
+    let cancelled = false;
+    let retryTimer: number | null = null;
+
+    const attemptBootstrap = () => {
+      if (cancelled || readyRef.current) return;
+      if (!configureGlobe()) {
+        retryTimer = window.setTimeout(attemptBootstrap, GLOBE_BOOTSTRAP_RETRY_MS);
+      }
     };
-    const handleControlEnd = () => scheduleAutoRotate();
-    controlHandlersRef.current = { start: handleControlStart, end: handleControlEnd };
-    controls.addEventListener('start', handleControlStart);
-    controls.addEventListener('end', handleControlEnd);
 
-    const ambient = new THREE.AmbientLight(0x7dd3fc, 1.35);
-    const key = new THREE.DirectionalLight(0xdff7ff, 1.7);
-    key.position.set(-1.6, 1.2, 2.4);
-    const rim = new THREE.DirectionalLight(0x2dd4bf, 0.85);
-    rim.position.set(2.2, -0.8, -1.1);
-    globe.lights([ambient, key, rim]);
+    const animationFrame = window.requestAnimationFrame(attemptBootstrap);
+    return () => {
+      cancelled = true;
+      window.cancelAnimationFrame(animationFrame);
+      if (retryTimer) window.clearTimeout(retryTimer);
+    };
+  }, [configureGlobe, isReady, size.height, size.width, webglAvailable]);
 
-    const city = cities.find(item => item.status === 'in-progress') || cities.find(item => item.status === 'lit') || cities[0];
-    if (city) focusCity(city, 850);
+  useEffect(() => {
+    if (!isReady || !readyRef.current || targetFlight || !focusCityId) return;
+    if (homeFocusCityIdRef.current === focusCityId) return;
+
+    const city = citiesRef.current.find(item => item.id === focusCityId);
+    if (!city) return;
+
+    clearIdleTimer();
+    setAutoRotate(false);
+    focusCity(city, 720, HOME_CAMERA_ALTITUDE);
+    homeFocusCityIdRef.current = city.id;
     scheduleAutoRotate();
-    setIsReady(true);
-  }, [cities, clearIdleTimer, focusCity, scheduleAutoRotate, setAutoRotate]);
+  }, [clearIdleTimer, focusCity, focusCityId, isReady, scheduleAutoRotate, setAutoRotate, targetFlight]);
 
   useEffect(() => {
     const globe = globeRef.current;
@@ -773,7 +869,7 @@ export default function WorldGlobe({ cities, targetFlight, onCityClick, onFlight
   if (!webglAvailable) {
     return (
       <div ref={containerRef} className="absolute inset-0 z-10">
-        <FlatMapFallback cities={cities} onCityClick={onCityClick} />
+        <FlatMapFallback cities={cities} appearance={appearance} onCityClick={onCityClick} />
       </div>
     );
   }
@@ -786,7 +882,7 @@ export default function WorldGlobe({ cities, targetFlight, onCityClick, onFlight
       role="application"
     >
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(20,184,166,0.14),transparent_34%),radial-gradient(circle_at_50%_42%,rgba(34,211,238,0.10),transparent_42%)]" />
+        <div className={`absolute inset-0 ${appearance === 'aurora' ? 'bg-[radial-gradient(circle_at_44%_34%,rgba(56,189,248,0.2),transparent_31%),radial-gradient(circle_at_58%_44%,rgba(125,211,252,0.13),transparent_44%)]' : 'bg-[radial-gradient(circle_at_50%_38%,rgba(20,184,166,0.14),transparent_34%),radial-gradient(circle_at_50%_42%,rgba(34,211,238,0.10),transparent_42%)]'}`} />
         {starPoints.map(star => (
           <span
             key={star.id}
@@ -820,16 +916,17 @@ export default function WorldGlobe({ cities, targetFlight, onCityClick, onFlight
         width={size.width}
         height={size.height}
         backgroundColor="rgba(0,0,0,0)"
-        globeImageUrl={GLOBE_TEXTURE_URL}
+        globeImageUrl={appearance === 'aurora' ? undefined : GLOBE_TEXTURE_URL}
+        globeMaterial={appearance === 'aurora' ? auroraOceanMaterial : undefined}
         showAtmosphere
-        atmosphereColor="#67e8f9"
-        atmosphereAltitude={0.16}
+        atmosphereColor={appearance === 'aurora' ? '#8be9f6' : '#67e8f9'}
+        atmosphereAltitude={appearance === 'aurora' ? 0.19 : 0.16}
         globeCurvatureResolution={5}
         polygonsData={countryPolygons}
         polygonAltitude={0.003}
-        polygonCapColor={() => 'rgba(31, 63, 76, 0.72)'}
-        polygonSideColor={() => 'rgba(8, 24, 39, 0.12)'}
-        polygonStrokeColor={() => 'rgba(125, 211, 252, 0.16)'}
+        polygonCapColor={() => appearance === 'aurora' ? 'rgba(49, 89, 110, 0.95)' : 'rgba(31, 63, 76, 0.72)'}
+        polygonSideColor={() => appearance === 'aurora' ? 'rgba(12, 38, 55, 0.4)' : 'rgba(8, 24, 39, 0.12)'}
+        polygonStrokeColor={() => appearance === 'aurora' ? 'rgba(161, 225, 235, 0.3)' : 'rgba(125, 211, 252, 0.16)'}
         polygonsTransitionDuration={isReady ? 450 : 0}
         pointsData={[]}
         pointLat="lat"
@@ -904,10 +1001,18 @@ export default function WorldGlobe({ cities, targetFlight, onCityClick, onFlight
         onGlobeReady={configureGlobe}
       />
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#081827] via-[#081827]/62 to-transparent" />
+      {appearance === 'aurora' && (
+        <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden" aria-hidden="true">
+          <div className="absolute left-[14%] top-[24%] h-28 w-[72%] -rotate-6 rounded-[50%] bg-[linear-gradient(105deg,transparent_8%,rgba(125,211,252,0.04)_32%,rgba(103,232,249,0.08)_52%,rgba(186,230,253,0.04)_70%,transparent_92%)] blur-2xl mix-blend-screen" />
+        </div>
+      )}
+
+      <div className={`pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t ${appearance === 'aurora' ? 'from-[#061725] via-[#061725]/68' : 'from-[#081827] via-[#081827]/62'} to-transparent`} />
       <div className={cn(
-        "pointer-events-none absolute inset-0 rounded-[36px] border border-cyan-100/[0.03]",
-        "shadow-[inset_0_0_90px_rgba(8,24,39,0.68)]"
+        'pointer-events-none absolute inset-0 rounded-[36px] border',
+        appearance === 'aurora'
+          ? 'border-cyan-100/[0.05] shadow-[inset_0_0_100px_rgba(4,31,49,0.7)]'
+          : 'border-cyan-100/[0.03] shadow-[inset_0_0_90px_rgba(8,24,39,0.68)]'
       )} />
     </div>
   );

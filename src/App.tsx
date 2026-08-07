@@ -6,8 +6,10 @@ import { CITIES, getRouteData } from './data/cities';
 import type { CollectionViewState, RouteCollectionIntent } from './components/RouteCollectionView';
 import type { TeamRelayMember, TeamRelayTask } from './components/TeamRelayView';
 import {
+  GLOW_SHOP_ITEMS,
   getGlowRank,
   getGlowWheelDailyExchangeLimit,
+  type GlowExchangeResult,
   type GlowValueRecord
 } from './lib/glow';
 import type { AuthUser } from './components/AuthView';
@@ -27,6 +29,7 @@ const LeaderboardView = lazy(() => import('./components/LeaderboardView'));
 const WeekendMedleyView = lazy(() => import('./components/WeekendMedleyView'));
 const TeamRelayView = lazy(() => import('./components/TeamRelayView'));
 const GlowCenterView = lazy(() => import('./components/GlowCenterView'));
+const GlowShopView = lazy(() => import('./components/GlowShopView'));
 const GlowWheelView = lazy(() => import('./components/GlowWheelView'));
 const MedalLotteryView = lazy(() => import('./components/MedalLotteryView'));
 const WeightLossPlanView = lazy(() => import('./components/WeightLossPlanView'));
@@ -91,7 +94,7 @@ export default function App() {
   const [showRouteMedalGuide, setShowRouteMedalGuide] = useState(false);
   const [newbieCashReward, setNewbieCashReward] = useState<NewbieCashReward | null>(null);
   const [taskPanelOpenSignal, setTaskPanelOpenSignal] = useState(0);
-  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'routeMemory' | 'runPlayback' | 'routeCollection' | 'leaderboard' | 'weekendMedley' | 'teamRelay' | 'glowCenter' | 'glowWheel' | 'medalLottery' | 'weightLossPlan' | 'auth' | 'settings' | 'accountFeature', data?: any} | null>(null);
+  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'routeMemory' | 'runPlayback' | 'routeCollection' | 'leaderboard' | 'weekendMedley' | 'teamRelay' | 'glowCenter' | 'glowShop' | 'glowWheel' | 'medalLottery' | 'weightLossPlan' | 'auth' | 'settings' | 'accountFeature', data?: any} | null>(null);
   const [collectionViewState, setCollectionViewState] = useState<CollectionViewState>({
     viewMode: 'cards',
     filter: 'all',
@@ -183,8 +186,8 @@ export default function App() {
     completedRoutes: 7,
     totalDistance: 62.0,
     totalTimeHours: 12.0,
-    lightValue: 120,
-    lifetimeLightValue: 130,
+    lightValue: 330,
+    lifetimeLightValue: 330,
     glowValueRecords: createDefaultGlowValueRecords(),
     dailyCheckedIn: false,
     dailyDistance: 0,
@@ -195,6 +198,10 @@ export default function App() {
     claimedWeeklyTaskIds: [] as string[],
     medalMysteryTickets: 0,
     glowWheelChances: 0,
+    citySwitchPasses: 0,
+    glowShopInventory: {} as Record<string, number>,
+    ownedGlowShopItemIds: [] as string[],
+    equippedGlowShopItemIds: [] as string[],
     dailyGlowWheelExchangeCount: 0,
     glowWheelDrawHistory: [] as Array<{ id: string; amount: number; createdAt: string }>,
     medalLotteryDrawHistory: [] as Array<{ id: string; nickname: string; amount: string; createdAt: string }>,
@@ -353,6 +360,83 @@ export default function App() {
     }));
 
     return { success: true, message: '已领取 1 张抽奖券' };
+  };
+
+  const handleGlowShopRedeem = (itemId: string): GlowExchangeResult => {
+    const item = GLOW_SHOP_ITEMS.find(candidate => candidate.id === itemId);
+    if (!item) return { success: false, message: '未找到该商品' };
+
+    if (!item.repeatable && userStats.ownedGlowShopItemIds.includes(item.id)) {
+      return { success: false, message: '这件藏品已经拥有' };
+    }
+
+    if (userStats.lightValue < item.price) {
+      return { success: false, message: `光迹值不足，还差 ${item.price - userStats.lightValue} 点` };
+    }
+
+    const grantedQuantity = item.quantity || 1;
+    setUserStats(prev => {
+      const nextInventory = {
+        ...prev.glowShopInventory,
+        [item.id]: (prev.glowShopInventory[item.id] || 0) + grantedQuantity
+      };
+      const nextOwnedIds = item.repeatable || prev.ownedGlowShopItemIds.includes(item.id)
+        ? prev.ownedGlowShopItemIds
+        : [...prev.ownedGlowShopItemIds, item.id];
+
+      return {
+        ...prev,
+        lightValue: Math.max(0, prev.lightValue - item.price),
+        citySwitchPasses: item.effect === 'city-switch-pass'
+          ? prev.citySwitchPasses + grantedQuantity
+          : prev.citySwitchPasses,
+        medalMysteryTickets: item.effect === 'medal-ticket'
+          ? prev.medalMysteryTickets + grantedQuantity
+          : prev.medalMysteryTickets,
+        glowShopInventory: nextInventory,
+        ownedGlowShopItemIds: nextOwnedIds,
+        glowValueRecords: [
+          {
+            id: `shop-${item.id}-${Date.now()}`,
+            type: 'spend' as const,
+            title: `兑换${item.name}`,
+            description: '光迹商城兑换',
+            amount: item.price,
+            createdAt: Date.now()
+          },
+          ...(prev.glowValueRecords || [])
+        ]
+      };
+    });
+
+    return { success: true, message: `已兑换：${item.name}` };
+  };
+
+  const handleGlowShopUse = (itemId: string): GlowExchangeResult => {
+    const item = GLOW_SHOP_ITEMS.find(candidate => candidate.id === itemId);
+    if (!item?.cosmeticSlot) return { success: false, message: '该商品无需手动使用' };
+    if (!userStats.ownedGlowShopItemIds.includes(item.id)) {
+      return { success: false, message: '请先兑换这件收藏' };
+    }
+
+    const isEquipped = userStats.equippedGlowShopItemIds.includes(item.id);
+
+    setUserStats(prev => {
+      const sameSlotItemIds = GLOW_SHOP_ITEMS
+        .filter(candidate => candidate.cosmeticSlot === item.cosmeticSlot)
+        .map(candidate => candidate.id);
+      return {
+        ...prev,
+        equippedGlowShopItemIds: isEquipped
+          ? prev.equippedGlowShopItemIds.filter(id => id !== item.id)
+          : [
+              ...prev.equippedGlowShopItemIds.filter(id => !sameSlotItemIds.includes(id)),
+              item.id
+            ]
+      };
+    });
+
+    return { success: true, message: isEquipped ? `已恢复默认：${item.subtitle}` : `已使用：${item.name}` };
   };
 
   const handleGlowWheelDraw = (amount: number) => {
@@ -836,6 +920,15 @@ export default function App() {
               <GlowCenterView
                 userStats={userStats}
                 onBack={() => setFullScreenPage(null)}
+                onOpenShop={() => setFullScreenPage({ type: 'glowShop' })}
+              />
+            )}
+            {fullScreenPage.type === 'glowShop' && (
+              <GlowShopView
+                userStats={userStats}
+                onBack={() => setFullScreenPage({ type: 'glowCenter' })}
+                onRedeem={handleGlowShopRedeem}
+                onUse={handleGlowShopUse}
               />
             )}
             {fullScreenPage.type === 'glowWheel' && (

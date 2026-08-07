@@ -4,10 +4,12 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   ChevronLeft,
+  ChevronRight,
   Crown,
   History,
   Info,
   Medal,
+  ShoppingBag,
   Sparkles,
   X,
   Zap
@@ -23,6 +25,7 @@ import {
 interface GlowCenterViewProps {
   userStats: GlowCenterStats;
   onBack: () => void;
+  onOpenShop: () => void;
 }
 
 type CenterTab = 'rank' | 'records';
@@ -43,7 +46,7 @@ function RankBadgeIcon({ level, size = 34 }: { level: number; size?: number }) {
   return <Medal size={size} strokeWidth={2.4} />;
 }
 
-export default function GlowCenterView({ userStats, onBack }: GlowCenterViewProps) {
+export default function GlowCenterView({ userStats, onBack, onOpenShop }: GlowCenterViewProps) {
   const reduceMotion = useReducedMotion();
   const lightValue = userStats.lightValue || 0;
   const lifetimeLightValue = userStats.lifetimeLightValue ?? lightValue;
@@ -141,10 +144,23 @@ export default function GlowCenterView({ userStats, onBack }: GlowCenterViewProp
                 <p className="text-[10px] font-bold text-slate-500">累计光迹值</p>
                 <p className="mt-0.5 font-mono text-xl font-black text-white">{lifetimeLightValue}</p>
               </div>
-              <div className="rounded-2xl border border-cyan-200/15 bg-cyan-300/[0.08] px-3 py-2.5">
-                <p className="text-[10px] font-bold text-cyan-100/60">可用光迹值</p>
-                <p className="mt-0.5 font-mono text-xl font-black text-cyan-100">{lightValue}</p>
-              </div>
+              <button
+                type="button"
+                onClick={onOpenShop}
+                className="group rounded-2xl border border-cyan-200/20 bg-cyan-300/[0.09] px-3 py-2.5 text-left transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+                aria-label={`可用光迹值 ${lightValue}，进入光迹商城`}
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-bold text-cyan-100/65">可用光迹值</span>
+                  <ShoppingBag size={12} className="text-cyan-100/55" />
+                </span>
+                <span className="mt-0.5 flex items-end justify-between gap-2">
+                  <span className="font-mono text-xl font-black text-cyan-100">{lightValue}</span>
+                  <span className="mb-0.5 flex items-center gap-0.5 text-[8px] font-black text-cyan-100/55">
+                    去兑换 <ChevronRight size={10} className="transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </span>
+              </button>
             </div>
 
             <div className="relative mt-3">
@@ -336,7 +352,7 @@ export default function GlowCenterView({ userStats, onBack }: GlowCenterViewProp
                 </button>
               </div>
               <p className="mt-4 text-sm font-medium leading-relaxed text-slate-400">
-                段位由累计光迹值决定，记录长期探索进度；可用光迹值仅在切换探索城市时消耗，使用后不会影响已经达到的段位。
+                段位由累计光迹值决定，记录长期探索进度；可用光迹值可用于切换探索城市或在光迹商城兑换物品，使用后不会影响已经达到的段位。
               </p>
               <div className="mt-4 rounded-2xl border border-cyan-200/10 bg-cyan-200/[0.04] p-4">
                 <p className="text-[10px] font-black tracking-[0.18em] text-cyan-100">光迹值获取</p>
@@ -354,7 +370,7 @@ export default function GlowCenterView({ userStats, onBack }: GlowCenterViewProp
               <div className="mt-3 rounded-2xl border border-amber-200/10 bg-amber-200/[0.04] p-4">
                 <p className="text-[10px] font-black tracking-[0.18em] text-amber-100">光迹值消耗</p>
                 <p className="mt-2 text-sm font-medium leading-5 text-slate-300">
-                  切换一次探索城市，消耗 <strong className="font-black text-amber-100">3 点光迹值</strong>。
+                  切换一次探索城市消耗 <strong className="font-black text-amber-100">3 点光迹值</strong>；也可进入光迹商城兑换探索道具与专属收藏。
                 </p>
               </div>
               <p className="mt-3 text-sm font-medium leading-relaxed text-slate-400">

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import {
   Award,
   BookOpen,
@@ -73,6 +73,58 @@ interface RouteCollectionViewProps {
     intent: RouteCollectionIntent
   ) => void;
   onCollectionCelebrationComplete: () => void;
+}
+
+function CollectionNavigationBar({
+  title,
+  onBack,
+  backLabel,
+  rightAction
+}: {
+  title: string;
+  onBack: () => void;
+  backLabel: string;
+  rightAction?: {
+    label: string;
+    icon: ReactNode;
+    onClick: () => void;
+  };
+}) {
+  return (
+    <header
+      className="sticky top-0 z-30 border-b border-white/[0.08] bg-[#05070A]/78 backdrop-blur-2xl"
+      style={{ paddingTop: 'env(safe-area-inset-top)' }}
+    >
+      <div className="relative flex h-14 items-center justify-between px-4">
+        <button
+          type="button"
+          onClick={onBack}
+          className="relative flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.055] text-slate-200 transition-colors after:absolute after:-inset-1.5 after:rounded-full hover:bg-white/[0.1] active:bg-white/[0.13] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/90 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05070A]"
+          aria-label={backLabel}
+        >
+          <ChevronLeft size={20} strokeWidth={2.25} />
+        </button>
+
+        <h1 className="pointer-events-none absolute left-1/2 max-w-[48%] -translate-x-1/2 truncate text-center text-base font-bold tracking-[0.08em] text-white">
+          {title}
+        </h1>
+
+        {rightAction ? (
+          <button
+            type="button"
+            onClick={rightAction.onClick}
+            className="relative flex h-8 items-center gap-1.5 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 text-xs font-bold text-cyan-100 transition-colors after:absolute after:-inset-x-1 after:-inset-y-1.5 after:rounded-full hover:bg-cyan-400/20 active:bg-cyan-400/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300/90 focus-visible:ring-offset-2 focus-visible:ring-offset-[#05070A]"
+            aria-label={rightAction.label}
+          >
+            {rightAction.icon}
+            <span>{rightAction.label}</span>
+          </button>
+        ) : (
+          <div className="h-8 w-8" aria-hidden="true" />
+        )}
+      </div>
+    </header>
+  );
 }
 
 const formatCollectedDate = (timestamp: number | null) => {
@@ -214,18 +266,11 @@ export default function RouteCollectionView({
     return (
       <div className="relative h-full w-full overflow-y-auto bg-[#05070A] pb-24 text-slate-100 hide-scrollbar">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[320px] bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.16),transparent_38%)]" />
-        <header className="sticky top-0 z-30 flex items-center border-b border-white/10 bg-[#05070A]/86 px-5 py-3 pt-safeb backdrop-blur-xl">
-          <button
-            type="button"
-            onClick={() => onViewStateChange({ ...viewState, viewMode: 'cards', filter: 'all', continent: 'all', expandedCityId: null })}
-            className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-slate-200 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-            aria-label="返回城市卡片"
-          >
-            <ChevronLeft size={21} />
-          </button>
-          <h1 className="flex-1 text-center text-lg font-black tracking-wide text-white">完成记录</h1>
-          <div className="h-11 w-11" aria-hidden="true" />
-        </header>
+        <CollectionNavigationBar
+          title="点亮记录"
+          onBack={() => onViewStateChange({ ...viewState, viewMode: 'cards', filter: 'all', continent: 'all', expandedCityId: null })}
+          backLabel="返回城市卡片"
+        />
         <main className="relative z-10 px-5 py-1">
           <CompletionTimeline routes={timelineRoutes} onOpenRoute={onOpenRoute} />
         </main>
@@ -237,25 +282,16 @@ export default function RouteCollectionView({
     <div className="relative h-full w-full overflow-y-auto bg-[#05070A] pb-24 text-slate-100 hide-scrollbar">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(circle_at_15%_0%,rgba(34,211,238,0.22),transparent_34%),radial-gradient(circle_at_95%_12%,rgba(251,191,36,0.12),transparent_35%)]" />
 
-      <header className="sticky top-0 z-30 flex items-center border-b border-white/10 bg-[#05070A]/86 px-5 py-3 pt-safeb backdrop-blur-xl">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-slate-200 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-          aria-label="返回"
-        >
-          <ChevronLeft size={21} />
-        </button>
-        <h1 className="flex-1 text-center text-lg font-black tracking-wide text-white">城市图鉴</h1>
-        <button
-          type="button"
-          onClick={() => onViewStateChange({ ...viewState, viewMode: 'timeline', filter: 'all', continent: 'all', expandedCityId: null })}
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-slate-300 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-          aria-label="查看完成记录"
-        >
-          <Clock3 size={19} />
-        </button>
-      </header>
+      <CollectionNavigationBar
+        title="城市图鉴"
+        onBack={onBack}
+        backLabel="返回"
+        rightAction={{
+          label: '点亮记录',
+          icon: <Clock3 size={14} strokeWidth={2.25} />,
+          onClick: () => onViewStateChange({ ...viewState, viewMode: 'timeline', filter: 'all', continent: 'all', expandedCityId: null })
+        }}
+      />
 
       <main className="relative z-10 px-5 py-4">
         <section className="relative overflow-hidden rounded-[30px] border border-cyan-200/20 bg-[#08131e]/95 p-5 shadow-[0_24px_70px_rgba(0,0,0,0.42)]">
@@ -486,19 +522,19 @@ function CompletionTimeline({
   }, []);
 
   return (
-    <section className="mt-5" aria-label="完成路线记录">
+    <section className="mt-5" aria-label="点亮记录">
       {groups.length === 0 ? (
         <div className="rounded-[26px] border border-white/10 bg-white/[0.035] px-6 py-9 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-cyan-200/20 bg-cyan-300/10 text-cyan-100">
             <Clock3 size={24} />
           </div>
-          <p className="mt-4 text-sm font-black text-white">还没有完成记录</p>
+          <p className="mt-4 text-sm font-black text-white">还没有点亮记录</p>
           <p className="mt-2 text-[11px] font-bold text-slate-500">完成第一条路线后，这里会显示对应时间。</p>
         </div>
       ) : (
         <div className="space-y-6">
           {groups.map(group => (
-            <section key={group.key} aria-label={`${group.label}完成路线`}>
+            <section key={group.key} aria-label={`${group.label}点亮路线`}>
               <div className="mb-2 flex items-center justify-between pl-1">
                 <h3 className="text-xs font-black text-slate-300">{group.label}</h3>
                 <span className="font-mono text-[9px] font-bold text-slate-600">{group.routes.length} 条完成</span>
@@ -662,20 +698,7 @@ function CityCollectionDetailPage({
     <div className="relative h-full w-full overflow-y-auto bg-[#05070A] pb-24 text-slate-100 hide-scrollbar">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(circle_at_18%_0%,rgba(34,211,238,0.2),transparent_36%),radial-gradient(circle_at_95%_8%,rgba(251,191,36,0.1),transparent_34%)]" />
 
-      <header className="sticky top-0 z-30 flex items-center border-b border-white/10 bg-[#05070A]/86 px-5 py-3 pt-safeb backdrop-blur-xl">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.05] text-slate-200 transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
-          aria-label="返回城市收藏"
-        >
-          <ChevronLeft size={21} />
-        </button>
-        <div className="min-w-0 flex-1 px-3 text-center">
-          <h1 className="truncate text-lg font-black tracking-wide text-white">{passport.city.name}收藏</h1>
-        </div>
-        <div className="h-11 w-11" aria-hidden="true" />
-      </header>
+      <CollectionNavigationBar title={`${passport.city.name}收藏`} onBack={onBack} backLabel="返回城市收藏" />
 
       <main className="relative z-10 px-5 py-4">
         {passport.status === 'upcoming' && (

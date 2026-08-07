@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, Activity, Compass, RefreshCw, Gift, Sparkles, Flame, Radio } from 'lucide-react';
 import { CITIES, CityData } from '../data/cities';
 import { cn } from '../lib/utils';
@@ -10,12 +10,27 @@ const WorldGlobe = React.lazy(() => import('./WorldGlobe'));
 
 const ENABLE_GLOW_TASKS = false;
 
+const HOME_NEBULA_STARS = Array.from({ length: 38 }, (_, index) => ({
+  id: index,
+  left: `${3 + (index * 29) % 94}%`,
+  top: `${2 + (index * 47) % 92}%`,
+  size: 1 + (index % 3) * 0.65,
+  opacity: 0.2 + (index % 5) * 0.1
+}));
+
+const HOME_NEBULA_METEORS = [
+  { id: 'north', left: '7%', top: '14%', distanceX: 156, distanceY: 92, width: 66, delay: 1.2, duration: 1.35, repeatDelay: 7.4 },
+  { id: 'east', left: '52%', top: '8%', distanceX: 128, distanceY: 76, width: 52, delay: 4.8, duration: 1.15, repeatDelay: 8.6 },
+  { id: 'west', left: '18%', top: '38%', distanceX: 184, distanceY: 108, width: 78, delay: 8.2, duration: 1.55, repeatDelay: 9.2 }
+];
+
 const getCityPreviewImage = (city?: CityData | null) => {
   if (!city) return '';
   return city.image;
 };
 
 export default function HomeTab({ onNavigate, completedChapters = [], targetFlight, onFlightComplete, pendingSelectionFrom, onCitySelected, litCityIds = [], userStats, setUserStats, taskPanelOpenSignal = 0, onTreadmillActivated }: { onNavigate?: (type: string, data: any) => void; completedChapters?: number[]; targetFlight?: {fromCityId: string, toCityId: string} | null; onFlightComplete?: () => void; pendingSelectionFrom?: string | null; onCitySelected?: (cityId: string) => void; litCityIds?: string[]; userStats?: any; setUserStats?: any; taskPanelOpenSignal?: number; onTreadmillActivated?: () => void; }) {
+  const reduceMotion = useReducedMotion();
   const [showStoryPanel, setShowStoryPanel] = useState(false);
   const [showCitySelection, setShowCitySelection] = useState(false);
   const [selectableCities, setSelectableCities] = useState<CityData[]>([]);
@@ -29,6 +44,10 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   const [broadcastIndex, setBroadcastIndex] = useState(0);
   const glowRankDetails = getGlowRank(userStats?.lifetimeLightValue ?? userStats?.lightValue ?? 0);
   const currentGlowRank = glowRankDetails.current;
+  const citySwitchPasses = userStats?.citySwitchPasses || 0;
+  const equippedHomeThemes: string[] = userStats?.equippedGlowShopItemIds || [];
+  const auroraEarthActive = equippedHomeThemes.includes('home-globe-aurora');
+  const nebulaSpaceActive = equippedHomeThemes.includes('home-space-nebula');
   const avatarFrameStyles: Record<number, { ring: string; shadow: string; badge: string }> = {
     1: { ring: 'from-orange-300 via-amber-500 to-stone-700', shadow: 'shadow-[0_0_16px_rgba(251,146,60,0.42)]', badge: 'text-orange-200' },
     2: { ring: 'from-white via-slate-300 to-slate-500', shadow: 'shadow-[0_0_16px_rgba(226,232,240,0.38)]', badge: 'text-slate-100' },
@@ -293,13 +312,65 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   };
 
   return (
-    <div className="relative w-full h-full overflow-hidden bg-[#081827] flex items-center justify-center">
+    <div className={`relative flex h-full w-full items-center justify-center overflow-hidden ${nebulaSpaceActive ? 'bg-[#040511]' : 'bg-[#081827]'}`}>
       {/* Solid atmospheric backdrop */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[#081827]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_52%_32%,rgba(34,211,238,0.18),transparent_38%),radial-gradient(circle_at_24%_74%,rgba(20,184,166,0.14),transparent_32%)]" />
-        <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-[#081827]/76 via-[#081827]/20 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#081827] via-[#081827]/62 to-transparent" />
+        {nebulaSpaceActive ? (
+          <>
+            <div className="absolute inset-0 bg-[#040511]" />
+            <div className="absolute -left-[30%] -top-[8%] h-[66%] w-[105%] rounded-full bg-[radial-gradient(ellipse,rgba(99,102,241,0.3),rgba(34,211,238,0.08)_38%,transparent_70%)] opacity-90 blur-2xl" />
+            <div className="absolute -right-[28%] top-[22%] h-[62%] w-[90%] rounded-full bg-[radial-gradient(ellipse,rgba(217,70,239,0.2),rgba(45,212,191,0.06)_42%,transparent_72%)] blur-3xl" />
+            {HOME_NEBULA_STARS.map(star => (
+              <span
+                key={star.id}
+                className="absolute rounded-full bg-white"
+                style={{
+                  left: star.left,
+                  top: star.top,
+                  width: star.size,
+                  height: star.size,
+                  opacity: star.opacity,
+                  boxShadow: `0 0 ${star.size * 5}px rgba(196,181,253,0.7)`
+                }}
+              />
+            ))}
+            {!reduceMotion && HOME_NEBULA_METEORS.map(meteor => (
+              <motion.span
+                key={meteor.id}
+                className="absolute block h-px origin-right"
+                style={{ left: meteor.left, top: meteor.top, width: meteor.width, rotate: 30 }}
+                initial={{ x: -24, y: -14, opacity: 0, scaleX: 0.35 }}
+                animate={{
+                  x: [-24, meteor.distanceX],
+                  y: [-14, meteor.distanceY],
+                  opacity: [0, 0.92, 0.7, 0],
+                  scaleX: [0.35, 1, 0.78]
+                }}
+                transition={{
+                  delay: meteor.delay,
+                  duration: meteor.duration,
+                  repeat: Infinity,
+                  repeatDelay: meteor.repeatDelay,
+                  ease: 'easeOut'
+                }}
+                data-home-meteor={meteor.id}
+                aria-hidden="true"
+              >
+                <span className="absolute inset-0 rounded-full bg-gradient-to-r from-transparent via-cyan-100/65 to-white shadow-[0_0_8px_rgba(165,243,252,0.7)]" />
+                <span className="absolute right-0 top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-white shadow-[0_0_10px_rgba(224,247,255,0.95)]" />
+              </motion.span>
+            ))}
+            <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-[#040511]/80 via-[#040511]/20 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#040511] via-[#07091a]/70 to-transparent" />
+          </>
+        ) : (
+          <>
+            <div className="absolute inset-0 bg-[#081827]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_52%_32%,rgba(34,211,238,0.18),transparent_38%),radial-gradient(circle_at_24%_74%,rgba(20,184,166,0.14),transparent_32%)]" />
+            <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-[#081827]/76 via-[#081827]/20 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#081827] via-[#081827]/62 to-transparent" />
+          </>
+        )}
       </div>
 
       {globeReady ? (
@@ -312,7 +383,10 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
         >
           <div className="absolute inset-0 -translate-y-6">
             <WorldGlobe
+              key={auroraEarthActive ? 'aurora-earth' : 'default-earth'}
               cities={CITIES}
+              appearance={auroraEarthActive ? 'aurora' : 'default'}
+              focusCityId={nextFocusCity?.id}
               targetFlight={targetFlight}
               onCityClick={handleCityClick}
               onFlightComplete={onFlightComplete}
@@ -324,7 +398,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       )}
 
       {/* HUD: Top Overlay */}
-      <div className="absolute top-0 left-0 right-0 px-5 pt-5 z-20 flex items-start justify-between gap-3 pointer-events-none bg-gradient-to-b from-[#081827]/68 to-transparent">
+      <div className={`absolute left-0 right-0 top-0 z-20 flex items-start justify-between gap-3 bg-gradient-to-b px-5 pt-5 pointer-events-none ${nebulaSpaceActive ? 'from-[#040511]/76' : 'from-[#081827]/68'} to-transparent`}>
         
         {/* User Info */}
         <button
@@ -1141,9 +1215,12 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
             >
                <h3 className="text-xl font-bold text-white mb-3">切换城市</h3>
                <p className="text-slate-400 text-sm mb-6 leading-relaxed">
-                 切换城市将消耗<span className="text-amber-400 font-bold mx-1">3 点光迹值</span>。<br/>
-                 是否继续？
-               </p>
+                  {citySwitchPasses > 0 ? (
+                    <>本次优先使用 <span className="text-cyan-200 font-bold mx-1">1 张城市切换券</span>。<br />当前持有 {citySwitchPasses} 张</>
+                  ) : (
+                    <>切换城市将消耗<span className="text-amber-400 font-bold mx-1">3 点光迹值</span>。<br />是否继续？</>
+                  )}
+                </p>
                
                <div className="flex gap-3">
                  <button 
@@ -1154,31 +1231,45 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
                  </button>
                  <button 
                    onClick={() => {
-                      if (userStats && userStats.lightValue >= 3) {
-                        if (setUserStats) {
-                          setUserStats((prev: any) => ({
-                            ...prev,
-                            lightValue: prev.lightValue - 3,
-                            glowValueRecords: [
-                              {
-                                id: `city-switch-${Date.now()}`,
-                                type: 'spend',
-                                title: '切换探索城市',
-                                description: '重新选择下一座城市',
-                                amount: 3,
-                                createdAt: Date.now()
-                              },
-                              ...(prev.glowValueRecords || [])
-                            ]
-                          }));
-                        }
+                       const useSwitchPass = citySwitchPasses > 0;
+                       if (userStats && (useSwitchPass || userStats.lightValue >= 3)) {
+                         if (setUserStats) {
+                           setUserStats((prev: any) => {
+                             if (useSwitchPass) {
+                               return {
+                                 ...prev,
+                                 citySwitchPasses: Math.max(0, (prev.citySwitchPasses || 0) - 1),
+                                 glowShopInventory: {
+                                   ...(prev.glowShopInventory || {}),
+                                   'city-switch-pack': Math.max(0, (prev.glowShopInventory?.['city-switch-pack'] || 0) - 1)
+                                 }
+                               };
+                             }
+
+                             return {
+                               ...prev,
+                               lightValue: prev.lightValue - 3,
+                               glowValueRecords: [
+                                 {
+                                   id: `city-switch-${Date.now()}`,
+                                   type: 'spend',
+                                   title: '切换探索城市',
+                                   description: '重新选择下一座城市',
+                                   amount: 3,
+                                   createdAt: Date.now()
+                                 },
+                                 ...(prev.glowValueRecords || [])
+                               ]
+                             };
+                           });
+                         }
                         const available = CITIES.filter(c => c.status !== 'lit' && c.status !== 'upcoming');
                         const shuffled = [...available].sort(() => 0.5 - Math.random());
                         setSelectableCities(shuffled.slice(0, 3));
                         setShowSwitchConfirm(false);
                         setShowStoryPanel(false); // Close story panel as well right away
                         setShowCitySelection(true);
-                        setToastMessage('已消耗 3 点光迹值重新选择城市');
+                         setToastMessage(useSwitchPass ? '已使用 1 张城市切换券' : '已消耗 3 点光迹值重新选择城市');
                         setTimeout(() => setToastMessage(null), 3000);
                       } else {
                         setShowSwitchConfirm(false);
