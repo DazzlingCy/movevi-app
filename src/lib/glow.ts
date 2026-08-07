@@ -22,6 +22,94 @@ export interface GlowCenterStats {
   glowValueRecords?: GlowValueRecord[];
 }
 
+export type GlowShopItemCategory = 'utility' | 'collectible';
+export type GlowShopItemVisual = 'switch' | 'medal-ticket' | 'globe-theme' | 'space-theme';
+export type GlowShopItemEffect = 'city-switch-pass' | 'medal-ticket' | 'collectible';
+export type GlowCosmeticSlot = 'home-globe' | 'home-space';
+
+export interface GlowShopItem {
+  id: string;
+  name: string;
+  subtitle: string;
+  description: string;
+  benefit?: string;
+  price: number;
+  category: GlowShopItemCategory;
+  visual: GlowShopItemVisual;
+  effect: GlowShopItemEffect;
+  quantity?: number;
+  repeatable?: boolean;
+  cosmeticSlot?: GlowCosmeticSlot;
+  accent: string;
+}
+
+export interface GlowShopStats extends GlowCenterStats {
+  citySwitchPasses?: number;
+  medalMysteryTickets?: number;
+  glowWheelChances?: number;
+  glowShopInventory?: Record<string, number>;
+  ownedGlowShopItemIds?: string[];
+  equippedGlowShopItemIds?: string[];
+}
+
+export interface GlowExchangeResult {
+  success: boolean;
+  message: string;
+}
+
+export const GLOW_SHOP_ITEMS: GlowShopItem[] = [
+  {
+    id: 'city-switch-pack',
+    name: '城市切换券',
+    subtitle: '探索道具',
+    description: '重新选择下一座探索城市时，优先使用切换券。',
+    price: 3,
+    category: 'utility',
+    visual: 'switch',
+    effect: 'city-switch-pass',
+    repeatable: true,
+    accent: 'from-cyan-300 to-blue-500'
+  },
+  {
+    id: 'medal-mystery-ticket',
+    name: '勋章盲盒券',
+    subtitle: '活动道具',
+    description: '用于勋章盲盒活动，兑换一次抽奖机会。',
+    price: 10,
+    category: 'utility',
+    visual: 'medal-ticket',
+    effect: 'medal-ticket',
+    repeatable: true,
+    accent: 'from-amber-200 to-orange-500'
+  },
+  {
+    id: 'home-globe-aurora',
+    name: '极光地球',
+    subtitle: '地球样式',
+    description: '将首页地球切换为极光材质与紫青大气层。',
+    benefit: '首页地球特效',
+    price: 50,
+    category: 'collectible',
+    visual: 'globe-theme',
+    effect: 'collectible',
+    cosmeticSlot: 'home-globe',
+    accent: 'from-emerald-200 via-cyan-300 to-violet-500'
+  },
+  {
+    id: 'home-space-nebula',
+    name: '深空星云',
+    subtitle: '太空样式',
+    description: '将首页太空切换为深蓝星海与流动星云背景。',
+    benefit: '首页太空特效',
+    price: 100,
+    category: 'collectible',
+    visual: 'space-theme',
+    effect: 'collectible',
+    cosmeticSlot: 'home-space',
+    accent: 'from-indigo-300 via-violet-400 to-fuchsia-500'
+  }
+];
+
 export const GLOW_RANKS: GlowRank[] = [
   { level: 1, name: '青铜', threshold: 0, color: 'from-orange-300 to-amber-700' },
   { level: 2, name: '白银', threshold: 80, color: 'from-slate-100 to-slate-400' },
