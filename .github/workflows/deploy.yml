@@ -1,9 +1,9 @@
 name: Deploy to GitHub Pages
 
 on:
-  # 触发条件：当推送到 main 分支时触发
+  # 提交到主分支或 Codex 开发分支后自动同步 GitHub Pages
   push:
-    branches: ['main']
+    branches: ['main', 'codex/**']
   # 允许手动在 Actions 面板触发
   workflow_dispatch:
 
