@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   Globe2,
   Medal,
+  MoonStar,
   Orbit,
   ShoppingBag,
   Shuffle,
@@ -43,8 +44,10 @@ const itemSections = [
 function ShopIcon({ visual, size = 26 }: { visual: GlowShopItemVisual; size?: number }) {
   if (visual === 'switch') return <Shuffle size={size} />;
   if (visual === 'medal-ticket') return <Medal size={size} />;
-  if (visual === 'globe-theme') return <Globe2 size={size} />;
-  return <Orbit size={size} />;
+  if (visual === 'globe-natural') return <Globe2 size={size} className="text-cyan-100" />;
+  if (visual === 'globe-night') return <MoonStar size={size} className="text-amber-100" />;
+  if (visual === 'space-nebula') return <Orbit size={size} className="text-violet-100" />;
+  return <Sparkles size={size} className="text-sky-100" />;
 }
 
 function DialogBackdrop({ children, onClose }: { children: ReactNode; onClose: () => void }) {
@@ -305,12 +308,19 @@ export default function GlowShopView({ userStats, onBack, onRedeem, onUse }: Glo
         {toast && (
           <motion.div
             role="status"
-            initial={reduceMotion ? false : { opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 12 }}
-            className="pointer-events-none absolute inset-x-5 bottom-6 z-[70] flex items-center justify-center rounded-2xl border border-cyan-200/15 bg-[#0b1823]/95 px-4 py-3 text-center text-xs font-black text-cyan-50 shadow-2xl backdrop-blur-xl"
+            initial={reduceMotion ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="pointer-events-none absolute inset-0 z-[70] flex items-center justify-center px-5"
           >
-            {toast}
+            <motion.div
+              initial={reduceMotion ? false : { scale: 0.96, y: 10 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.98, y: 6 }}
+              className="flex w-full max-w-sm items-center justify-center rounded-2xl border border-cyan-200/15 bg-[#0b1823]/95 px-4 py-3 text-center text-xs font-black text-cyan-50 shadow-2xl backdrop-blur-xl"
+            >
+              {toast}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

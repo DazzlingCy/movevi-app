@@ -23,7 +23,13 @@ export interface GlowCenterStats {
 }
 
 export type GlowShopItemCategory = 'utility' | 'collectible';
-export type GlowShopItemVisual = 'switch' | 'medal-ticket' | 'globe-theme' | 'space-theme';
+export type GlowShopItemVisual =
+  | 'switch'
+  | 'medal-ticket'
+  | 'globe-natural'
+  | 'globe-night'
+  | 'space-nebula'
+  | 'space-starlight';
 export type GlowShopItemEffect = 'city-switch-pass' | 'medal-ticket' | 'collectible';
 export type GlowCosmeticSlot = 'home-globe' | 'home-space';
 
@@ -84,29 +90,51 @@ export const GLOW_SHOP_ITEMS: GlowShopItem[] = [
   },
   {
     id: 'home-globe-aurora',
-    name: '极光地球',
+    name: '蔚蓝星球',
     subtitle: '地球样式',
-    description: '将首页地球切换为极光材质与紫青大气层。',
-    benefit: '首页地球特效',
+    description: '将首页地球切换为自然地貌、深蓝海洋与柔和大气层。',
     price: 50,
     category: 'collectible',
-    visual: 'globe-theme',
+    visual: 'globe-natural',
     effect: 'collectible',
     cosmeticSlot: 'home-globe',
     accent: 'from-emerald-200 via-cyan-300 to-violet-500'
+  },
+  {
+    id: 'home-globe-night',
+    name: '城市夜光',
+    subtitle: '地球样式',
+    description: '将首页地球切换为夜色大陆、城市灯光与深蓝大气层。',
+    price: 80,
+    category: 'collectible',
+    visual: 'globe-night',
+    effect: 'collectible',
+    cosmeticSlot: 'home-globe',
+    accent: 'from-amber-200 via-blue-400 to-indigo-600'
   },
   {
     id: 'home-space-nebula',
     name: '深空星云',
     subtitle: '太空样式',
     description: '将首页太空切换为深蓝星海与流动星云背景。',
-    benefit: '首页太空特效',
     price: 100,
     category: 'collectible',
-    visual: 'space-theme',
+    visual: 'space-nebula',
     effect: 'collectible',
     cosmeticSlot: 'home-space',
     accent: 'from-indigo-300 via-violet-400 to-fuchsia-500'
+  },
+  {
+    id: 'home-space-starlight',
+    name: '银河微光',
+    subtitle: '太空样式',
+    description: '将首页太空切换为高亮银蓝银河、密集星尘与闪烁远星。',
+    price: 80,
+    category: 'collectible',
+    visual: 'space-starlight',
+    effect: 'collectible',
+    cosmeticSlot: 'home-space',
+    accent: 'from-slate-100 via-sky-300 to-indigo-500'
   }
 ];
 

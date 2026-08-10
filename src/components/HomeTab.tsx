@@ -20,8 +20,19 @@ const HOME_NEBULA_STARS = Array.from({ length: 38 }, (_, index) => ({
 
 const HOME_NEBULA_METEORS = [
   { id: 'north', left: '7%', top: '14%', distanceX: 156, distanceY: 92, width: 66, delay: 1.2, duration: 1.35, repeatDelay: 7.4 },
+  { id: 'upper-mid', left: '31%', top: '4%', distanceX: 142, distanceY: 84, width: 58, delay: 3.0, duration: 1.22, repeatDelay: 8.1 },
   { id: 'east', left: '52%', top: '8%', distanceX: 128, distanceY: 76, width: 52, delay: 4.8, duration: 1.15, repeatDelay: 8.6 },
-  { id: 'west', left: '18%', top: '38%', distanceX: 184, distanceY: 108, width: 78, delay: 8.2, duration: 1.55, repeatDelay: 9.2 }
+  { id: 'south-east', left: '68%', top: '25%', distanceX: 112, distanceY: 68, width: 46, delay: 6.5, duration: 1.08, repeatDelay: 7.8 },
+  { id: 'west', left: '18%', top: '38%', distanceX: 184, distanceY: 108, width: 78, delay: 8.2, duration: 1.55, repeatDelay: 9.2 },
+  { id: 'lower-west', left: '3%', top: '52%', distanceX: 164, distanceY: 96, width: 70, delay: 10.0, duration: 1.42, repeatDelay: 8.8 }
+];
+
+const HOME_STARLIGHT_FLARES = [
+  { id: 'flare-1', left: '18%', top: '18%', size: 9, delay: 0.2 },
+  { id: 'flare-2', left: '72%', top: '15%', size: 7, delay: 1.1 },
+  { id: 'flare-3', left: '84%', top: '39%', size: 10, delay: 1.8 },
+  { id: 'flare-4', left: '29%', top: '52%', size: 6, delay: 2.5 },
+  { id: 'flare-5', left: '61%', top: '62%', size: 8, delay: 3.2 }
 ];
 
 const getCityPreviewImage = (city?: CityData | null) => {
@@ -47,7 +58,11 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   const citySwitchPasses = userStats?.citySwitchPasses || 0;
   const equippedHomeThemes: string[] = userStats?.equippedGlowShopItemIds || [];
   const auroraEarthActive = equippedHomeThemes.includes('home-globe-aurora');
+  const nightEarthActive = equippedHomeThemes.includes('home-globe-night');
   const nebulaSpaceActive = equippedHomeThemes.includes('home-space-nebula');
+  const starlightSpaceActive = equippedHomeThemes.includes('home-space-starlight');
+  const globeAppearance = nightEarthActive ? 'night' : auroraEarthActive ? 'aurora' : 'default';
+  const spaceBackground = nebulaSpaceActive ? 'nebula' : starlightSpaceActive ? 'starlight' : 'default';
   const avatarFrameStyles: Record<number, { ring: string; shadow: string; badge: string }> = {
     1: { ring: 'from-orange-300 via-amber-500 to-stone-700', shadow: 'shadow-[0_0_16px_rgba(251,146,60,0.42)]', badge: 'text-orange-200' },
     2: { ring: 'from-white via-slate-300 to-slate-500', shadow: 'shadow-[0_0_16px_rgba(226,232,240,0.38)]', badge: 'text-slate-100' },
@@ -312,10 +327,10 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
   };
 
   return (
-    <div className={`relative flex h-full w-full items-center justify-center overflow-hidden ${nebulaSpaceActive ? 'bg-[#040511]' : 'bg-[#081827]'}`}>
+    <div className={`relative flex h-full w-full items-center justify-center overflow-hidden ${spaceBackground === 'nebula' ? 'bg-[#040511]' : spaceBackground === 'starlight' ? 'bg-[#020713]' : 'bg-[#081827]'}`}>
       {/* Solid atmospheric backdrop */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        {nebulaSpaceActive ? (
+        {spaceBackground === 'nebula' ? (
           <>
             <div className="absolute inset-0 bg-[#040511]" />
             <div className="absolute -left-[30%] -top-[8%] h-[66%] w-[105%] rounded-full bg-[radial-gradient(ellipse,rgba(99,102,241,0.3),rgba(34,211,238,0.08)_38%,transparent_70%)] opacity-90 blur-2xl" />
@@ -363,6 +378,46 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
             <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-[#040511]/80 via-[#040511]/20 to-transparent" />
             <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#040511] via-[#07091a]/70 to-transparent" />
           </>
+        ) : spaceBackground === 'starlight' ? (
+          <>
+            <div className="absolute inset-0 bg-[#020713]" />
+            <div className="absolute -left-[48%] top-[9%] h-[46%] w-[198%] rotate-[18deg] bg-[linear-gradient(180deg,transparent_0%,rgba(96,165,250,0.06)_18%,rgba(186,230,253,0.24)_43%,rgba(224,242,254,0.32)_52%,rgba(129,140,248,0.16)_65%,transparent_100%)] blur-2xl mix-blend-screen" />
+            <div className="absolute -left-[38%] top-[23%] h-[15%] w-[174%] rotate-[18deg] bg-[linear-gradient(180deg,transparent,rgba(240,249,255,0.24),rgba(147,197,253,0.12),transparent)] blur-xl mix-blend-screen" />
+            <div className="absolute left-[-4%] top-[5%] h-[55%] w-[108%] rounded-full bg-[radial-gradient(ellipse,rgba(125,211,252,0.2),rgba(99,102,241,0.07)_46%,transparent_72%)] blur-3xl" />
+            <div className="absolute right-[-22%] top-[34%] h-[40%] w-[78%] rounded-full bg-[radial-gradient(ellipse,rgba(167,139,250,0.11),transparent_68%)] blur-3xl" />
+            {HOME_NEBULA_STARS.map(star => (
+              <motion.span
+                key={`starlight-${star.id}`}
+                className="absolute rounded-full bg-sky-50"
+                style={{
+                  left: star.left,
+                  top: star.top,
+                  width: Math.max(1, star.size),
+                  height: Math.max(1, star.size),
+                  boxShadow: `0 0 ${star.size * 6}px rgba(186, 230, 253, 0.76)`
+                }}
+                initial={{ opacity: Math.min(0.82, star.opacity + 0.16) }}
+                animate={reduceMotion ? undefined : { opacity: [0.3, Math.min(0.95, star.opacity + 0.32), 0.3] }}
+                transition={{ duration: 2.4 + (star.id % 4) * 0.55, delay: (star.id % 7) * 0.28, repeat: Infinity, ease: 'easeInOut' }}
+              />
+            ))}
+            {HOME_STARLIGHT_FLARES.map(flare => (
+              <motion.span
+                key={flare.id}
+                className="absolute rounded-full bg-white shadow-[0_0_14px_rgba(224,242,254,0.95)]"
+                style={{ left: flare.left, top: flare.top, width: flare.size, height: flare.size }}
+                initial={{ opacity: 0.42, scale: 0.82 }}
+                animate={reduceMotion ? undefined : { opacity: [0.38, 1, 0.38], scale: [0.82, 1.18, 0.82] }}
+                transition={{ duration: 2.8, delay: flare.delay, repeat: Infinity, ease: 'easeInOut' }}
+                aria-hidden="true"
+              >
+                <span className="absolute left-1/2 top-1/2 h-px w-[220%] -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-transparent via-sky-100/80 to-transparent" />
+                <span className="absolute left-1/2 top-1/2 h-[220%] w-px -translate-x-1/2 -translate-y-1/2 bg-gradient-to-b from-transparent via-sky-100/70 to-transparent" />
+              </motion.span>
+            ))}
+            <div className="absolute inset-x-0 top-0 h-56 bg-gradient-to-b from-[#020713]/76 via-[#020713]/10 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 h-72 bg-gradient-to-t from-[#020713] via-[#050d1d]/62 to-transparent" />
+          </>
         ) : (
           <>
             <div className="absolute inset-0 bg-[#081827]" />
@@ -383,9 +438,9 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
         >
           <div className="absolute inset-0 -translate-y-6">
             <WorldGlobe
-              key={auroraEarthActive ? 'aurora-earth' : 'default-earth'}
+              key={`${globeAppearance}-earth`}
               cities={CITIES}
-              appearance={auroraEarthActive ? 'aurora' : 'default'}
+              appearance={globeAppearance}
               focusCityId={nextFocusCity?.id}
               targetFlight={targetFlight}
               onCityClick={handleCityClick}
@@ -398,7 +453,7 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       )}
 
       {/* HUD: Top Overlay */}
-      <div className={`absolute left-0 right-0 top-0 z-20 flex items-start justify-between gap-3 bg-gradient-to-b px-5 pt-5 pointer-events-none ${nebulaSpaceActive ? 'from-[#040511]/76' : 'from-[#081827]/68'} to-transparent`}>
+      <div className={`absolute left-0 right-0 top-0 z-20 flex items-start justify-between gap-3 bg-gradient-to-b px-5 pt-5 pointer-events-none ${spaceBackground === 'nebula' ? 'from-[#040511]/76' : spaceBackground === 'starlight' ? 'from-[#020713]/74' : 'from-[#081827]/68'} to-transparent`}>
         
         {/* User Info */}
         <button

@@ -7,7 +7,7 @@ import { cn } from '../lib/utils';
 
 interface WorldGlobeProps {
   cities: CityData[];
-  appearance?: 'default' | 'aurora';
+  appearance?: 'default' | 'aurora' | 'night';
   focusCityId?: string;
   targetFlight?: { fromCityId: string; toCityId: string } | null;
   onCityClick: (city: CityData) => void;
@@ -41,6 +41,8 @@ type GlobeHtmlElement = CityPoint | FlightMarker;
 
 const viteBaseUrl = ((import.meta as ImportMeta & { env?: { BASE_URL?: string } }).env?.BASE_URL || '/');
 const GLOBE_TEXTURE_URL = `${viteBaseUrl}globe/earth-dark.svg`;
+const NATURAL_EARTH_TEXTURE_URL = `${viteBaseUrl}globe/earth-natural.webp`;
+const NIGHT_EARTH_TEXTURE_URL = `${viteBaseUrl}globe/earth-night.webp`;
 const COUNTRIES_TOPOLOGY_URL = `${viteBaseUrl}globe/countries-110m.json`;
 const CAMERA_ALTITUDE = 1.78;
 const REDUCED_CAMERA_ALTITUDE = 1.95;
@@ -233,11 +235,14 @@ function getCityIconSvg(city: CityData) {
   return icons[city.englishName] || '<circle cx="12" cy="12" r="7"/><path d="M12 5v14"/><path d="M5 12h14"/>';
 }
 
-function FlatMapFallback({ cities, appearance, onCityClick }: { cities: CityData[]; appearance: 'default' | 'aurora'; onCityClick: (city: CityData) => void }) {
+function FlatMapFallback({ cities, appearance, onCityClick }: { cities: CityData[]; appearance: 'default' | 'aurora' | 'night'; onCityClick: (city: CityData) => void }) {
+  const fallbackBackground = appearance === 'aurora' ? 'bg-[#061421]' : appearance === 'night' ? 'bg-[#020712]' : 'bg-[#071827]';
+  const fallbackLand = appearance === 'aurora' ? '#48654e' : appearance === 'night' ? '#172c43' : '#02070c';
+  const fallbackStroke = appearance === 'aurora' ? '#9bc6d3' : appearance === 'night' ? '#70a4c2' : '#0b5b73';
   return (
-    <div className={`relative h-full w-full overflow-hidden rounded-[28px] ${appearance === 'aurora' ? 'bg-[#071a2a]' : 'bg-[#071827]'}`}>
+    <div className={`relative h-full w-full overflow-hidden rounded-[28px] ${fallbackBackground}`}>
       <svg viewBox="0 0 1200 800" className="absolute inset-0 h-full w-full opacity-80" aria-hidden="true">
-        <g fill={appearance === 'aurora' ? '#31596e' : '#02070c'} stroke={appearance === 'aurora' ? '#8be9f6' : '#0b5b73'} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round">
+        <g fill={fallbackLand} stroke={fallbackStroke} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round">
           <path d="M88 178L143 120L230 95L307 118L358 166L382 230L345 282L290 315L215 330L145 306L86 255L60 205Z" />
           <path d="M245 96L282 70L345 82L386 116L350 150L298 132Z" />
           <path d="M366 332L430 365L470 435L452 548L410 655L350 710L318 620L300 520L323 420Z" />
@@ -340,28 +345,48 @@ export default function WorldGlobe({ cities, appearance = 'default', focusCityId
   }), []);
 
   const auroraOceanMaterial = useMemo(() => new THREE.MeshPhongMaterial({
-    color: new THREE.Color('#0b2b3f'),
-    emissive: new THREE.Color('#071f31'),
-    emissiveIntensity: 0.94,
-    specular: new THREE.Color('#163b49'),
-    shininess: 9
+    color: new THREE.Color('#ffffff'),
+    emissive: new THREE.Color('#06131d'),
+    emissiveIntensity: 0.2,
+    specular: new THREE.Color('#a7cedd'),
+    shininess: 18
   }), []);
 
   useEffect(() => () => auroraOceanMaterial.dispose(), [auroraOceanMaterial]);
+
+  const nightEarthMaterial = useMemo(() => new THREE.MeshPhongMaterial({
+    color: new THREE.Color('#f1f6ff'),
+    emissive: new THREE.Color('#081525'),
+    emissiveIntensity: 0.62,
+    specular: new THREE.Color('#6da7c7'),
+    shininess: 10
+  }), []);
+
+  useEffect(() => () => nightEarthMaterial.dispose(), [nightEarthMaterial]);
 
   const applyGlobeLighting = useCallback(() => {
     const globe = globeRef.current;
     if (!globe) return;
 
     if (appearance === 'aurora') {
-      const ambient = new THREE.AmbientLight(0x9be8f4, 1.68);
-      const cyanKey = new THREE.DirectionalLight(0xd9fbff, 0.82);
-      cyanKey.position.set(-1.8, 1.4, 2.5);
-      const blueRim = new THREE.DirectionalLight(0x38bdf8, 0.54);
-      blueRim.position.set(2.4, 0.2, -1.5);
-      const oceanFill = new THREE.DirectionalLight(0x0ea5e9, 0.38);
-      oceanFill.position.set(0.4, -1.8, 1.2);
-      globe.lights([ambient, cyanKey, blueRim, oceanFill]);
+      const ambient = new THREE.AmbientLight(0x8fb8c9, 0.7);
+      const sunlight = new THREE.DirectionalLight(0xfff4dc, 1.5);
+      sunlight.position.set(-2.2, 1.6, 2.8);
+      const skyFill = new THREE.DirectionalLight(0x6ea6cc, 0.32);
+      skyFill.position.set(0.4, -1.6, 1.1);
+      const atmosphericRim = new THREE.DirectionalLight(0x8dd8f2, 0.46);
+      atmosphericRim.position.set(2.5, 0.4, -1.8);
+      globe.lights([ambient, sunlight, skyFill, atmosphericRim]);
+      return;
+    }
+
+    if (appearance === 'night') {
+      const ambient = new THREE.AmbientLight(0x6688aa, 0.52);
+      const moonlight = new THREE.DirectionalLight(0x90b7dc, 0.48);
+      moonlight.position.set(-1.8, 1.5, 2.6);
+      const cityRim = new THREE.DirectionalLight(0x4fc3e8, 0.46);
+      cityRim.position.set(2.4, 0.3, -1.6);
+      globe.lights([ambient, moonlight, cityRim]);
       return;
     }
 
@@ -882,7 +907,7 @@ export default function WorldGlobe({ cities, appearance = 'default', focusCityId
       role="application"
     >
       <div className="absolute inset-0 pointer-events-none">
-        <div className={`absolute inset-0 ${appearance === 'aurora' ? 'bg-[radial-gradient(circle_at_44%_34%,rgba(56,189,248,0.2),transparent_31%),radial-gradient(circle_at_58%_44%,rgba(125,211,252,0.13),transparent_44%)]' : 'bg-[radial-gradient(circle_at_50%_38%,rgba(20,184,166,0.14),transparent_34%),radial-gradient(circle_at_50%_42%,rgba(34,211,238,0.10),transparent_42%)]'}`} />
+        <div className={`absolute inset-0 ${appearance === 'aurora' ? 'bg-[radial-gradient(circle_at_43%_31%,rgba(147,197,220,0.14),transparent_32%),radial-gradient(circle_at_58%_46%,rgba(56,189,248,0.07),transparent_46%)]' : appearance === 'night' ? 'bg-[radial-gradient(circle_at_47%_35%,rgba(96,165,250,0.11),transparent_34%),radial-gradient(circle_at_62%_48%,rgba(14,165,233,0.055),transparent_45%)]' : 'bg-[radial-gradient(circle_at_50%_38%,rgba(20,184,166,0.14),transparent_34%),radial-gradient(circle_at_50%_42%,rgba(34,211,238,0.10),transparent_42%)]'}`} />
         {starPoints.map(star => (
           <span
             key={star.id}
@@ -916,17 +941,17 @@ export default function WorldGlobe({ cities, appearance = 'default', focusCityId
         width={size.width}
         height={size.height}
         backgroundColor="rgba(0,0,0,0)"
-        globeImageUrl={appearance === 'aurora' ? undefined : GLOBE_TEXTURE_URL}
-        globeMaterial={appearance === 'aurora' ? auroraOceanMaterial : undefined}
+        globeImageUrl={appearance === 'aurora' ? NATURAL_EARTH_TEXTURE_URL : appearance === 'night' ? NIGHT_EARTH_TEXTURE_URL : GLOBE_TEXTURE_URL}
+        globeMaterial={appearance === 'aurora' ? auroraOceanMaterial : appearance === 'night' ? nightEarthMaterial : undefined}
         showAtmosphere
-        atmosphereColor={appearance === 'aurora' ? '#8be9f6' : '#67e8f9'}
-        atmosphereAltitude={appearance === 'aurora' ? 0.19 : 0.16}
+        atmosphereColor={appearance === 'aurora' ? '#9bd7ee' : appearance === 'night' ? '#4da7d3' : '#67e8f9'}
+        atmosphereAltitude={appearance === 'aurora' ? 0.13 : appearance === 'night' ? 0.11 : 0.16}
         globeCurvatureResolution={5}
         polygonsData={countryPolygons}
-        polygonAltitude={0.003}
-        polygonCapColor={() => appearance === 'aurora' ? 'rgba(49, 89, 110, 0.95)' : 'rgba(31, 63, 76, 0.72)'}
-        polygonSideColor={() => appearance === 'aurora' ? 'rgba(12, 38, 55, 0.4)' : 'rgba(8, 24, 39, 0.12)'}
-        polygonStrokeColor={() => appearance === 'aurora' ? 'rgba(161, 225, 235, 0.3)' : 'rgba(125, 211, 252, 0.16)'}
+        polygonAltitude={appearance === 'default' ? 0.003 : 0.0015}
+        polygonCapColor={() => appearance === 'default' ? 'rgba(31, 63, 76, 0.72)' : 'rgba(255, 255, 255, 0)'}
+        polygonSideColor={() => appearance === 'aurora' ? 'rgba(34, 70, 86, 0.08)' : appearance === 'night' ? 'rgba(16, 46, 68, 0.06)' : 'rgba(8, 24, 39, 0.12)'}
+        polygonStrokeColor={() => appearance === 'aurora' ? 'rgba(185, 219, 228, 0.15)' : appearance === 'night' ? 'rgba(125, 186, 212, 0.11)' : 'rgba(125, 211, 252, 0.16)'}
         polygonsTransitionDuration={isReady ? 450 : 0}
         pointsData={[]}
         pointLat="lat"
@@ -1003,15 +1028,17 @@ export default function WorldGlobe({ cities, appearance = 'default', focusCityId
 
       {appearance === 'aurora' && (
         <div className="pointer-events-none absolute inset-0 z-10 overflow-hidden" aria-hidden="true">
-          <div className="absolute left-[14%] top-[24%] h-28 w-[72%] -rotate-6 rounded-[50%] bg-[linear-gradient(105deg,transparent_8%,rgba(125,211,252,0.04)_32%,rgba(103,232,249,0.08)_52%,rgba(186,230,253,0.04)_70%,transparent_92%)] blur-2xl mix-blend-screen" />
+          <div className="absolute left-[17%] top-[20%] h-24 w-[66%] -rotate-6 rounded-[50%] bg-[linear-gradient(105deg,transparent_10%,rgba(186,230,253,0.025)_34%,rgba(125,211,252,0.055)_52%,rgba(186,230,253,0.025)_70%,transparent_90%)] blur-2xl mix-blend-screen" />
         </div>
       )}
 
-      <div className={`pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t ${appearance === 'aurora' ? 'from-[#061725] via-[#061725]/68' : 'from-[#081827] via-[#081827]/62'} to-transparent`} />
+      <div className={`pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t ${appearance === 'aurora' ? 'from-[#04101a] via-[#04101a]/58' : appearance === 'night' ? 'from-[#020813] via-[#020813]/62' : 'from-[#081827] via-[#081827]/62'} to-transparent`} />
       <div className={cn(
         'pointer-events-none absolute inset-0 rounded-[36px] border',
         appearance === 'aurora'
-          ? 'border-cyan-100/[0.05] shadow-[inset_0_0_100px_rgba(4,31,49,0.7)]'
+          ? 'border-sky-100/[0.045] shadow-[inset_0_0_96px_rgba(2,18,30,0.58)]'
+          : appearance === 'night'
+          ? 'border-blue-100/[0.04] shadow-[inset_0_0_100px_rgba(1,8,20,0.72)]'
           : 'border-cyan-100/[0.03] shadow-[inset_0_0_90px_rgba(8,24,39,0.68)]'
       )} />
     </div>
