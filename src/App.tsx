@@ -319,7 +319,6 @@ export default function App() {
           <EventsTab
             onSelectMedley={() => setFullScreenPage({ type: 'weekendMedley' })}
             onSelectWeightLossPlan={() => setFullScreenPage({ type: 'weightLossPlan' })}
-            onSelectTeamRelay={() => setFullScreenPage({ type: 'teamRelay' })}
             onSelectMedalLottery={() => setFullScreenPage({ type: 'medalLottery' })}
           />
         );

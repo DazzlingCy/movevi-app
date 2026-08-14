@@ -1,10 +1,9 @@
 import { motion } from 'motion/react';
 import type { ReactNode } from 'react';
-import { Calendar, ChevronRight, Gift, Globe2, MessageSquare, Sparkles, Users } from 'lucide-react';
+import { Calendar, ChevronRight, Gift, Globe2, MessageSquare, Sparkles } from 'lucide-react';
 
 interface EventsTabProps {
   onSelectMedley?: () => void;
-  onSelectTeamRelay?: () => void;
   onSelectMedalLottery?: () => void;
   onSelectWeightLossPlan?: () => void;
 }
@@ -134,7 +133,7 @@ function EventCard({
   );
 }
 
-export default function EventsTab({ onSelectMedley, onSelectTeamRelay, onSelectMedalLottery }: EventsTabProps) {
+export default function EventsTab({ onSelectMedley, onSelectMedalLottery }: EventsTabProps) {
   return (
     <div className="relative h-full w-full overflow-y-auto bg-[#05070A] pb-24 font-sans text-slate-100 hide-scrollbar">
       <div className="sticky top-0 z-20 flex items-center justify-center border-b border-white/10 bg-black/40 p-3.5 pt-safeb backdrop-blur-md">
@@ -173,16 +172,6 @@ export default function EventsTab({ onSelectMedley, onSelectTeamRelay, onSelectM
           delay={0.1}
         />
 
-        <EventCard
-          title="城市拼图小队"
-          description="创建或加入 2 人小队，完成随机城市路线拼图，点亮全城后瓜分现金奖励。"
-          image="https://images.unsplash.com/photo-1518005020951-eccb494ad742?auto=format&fit=crop&q=80&w=600&h=400"
-          accent="cyan"
-          icon={<Users size={16} />}
-          tag={<span className="flex items-center gap-1"><Users size={10} className="animate-pulse" />2人小队</span>}
-          onClick={onSelectTeamRelay}
-          className="order-last"
-        />
       </div>
     </div>
   );
