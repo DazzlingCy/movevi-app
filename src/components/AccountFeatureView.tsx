@@ -5,23 +5,25 @@ import {
   ChevronLeft,
   CircleHelp,
   ClipboardList,
+  Download,
   HeadphonesIcon,
   LockKeyhole,
   MapPinned,
   Medal,
   MonitorSmartphone,
-  PencilLine,
   QrCode,
-  Send,
   ShieldCheck,
   Smartphone,
   Sparkles,
   Trophy,
-  Wallet
+  Wallet,
+  X
 } from 'lucide-react';
 import { CITIES } from '../data/cities';
 import type { AuthUser } from './AuthView';
 import CityImage from './CityImage';
+
+const viteBaseUrl = ((import.meta as ImportMeta & { env?: { BASE_URL?: string } }).env?.BASE_URL || '/');
 
 export type AccountFeatureKind =
   | 'records'
@@ -52,14 +54,15 @@ type AccountFeatureViewProps = {
   authUser: AuthUser | null;
   onBack: () => void;
   onOpenAuth: () => void;
+  initialSupportQrOpen?: boolean;
 };
 
 const featureMeta: Record<AccountFeatureKind, { title: string; eyebrow: string; desc: string }> = {
   records: { title: '运动记录', eyebrow: '运动日志', desc: '查看近期路线、里程和运动完成情况。' },
   device: { title: '我的设备', eyebrow: '设备管理', desc: '管理跑步机连接、扫码绑定和设备校准。' },
   wallet: { title: '我的钱包', eyebrow: '钱包', desc: '查看现金红包、奖励明细和提现入口。' },
-  service: { title: '在线客服', eyebrow: '客户服务', desc: '遇到设备或奖励问题时，可快速联系支持。' },
-  feedback: { title: '问题反馈', eyebrow: '意见反馈', desc: '提交问题反馈，帮助我们优化路线体验。' },
+  service: { title: '问题反馈', eyebrow: '问题反馈', desc: '描述遇到的问题，扫码添加企业微信客服。' },
+  feedback: { title: '客服反馈', eyebrow: '客服反馈', desc: '描述遇到的问题，扫码联系客服。' },
   guide: { title: '使用说明', eyebrow: '使用指南', desc: '了解连接设备、完成路线和领取奖励的步骤。' },
   messages: { title: '消息中心', eyebrow: '消息', desc: '查看活动提醒、设备状态和系统通知。' },
   profileEdit: { title: '编辑资料', eyebrow: '个人资料', desc: '管理昵称、手机号和账号基础信息。' },
@@ -100,7 +103,7 @@ function FeatureIcon({ kind }: { kind: AccountFeatureKind }) {
   if (kind === 'device') return <MonitorSmartphone size={25} />;
   if (kind === 'wallet') return <Wallet size={25} />;
   if (kind === 'service') return <HeadphonesIcon size={25} />;
-  if (kind === 'feedback') return <PencilLine size={25} />;
+  if (kind === 'feedback') return <HeadphonesIcon size={25} />;
   if (kind === 'guide') return <MapPinned size={25} />;
   if (kind === 'messages') return <Bell size={25} />;
   if (kind === 'achievements') return <Medal size={25} />;
@@ -108,10 +111,10 @@ function FeatureIcon({ kind }: { kind: AccountFeatureKind }) {
   return <ShieldCheck size={25} />;
 }
 
-export default function AccountFeatureView({ kind, userStats, authUser, onBack, onOpenAuth }: AccountFeatureViewProps) {
-  const [feedbackType, setFeedbackType] = useState('设备问题');
+export default function AccountFeatureView({ kind, userStats, authUser, onBack, onOpenAuth, initialSupportQrOpen = false }: AccountFeatureViewProps) {
   const [feedbackText, setFeedbackText] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [showSupportQr, setShowSupportQr] = useState(initialSupportQrOpen);
   const meta = featureMeta[kind];
 
   const walletRecords = useMemo(() => {
@@ -347,59 +350,44 @@ export default function AccountFeatureView({ kind, userStats, authUser, onBack, 
       );
     }
 
-    if (kind === 'service') {
+    if (kind === 'service' || kind === 'feedback') {
       return (
-        <div className="space-y-4">
-          <div className="rounded-[30px] border border-cyan-200/15 bg-[#09111b] p-5">
-            <div className="flex items-center gap-4">
-              <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-cyan-300/10 text-cyan-100"><HeadphonesIcon size={30} /></div>
-              <div>
-                <h3 className="text-lg font-black text-white">在线客服</h3>
-                <p className="mt-1 text-xs font-bold text-slate-500">服务时间 09:00 - 22:00</p>
-              </div>
+        <div className="space-y-5 pt-1">
+          <section>
+            <label htmlFor="support-question" className="text-base font-black text-white">描述问题</label>
+            <div className="relative mt-3">
+              <textarea
+                id="support-question"
+                value={feedbackText}
+                maxLength={200}
+                onChange={event => {
+                  setFeedbackText(event.target.value);
+                  setFeedbackSubmitted(false);
+                }}
+                placeholder="请描述你遇到的问题"
+                className="h-52 w-full resize-none rounded-[26px] border border-white/10 bg-[#0a111b] p-4 pb-9 text-sm font-bold leading-6 text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/45 focus:ring-2 focus:ring-cyan-300/10"
+              />
+              <span className="pointer-events-none absolute bottom-3 right-4 font-mono text-[10px] font-bold text-slate-600">{feedbackText.length}/200</span>
             </div>
-            <button className="mt-5 h-12 w-full rounded-full bg-cyan-300 text-sm font-black text-slate-950 active:scale-95">发起咨询</button>
-          </div>
-          {['跑步机无法连接怎么办？', '红包奖励可以提现吗？', '路线完成后城市没有点亮？'].map(q => (
-            <button key={q} className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-4 text-left text-sm font-black text-slate-200">
-              {q}
-              <CircleHelp size={17} className="text-slate-600" />
-            </button>
-          ))}
-        </div>
-      );
-    }
+          </section>
 
-    if (kind === 'feedback') {
-      return (
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {['设备问题', '路线问题', '奖励问题', '体验建议'].map(type => (
-              <button
-                key={type}
-                onClick={() => setFeedbackType(type)}
-                className={`rounded-full border px-4 py-2 text-xs font-black ${
-                  feedbackType === type ? 'border-cyan-300 bg-cyan-300/16 text-cyan-100' : 'border-white/10 bg-white/[0.04] text-slate-500'
-                }`}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
-          <textarea
-            value={feedbackText}
-            onChange={event => setFeedbackText(event.target.value)}
-            placeholder="请描述你遇到的问题或建议..."
-            className="h-40 w-full resize-none rounded-[26px] border border-white/10 bg-white/[0.04] p-4 text-sm font-bold leading-6 text-white outline-none placeholder:text-slate-600 focus:border-cyan-300/40"
-          />
           <button
-            onClick={() => setSubmitted(true)}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-cyan-200 to-amber-100 text-sm font-black text-slate-950 active:scale-95"
+            type="button"
+            disabled={!feedbackText.trim()}
+            onClick={() => setFeedbackSubmitted(true)}
+            className="flex h-12 w-full items-center justify-center rounded-full bg-cyan-200 text-sm font-black text-slate-950 shadow-[0_12px_30px_rgba(34,211,238,0.16)] transition active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-slate-800 disabled:text-slate-500 disabled:shadow-none"
           >
-            <Send size={17} />
-            提交反馈
+            {feedbackSubmitted ? '已提交' : '提交'}
           </button>
-          {submitted && <div className="rounded-2xl border border-emerald-300/18 bg-emerald-300/10 p-4 text-sm font-black text-emerald-100">已收到反馈，我们会尽快处理。</div>}
+
+          <button
+            type="button"
+            onClick={() => setShowSupportQr(true)}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-cyan-200/28 bg-cyan-300/10 text-sm font-black text-cyan-100 transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/70"
+          >
+            <QrCode size={18} />
+            添加客服（企业微信）
+          </button>
         </div>
       );
     }
@@ -466,7 +454,7 @@ export default function AccountFeatureView({ kind, userStats, authUser, onBack, 
   };
 
   return (
-    <div className="h-full w-full overflow-y-auto bg-[#05070A] px-5 pb-10 pt-safeb text-slate-100 hide-scrollbar">
+    <div className="relative h-full w-full overflow-y-auto bg-[#05070A] px-5 pb-10 pt-safeb text-slate-100 hide-scrollbar">
       <div className="sticky top-0 z-20 -mx-5 flex items-center justify-between border-b border-white/10 bg-[#05070A]/82 px-5 py-3 backdrop-blur-xl">
         <button
           type="button"
@@ -477,26 +465,81 @@ export default function AccountFeatureView({ kind, userStats, authUser, onBack, 
           <ChevronLeft size={22} />
         </button>
         <div className="text-center">
-          <p className="text-[10px] font-black uppercase tracking-[0.28em] text-cyan-200/70">{meta.eyebrow}</p>
+          {kind !== 'service' && kind !== 'feedback' && (
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-cyan-200/70">{meta.eyebrow}</p>
+          )}
           <h1 className="text-lg font-black">{meta.title}</h1>
         </div>
         <div className="h-11 w-11" />
       </div>
 
-      <section className="relative mt-5 overflow-hidden rounded-[30px] border border-cyan-200/15 bg-[#09111b] p-5">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(34,211,238,0.16),transparent_38%),radial-gradient(circle_at_100%_0%,rgba(251,191,36,0.12),transparent_45%)]" />
-        <div className="relative flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-[22px] border border-cyan-200/16 bg-cyan-300/10 text-cyan-100">
-            <FeatureIcon kind={kind} />
+      {kind !== 'service' && kind !== 'feedback' && (
+        <section className="relative mt-5 overflow-hidden rounded-[30px] border border-cyan-200/15 bg-[#09111b] p-5">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_0%,rgba(34,211,238,0.16),transparent_38%),radial-gradient(circle_at_100%_0%,rgba(251,191,36,0.12),transparent_45%)]" />
+          <div className="relative flex items-center gap-4">
+            <div className="flex h-14 w-14 items-center justify-center rounded-[22px] border border-cyan-200/16 bg-cyan-300/10 text-cyan-100">
+              <FeatureIcon kind={kind} />
+            </div>
+            <div>
+              <h2 className="text-xl font-black text-white">{meta.title}</h2>
+              <p className="mt-1 text-xs font-bold text-slate-500">{meta.desc}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-xl font-black text-white">{meta.title}</h2>
-            <p className="mt-1 text-xs font-bold text-slate-500">{meta.desc}</p>
+        </section>
+      )}
+
+      <main className={kind === 'service' || kind === 'feedback' ? 'mt-5' : 'mt-4'}>{renderContent()}</main>
+
+      {showSupportQr && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-black/72 p-4 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="support-qr-title"
+          onClick={() => setShowSupportQr(false)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-[30px] border border-cyan-200/18 bg-[#0a1522] p-5 shadow-[0_30px_90px_rgba(0,0,0,0.62)]"
+            onClick={event => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setShowSupportQr(false)}
+              className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-slate-300 active:scale-95"
+              aria-label="关闭客服二维码"
+            >
+              <X size={19} />
+            </button>
+
+            <div className="pr-12">
+              <h2 id="support-qr-title" className="text-xl font-black text-white">扫码联系客服</h2>
+              <p className="mt-1 text-xs font-bold leading-5 text-slate-500">先保存二维码，再打开微信扫一扫，从相册选择二维码识别。</p>
+            </div>
+
+            <div className="mt-5 rounded-[24px] border border-cyan-200/15 bg-white p-4 shadow-[0_0_45px_rgba(34,211,238,0.12)]">
+              <img
+                src={`${viteBaseUrl}movevi-support-qr.png`}
+                alt="客服二维码"
+                className="mx-auto aspect-square w-full max-w-[260px] object-contain"
+              />
+            </div>
+
+            <a
+              href={`${viteBaseUrl}movevi-support-qr.png`}
+              download="MOVEVI客服二维码.png"
+              className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-cyan-200 text-sm font-black text-slate-950 shadow-[0_12px_30px_rgba(34,211,238,0.16)] transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-100/70"
+            >
+              <Download size={18} />
+              一键保存二维码
+            </a>
+
+            <div className="mt-4 flex items-center justify-center gap-2 text-xs font-bold text-slate-400">
+              <span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.55)]" />
+              客服在线 · 09:00 - 16:00
+            </div>
           </div>
         </div>
-      </section>
-
-      <main className="mt-4">{renderContent()}</main>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
-import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, Activity, Compass, RefreshCw, Gift, Sparkles, Flame, Radio } from 'lucide-react';
+import { Award, Zap, ChevronRight, X, CheckCircle2, Lock, Activity, Compass, RefreshCw, Gift, Sparkles, Flame, HeadphonesIcon, Radio } from 'lucide-react';
 import { CITIES, CityData } from '../data/cities';
 import { cn } from '../lib/utils';
 import { getGlowRank } from '../lib/glow';
@@ -455,34 +455,50 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
       {/* HUD: Top Overlay */}
       <div className={`absolute left-0 right-0 top-0 z-20 flex items-start justify-between gap-3 bg-gradient-to-b px-5 pt-5 pointer-events-none ${spaceBackground === 'nebula' ? 'from-[#040511]/76' : spaceBackground === 'starlight' ? 'from-[#020713]/74' : 'from-[#081827]/68'} to-transparent`}>
         
-        {/* User Info */}
-        <button
-          onClick={() => onNavigate && onNavigate('glowCenter', null)}
-          className="flex items-center gap-3 rounded-full border border-white/12 bg-slate-950/24 p-1.5 pr-4 text-left shadow-[0_18px_44px_rgba(0,0,0,0.24)] backdrop-blur-md pointer-events-auto hover:border-cyan-200/35 hover:bg-white/[0.075] transition-colors"
-        >
-          <div className={`relative h-12 w-12 rounded-full bg-gradient-to-br ${avatarFrame.ring} p-[2px] ${avatarFrame.shadow}`}>
-            <div className="h-full w-full rounded-full bg-slate-950 p-[2px]">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100"
-                alt="用户头像"
-                className="h-full w-full rounded-full object-cover"
-              />
+        {/* User Info & Campaign Entry */}
+        <div className="flex w-[190px] flex-col items-start gap-2 pointer-events-auto">
+          <button
+            onClick={() => onNavigate && onNavigate('glowCenter', null)}
+            className="flex w-full items-center gap-3 rounded-full border border-white/12 bg-slate-950/24 p-1.5 pr-4 text-left shadow-[0_18px_44px_rgba(0,0,0,0.24)] backdrop-blur-md hover:border-cyan-200/35 hover:bg-white/[0.075] transition-colors"
+          >
+            <div className={`relative h-12 w-12 rounded-full bg-gradient-to-br ${avatarFrame.ring} p-[2px] ${avatarFrame.shadow}`}>
+              <div className="h-full w-full rounded-full bg-slate-950 p-[2px]">
+                <img
+                  src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=100&h=100"
+                  alt="用户头像"
+                  className="h-full w-full rounded-full object-cover"
+                />
+              </div>
             </div>
-          </div>
-          <div>
-            <div className="text-sm font-black tracking-wide text-slate-50">沐小六</div>
-            <div className="mt-0.5 flex items-center gap-1.5 text-[10px] font-bold text-slate-300">
-              <span>{currentGlowRank.name}</span>
-              <span className="text-slate-500">LV.{currentGlowRank.level}</span>
+            <div>
+              <div className="text-sm font-black tracking-wide text-slate-50">沐小六</div>
+              <div className="mt-0.5 flex items-center gap-1.5 text-[10px] font-bold text-slate-300">
+                <span>{currentGlowRank.name}</span>
+                <span className="text-slate-500">LV.{currentGlowRank.level}</span>
+              </div>
+              <div className="mt-1 h-1 w-20 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-cyan-200 to-amber-200"
+                  style={{ width: `${glowRankDetails.progress}%` }}
+                />
+              </div>
             </div>
-            <div className="mt-1 h-1 w-20 overflow-hidden rounded-full bg-white/10">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-cyan-200 to-amber-200"
-                style={{ width: `${glowRankDetails.progress}%` }}
-              />
-            </div>
-          </div>
-        </button>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onNavigate?.('purchaseRefundCampaign', null)}
+            className="group relative flex h-10 w-full items-center gap-2.5 overflow-hidden rounded-[15px] border border-amber-100/20 bg-[#18212a]/82 px-3 text-left shadow-[0_12px_30px_rgba(0,0,0,0.22)] backdrop-blur-xl outline-none transition active:scale-[0.985] focus-visible:ring-2 focus-visible:ring-amber-100/55"
+            aria-label="打开30天打卡返购机费活动"
+          >
+            <span className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-[radial-gradient(circle_at_100%_50%,rgba(251,191,36,0.15),transparent_72%)]" />
+            <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] border border-amber-100/20 bg-amber-200/9 text-amber-100">
+              <Gift size={14} />
+            </span>
+            <span className="relative min-w-0 flex-1 truncate text-[12px] font-black text-white">打卡返购机费</span>
+            <ChevronRight size={15} className="relative shrink-0 text-amber-100/85 transition-transform group-hover:translate-x-0.5" />
+          </button>
+        </div>
 
         {/* Top Right Actions */}
         <div className="flex items-center gap-2 pointer-events-auto">
@@ -576,17 +592,29 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
         <button
           className="group flex flex-col items-center gap-1.5 text-[10px] font-black text-orange-100"
           onClick={() => onNavigate && onNavigate('weightLossPlan', null)}
+          aria-label="打开打卡红包活动"
         >
           <span className="flex h-11 w-11 items-center justify-center rounded-full border border-orange-200/24 bg-orange-300/12 text-orange-200 shadow-[0_12px_34px_rgba(0,0,0,0.26)] backdrop-blur-md transition group-hover:border-orange-200/50 group-hover:bg-orange-300/18">
             <Flame size={18} />
           </span>
           打卡领红包
         </button>
+        <button
+          type="button"
+          onClick={() => onNavigate && onNavigate('onlineSupport', null)}
+          className="group flex flex-col items-center gap-1.5 text-[11px] font-black text-cyan-50"
+          aria-label="打开在线客服"
+        >
+          <span className="relative flex h-12 w-12 items-center justify-center rounded-full border border-cyan-100/45 bg-gradient-to-br from-cyan-300/28 via-[#0c2636]/88 to-[#07111f]/90 text-cyan-50 shadow-[0_14px_36px_rgba(0,0,0,0.32),0_0_24px_rgba(34,211,238,0.22),inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md transition group-hover:border-cyan-100/70 group-hover:from-cyan-200/34 group-hover:shadow-[0_16px_38px_rgba(0,0,0,0.34),0_0_32px_rgba(34,211,238,0.3),inset_0_1px_0_rgba(255,255,255,0.22)] group-focus-visible:border-cyan-100/80 group-focus-visible:outline-none group-focus-visible:ring-2 group-focus-visible:ring-cyan-200/45">
+            <span className="absolute inset-[-5px] rounded-full border border-cyan-200/12 opacity-80 shadow-[0_0_28px_rgba(34,211,238,0.16)]" />
+            <HeadphonesIcon size={20} strokeWidth={2.4} className="relative" />
+          </span>
+          在线客服
+        </button>
       </div>
 
       {/* Bottom Area */}
-      <div className="absolute bottom-2 left-4 right-4 z-20 pointer-events-none flex flex-col gap-3">
-
+      <div className="absolute bottom-2 left-4 right-4 z-20 pointer-events-none flex flex-col gap-2">
         {/* Bottom Mission Card (Teaser) */}
         <div
           className="relative w-full cursor-pointer overflow-hidden rounded-[22px] border border-cyan-100/16 bg-[#142538]/76 p-4 shadow-[0_24px_70px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl pointer-events-auto transition-colors hover:border-cyan-200/32"

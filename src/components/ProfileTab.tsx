@@ -2,11 +2,11 @@ import {
   BookOpen,
   ChevronRight,
   ClipboardList,
-  FileText,
   HeadphonesIcon,
   Mail,
   Map as MapIcon,
   Medal,
+  MessageSquare,
   MonitorSmartphone,
   Settings,
   Sparkles,
@@ -34,9 +34,10 @@ interface ProfileTabProps {
   onOpenSettings?: () => void;
   onOpenFeature?: (feature: AccountFeatureKind) => void;
   onOpenRouteCollection?: () => void;
+  onOpenWechatSupport?: () => void;
 }
 
-export default function ProfileTab({ userStats, authUser, onOpenAuth, onOpenSettings, onOpenFeature, onOpenRouteCollection }: ProfileTabProps) {
+export default function ProfileTab({ userStats, authUser, onOpenAuth, onOpenSettings, onOpenFeature, onOpenRouteCollection, onOpenWechatSupport }: ProfileTabProps) {
   const rankInfo = getGlowRank(userStats.lifetimeLightValue ?? userStats.lightValue ?? 0);
   const displayName = authUser?.name || '登录 / 注册';
   const openProfile = () => {
@@ -57,8 +58,8 @@ export default function ProfileTab({ userStats, authUser, onOpenAuth, onOpenSett
     { icon: ClipboardList, label: '运动记录', feature: 'records' as AccountFeatureKind },
     { icon: MonitorSmartphone, label: '我的设备', feature: 'device' as AccountFeatureKind },
     { icon: Wallet, label: '我的钱包', feature: 'wallet' as AccountFeatureKind },
-    { icon: HeadphonesIcon, label: '在线客服', feature: 'service' as AccountFeatureKind },
-    { icon: FileText, label: '问题反馈', feature: 'feedback' as AccountFeatureKind },
+    { icon: MessageSquare, label: '问题反馈', feature: 'service' as AccountFeatureKind },
+    { icon: HeadphonesIcon, label: '添加企微', onClick: onOpenWechatSupport },
     { icon: BookOpen, label: '使用说明', feature: 'guide' as AccountFeatureKind },
     { icon: Settings, label: '设置', onClick: onOpenSettings }
   ];

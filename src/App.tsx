@@ -14,6 +14,11 @@ import {
 } from './lib/glow';
 import type { AuthUser } from './components/AuthView';
 import type { AccountFeatureKind } from './components/AccountFeatureView';
+import type {
+  PurchaseRefundCampaignState,
+  PurchaseRefundCheckIn,
+  PurchaseRefundRegistration
+} from './components/PurchaseRefundCampaignView';
 import { getWeightPlanRewardAmount, type WeightPlanRewardRecord } from './lib/weightPlan';
 
 const EventsTab = lazy(() => import('./components/EventsTab'));
@@ -36,6 +41,8 @@ const WeightLossPlanView = lazy(() => import('./components/WeightLossPlanView'))
 const AuthView = lazy(() => import('./components/AuthView'));
 const SettingsView = lazy(() => import('./components/SettingsView'));
 const AccountFeatureView = lazy(() => import('./components/AccountFeatureView'));
+const OnlineSupportView = lazy(() => import('./components/OnlineSupportView'));
+const PurchaseRefundCampaignView = lazy(() => import('./components/PurchaseRefundCampaignView'));
 
 const ViewLoadingFallback = () => (
   <div className="flex h-full w-full items-center justify-center bg-[#05070A]" role="status" aria-label="页面加载中">
@@ -94,7 +101,7 @@ export default function App() {
   const [showRouteMedalGuide, setShowRouteMedalGuide] = useState(false);
   const [newbieCashReward, setNewbieCashReward] = useState<NewbieCashReward | null>(null);
   const [taskPanelOpenSignal, setTaskPanelOpenSignal] = useState(0);
-  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'routeMemory' | 'runPlayback' | 'routeCollection' | 'leaderboard' | 'weekendMedley' | 'teamRelay' | 'glowCenter' | 'glowShop' | 'glowWheel' | 'medalLottery' | 'weightLossPlan' | 'auth' | 'settings' | 'accountFeature', data?: any} | null>(null);
+  const [fullScreenPage, setFullScreenPage] = useState<{type: 'cityRoutes' | 'routeDetail' | 'routeMemory' | 'runPlayback' | 'routeCollection' | 'leaderboard' | 'weekendMedley' | 'teamRelay' | 'glowCenter' | 'glowShop' | 'glowWheel' | 'medalLottery' | 'weightLossPlan' | 'purchaseRefundCampaign' | 'auth' | 'settings' | 'accountFeature' | 'onlineSupport', data?: any} | null>(null);
   const [collectionViewState, setCollectionViewState] = useState<CollectionViewState>({
     viewMode: 'cards',
     filter: 'all',
@@ -134,6 +141,11 @@ export default function App() {
   const [weightPlanRewardBoxes, setWeightPlanRewardBoxes] = useState<number[]>([]);
   const [weightPlanOpenedRewardDays, setWeightPlanOpenedRewardDays] = useState<number[]>([]);
   const [weightPlanRewardHistory, setWeightPlanRewardHistory] = useState<WeightPlanRewardRecord[]>([]);
+  const [purchaseRefundCampaign, setPurchaseRefundCampaign] = useState<PurchaseRefundCampaignState>({
+    status: 'unregistered',
+    registration: null,
+    checkIns: []
+  });
   const [litCityIds, setLitCityIds] = useState<string[]>(() => {
     const historyAnchor = Date.now();
     CITIES.forEach(c => {
@@ -224,6 +236,18 @@ export default function App() {
     return () => window.cancelAnimationFrame(frame);
   }, []);
 
+  useEffect(() => {
+    if (purchaseRefundCampaign.status !== 'active' || !purchaseRefundCampaign.registration?.approvedAt) return;
+    const start = new Date(purchaseRefundCampaign.registration.approvedAt);
+    start.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const currentDay = Math.floor((today.getTime() - start.getTime()) / 86_400_000) + 1;
+    if (currentDay > 60) {
+      setPurchaseRefundCampaign(prev => ({ ...prev, status: 'expired' }));
+    }
+  }, [purchaseRefundCampaign.status, purchaseRefundCampaign.registration?.approvedAt]);
+
   const issueNewbieCashReward = (reward: NewbieCashReward) => {
     if ((userStats.newbieCashRewardClaimedIds || []).includes(reward.id)) {
       return;
@@ -257,6 +281,120 @@ export default function App() {
     });
 
     setNewbieCashReward(reward);
+  };
+
+  const submitPurchaseRefundRegistration = (
+    registration: Omit<PurchaseRefundRegistration, 'submittedAt' | 'approvedAt' | 'rejectionReason'>
+  ) => {
+    if (
+      purchaseRefundCampaign.registration?.machineCode === registration.machineCode
+      && purchaseRefundCampaign.status !== 'registrationRejected'
+    ) {
+      return { success: false, message: '该机器码已提交过报名' };
+    }
+
+    setPurchaseRefundCampaign({
+      status: 'registrationPending',
+      registration: { ...registration, submittedAt: Date.now() },
+      checkIns: []
+    });
+    return { success: true, message: '报名已提交' };
+  };
+
+  const reviewPurchaseRefundRegistration = (approved: boolean) => {
+    setPurchaseRefundCampaign(prev => {
+      if (!prev.registration) return prev;
+      return {
+        ...prev,
+        status: approved ? 'active' : 'registrationRejected',
+        registration: {
+          ...prev.registration,
+          approvedAt: approved ? Date.now() : undefined,
+          rejectionReason: approved ? undefined : '机器码与购机信息不一致，请核对后重新提交。'
+        }
+      };
+    });
+  };
+
+  const submitPurchaseRefundCheckIn = (url: string) => {
+    const isDouyinUrl = /^(https?:\/\/)?([\w-]+\.)?(douyin\.com)\//i.test(url);
+    if (!isDouyinUrl) return { success: false, message: '请粘贴有效的抖音视频链接' };
+    if (purchaseRefundCampaign.status !== 'active' || !purchaseRefundCampaign.registration?.approvedAt) {
+      return { success: false, message: '当前无法提交打卡' };
+    }
+
+    const approvedAt = new Date(purchaseRefundCampaign.registration.approvedAt);
+    approvedAt.setHours(0, 0, 0, 0);
+    const today = new Date();
+    const todayKey = `${today.getFullYear()}-${`${today.getMonth() + 1}`.padStart(2, '0')}-${`${today.getDate()}`.padStart(2, '0')}`;
+    const campaignDay = Math.floor((new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime() - approvedAt.getTime()) / 86_400_000) + 1;
+    if (campaignDay > 60) {
+      setPurchaseRefundCampaign(prev => ({ ...prev, status: 'expired' }));
+      return { success: false, message: '本期挑战已结束' };
+    }
+    if (purchaseRefundCampaign.checkIns.some(item => item.date === todayKey && item.status !== 'rejected')) {
+      return { success: false, message: '今日已经提交过视频' };
+    }
+
+    const checkIn: PurchaseRefundCheckIn = {
+      id: `purchase-refund-${Date.now()}`,
+      day: Math.max(1, campaignDay),
+      date: todayKey,
+      url,
+      submittedAt: Date.now(),
+      status: 'pending'
+    };
+    setPurchaseRefundCampaign(prev => ({ ...prev, checkIns: [...prev.checkIns, checkIn] }));
+    return { success: true, message: '视频已提交，审核通过后计入进度' };
+  };
+
+  const reviewPurchaseRefundCheckIn = (id: string, approved: boolean) => {
+    setPurchaseRefundCampaign(prev => {
+      const checkIns = prev.checkIns.map(item => item.id === id ? {
+        ...item,
+        status: approved ? 'approved' as const : 'rejected' as const,
+        reviewedAt: Date.now(),
+        rejectionReason: approved ? undefined : '视频未完整展示跑步机使用画面，请重新拍摄后提交。'
+      } : item);
+      const approvedCount = checkIns.filter(item => item.status === 'approved').length;
+      return {
+        ...prev,
+        checkIns,
+        status: approvedCount >= 30 ? 'completed' : prev.status
+      };
+    });
+  };
+
+  const demoPurchaseRefundNearCompletion = () => {
+    setPurchaseRefundCampaign(prev => {
+      if (!prev.registration) return prev;
+      const approvedAt = new Date();
+      approvedAt.setDate(approvedAt.getDate() - 29);
+      approvedAt.setHours(9, 0, 0, 0);
+      const demoCheckIns: PurchaseRefundCheckIn[] = Array.from({ length: 29 }, (_, index) => {
+        const submittedAt = new Date(approvedAt);
+        submittedAt.setDate(submittedAt.getDate() + index);
+        submittedAt.setHours(20, 12, 0, 0);
+        const date = `${submittedAt.getFullYear()}-${`${submittedAt.getMonth() + 1}`.padStart(2, '0')}-${`${submittedAt.getDate()}`.padStart(2, '0')}`;
+        return {
+          id: `purchase-refund-demo-${index + 1}`,
+          day: index + 1,
+          date,
+          url: `https://www.douyin.com/video/demo-${index + 1}`,
+          submittedAt: submittedAt.getTime(),
+          reviewedAt: submittedAt.getTime() + 3_600_000,
+          status: 'approved'
+        };
+      });
+      return {
+        ...prev,
+        status: 'active',
+        registration: { ...prev.registration, approvedAt: approvedAt.getTime(), rejectionReason: undefined },
+        checkIns: demoCheckIns,
+        refundRequestedAt: undefined,
+        refundedAt: undefined
+      };
+    });
   };
 
   const renderContent = () => {
@@ -332,6 +470,10 @@ export default function App() {
             onOpenAuth={() => setFullScreenPage({ type: 'auth' })}
             onOpenSettings={() => setFullScreenPage({ type: 'settings' })}
             onOpenFeature={(feature: AccountFeatureKind) => setFullScreenPage({ type: 'accountFeature', data: feature })}
+            onOpenWechatSupport={() => setFullScreenPage({
+              type: 'accountFeature',
+              data: { kind: 'service', initialSupportQrOpen: true }
+            })}
             onOpenRouteCollection={() => {
               setCollectionViewState(prev => ({ ...prev, expandedCityId: null }));
               setFullScreenPage({ type: 'routeCollection' });
@@ -908,12 +1050,18 @@ export default function App() {
             )}
             {fullScreenPage.type === 'accountFeature' && (
               <AccountFeatureView
-                kind={fullScreenPage.data as AccountFeatureKind}
+                kind={(typeof fullScreenPage.data === 'object' ? fullScreenPage.data?.kind : fullScreenPage.data) as AccountFeatureKind}
                 userStats={userStats}
                 authUser={authUser}
                 onBack={() => setFullScreenPage(null)}
                 onOpenAuth={() => setFullScreenPage({ type: 'auth' })}
+                initialSupportQrOpen={Boolean(
+                  typeof fullScreenPage.data === 'object' && fullScreenPage.data?.initialSupportQrOpen
+                )}
               />
+            )}
+            {fullScreenPage.type === 'onlineSupport' && (
+              <OnlineSupportView onBack={() => setFullScreenPage(null)} />
             )}
             {fullScreenPage.type === 'glowCenter' && (
               <GlowCenterView
@@ -1002,6 +1150,34 @@ export default function App() {
                    });
                  }}
                />
+            )}
+            {fullScreenPage.type === 'purchaseRefundCampaign' && (
+              <PurchaseRefundCampaignView
+                campaign={purchaseRefundCampaign}
+                onBack={() => setFullScreenPage(null)}
+                onOpenSupport={() => setFullScreenPage({ type: 'onlineSupport' })}
+                onSubmitRegistration={submitPurchaseRefundRegistration}
+                onReviewRegistration={reviewPurchaseRefundRegistration}
+                onSubmitCheckIn={submitPurchaseRefundCheckIn}
+                onReviewCheckIn={reviewPurchaseRefundCheckIn}
+                onRequestRefund={() => setPurchaseRefundCampaign(prev => (
+                  prev.status === 'completed'
+                    ? { ...prev, status: 'refundPending', refundRequestedAt: Date.now() }
+                    : prev
+                ))}
+                onConfirmRefund={() => setPurchaseRefundCampaign(prev => (
+                  prev.status === 'refundPending'
+                    ? { ...prev, status: 'refunded', refundedAt: Date.now() }
+                    : prev
+                ))}
+                onDemoNearCompletion={demoPurchaseRefundNearCompletion}
+                onDemoExpire={() => setPurchaseRefundCampaign(prev => ({ ...prev, status: 'expired' }))}
+                onResetDemo={() => setPurchaseRefundCampaign({
+                  status: 'unregistered',
+                  registration: null,
+                  checkIns: []
+                })}
+              />
             )}
             {fullScreenPage.type === 'weekendMedley' && (
                <WeekendMedleyView 
