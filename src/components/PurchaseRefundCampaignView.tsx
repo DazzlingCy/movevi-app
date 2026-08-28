@@ -9,7 +9,6 @@ import {
   Dumbbell,
   Headphones,
   MessageCircleMore,
-  QrCode,
   Smartphone,
   Sparkles,
   UsersRound,
@@ -116,7 +115,6 @@ function PosterPanel({ number, title, icon, children }: { number: string; title:
 
 function CampaignPoster() {
   const viteBaseUrl = (import.meta as ImportMeta & { env?: { BASE_URL?: string } }).env?.BASE_URL || '/';
-  const qrCodeSrc = `${viteBaseUrl}movevi-support-qr.png`;
   const backgroundSrc = `${viteBaseUrl}purchase-refund-poster-bg.jpg`;
 
   return (
@@ -209,12 +207,11 @@ function CampaignPoster() {
         </div>
 
         <section className="mt-7 border-[3px] border-[#151b12] bg-[#f8db27] p-4 shadow-[5px_5px_0_#151b12]">
-          <div className="grid grid-cols-[112px_1fr] items-center gap-4">
-            <div className="bg-white p-2"><img src={qrCodeSrc} alt="木卫六打卡返购机款活动群二维码" className="aspect-square w-full object-cover" /></div>
-            <div>
-              <p className="flex items-center gap-2 text-base font-black"><QrCode size={19} />扫码加入活动群</p>
-              <p className="mt-2 text-[11px] font-bold leading-5 opacity-65">了解报名、拍摄与购机款返还细则</p>
-              <p className="mt-3 inline-block bg-[#151b12] px-2 py-1 text-[10px] font-black text-[#d7ff32]">名额有限 · 先到先得</p>
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#151b12] text-[#d7ff32]"><Headphones size={22} /></span>
+            <div className="min-w-0">
+              <p className="text-base font-black">活动咨询</p>
+              <p className="mt-1 text-[11px] font-bold leading-5 opacity-70">点击下方客服按钮，一对一咨询报名、拍摄与购机款返还细则。</p>
             </div>
           </div>
         </section>

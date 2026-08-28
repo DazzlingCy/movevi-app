@@ -489,13 +489,13 @@ export default function HomeTab({ onNavigate, completedChapters = [], targetFlig
             type="button"
             onClick={() => onNavigate?.('purchaseRefundCampaign', null)}
             className="group relative flex h-10 w-full items-center gap-2.5 overflow-hidden rounded-[15px] border border-amber-100/20 bg-[#18212a]/82 px-3 text-left shadow-[0_12px_30px_rgba(0,0,0,0.22)] backdrop-blur-xl outline-none transition active:scale-[0.985] focus-visible:ring-2 focus-visible:ring-amber-100/55"
-            aria-label="打开30天打卡返购机费活动"
+            aria-label="打开30天运动打卡返购机款活动"
           >
             <span className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-[radial-gradient(circle_at_100%_50%,rgba(251,191,36,0.15),transparent_72%)]" />
             <span className="relative flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] border border-amber-100/20 bg-amber-200/9 text-amber-100">
               <Gift size={14} />
             </span>
-            <span className="relative min-w-0 flex-1 truncate text-[12px] font-black text-white">打卡返购机费</span>
+            <span className="relative min-w-0 flex-1 whitespace-nowrap text-[11px] font-black tracking-[-0.03em] text-white">30天运动打卡返购机款</span>
             <ChevronRight size={15} className="relative shrink-0 text-amber-100/85 transition-transform group-hover:translate-x-0.5" />
           </button>
         </div>
