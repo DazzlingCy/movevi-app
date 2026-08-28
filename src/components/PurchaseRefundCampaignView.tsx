@@ -76,7 +76,7 @@ const CONTENT_IDEAS = [
   '边看城市路线边走步',
   '今天完成第7天',
   '和家人一起运动',
-  '连续30天后的变化'
+  '完成30天打卡后的变化'
 ];
 
 function PageHeader({ onBack }: { onBack: () => void }) {
@@ -136,7 +136,7 @@ function CampaignPoster() {
             30天运动打卡
             <span className="mx-auto mt-3 block max-w-[300px] -rotate-1 bg-[#151b12] px-3 py-2.5 text-[#d7ff32] shadow-[5px_5px_0_#f8db27]">返购机款</span>
           </h2>
-          <p className="mx-auto mt-6 max-w-sm text-[13px] font-bold leading-6">连续运动30天，记录真实运动生活。<br />完成打卡后，购机款全额返还。</p>
+          <p className="mx-auto mt-6 max-w-sm text-[13px] font-bold leading-6">在规定时间内运动打卡30天，记录真实运动生活。<br />完成打卡后，购机款全额返还。</p>
           <div className="mx-auto mt-6 grid max-w-sm grid-cols-3 overflow-hidden border-2 border-[#151b12] bg-[#fffef0] shadow-[4px_4px_0_#8ddd27]">
             {[['30天', '目标打卡'], ['60天', '完成周期'], ['全额', '购机款返还']].map(([value, label], index) => (
               <div key={label} className={`py-3 ${index > 0 ? 'border-l-2 border-[#151b12]' : ''}`}>
